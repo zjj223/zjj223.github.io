@@ -1,0 +1,6 @@
+# 部署时忽略的开发遗留文件（游戏本体需要的都在 index.html / app.js / styles.css / data / assets 里）
+/*.py
+/*.png
+/*.json
+/*.txt
+.agents/

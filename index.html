@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>卡罗西亚大陆</title>
+    <link rel="stylesheet" href="./styles.css?v=20261114c" />
+  </head>
+  <body>
+    <!-- 老师登录界面 -->
+    <div id="loginView" class="login-view">
+      <div class="login-card">
+        <div class="login-logo">🌟</div>
+        <h1 class="login-title">卡罗西亚大陆</h1>
+        <p class="login-subtitle">课堂养成游戏</p>
+
+        <div class="login-tabs">
+          <button type="button" class="login-tab is-active" data-login-mode="student">学生登录</button>
+          <button type="button" class="login-tab" data-login-mode="teacher">老师入口</button>
+        </div>
+
+        <form id="studentLoginForm" class="login-form">
+          <input
+            id="studentName"
+            type="text"
+            maxlength="12"
+            autocomplete="off"
+            placeholder="你的名字（和老师约好的那个）"
+            required
+          />
+          <input
+            id="studentPass"
+            type="text"
+            inputmode="numeric"
+            maxlength="4"
+            autocomplete="off"
+            placeholder="4 位数字密码"
+            required
+          />
+          <button type="submit" class="login-button" id="studentLoginBtn">开始游戏</button>
+        </form>
+        <p id="studentLoginError" class="login-error" hidden>登录信息有误，请重试</p>
+
+        <form id="loginForm" class="login-form" hidden>
+          <input
+            id="teacherCode"
+            type="password"
+            placeholder="请输入老师权限码"
+            autocomplete="off"
+            required
+          />
+          <button type="submit" class="login-button">进入老师后台</button>
+        </form>
+        <p id="loginError" class="login-error" hidden>权限码错误，请重试</p>
+      </div>
+    </div>
+
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">第一阶段课堂养成</p>
+          <h1>卡罗西亚大陆</h1>
+        </div>
+        <div id="saveStatus" class="save-status" aria-live="polite">正在读取存档</div>
+      </header>
+
+      <main class="app-grid">
+        <section class="panel profile-panel" aria-labelledby="profileTitle">
+          <div class="panel-heading">
+            <h2 id="profileTitle">角色存档</h2>
+          </div>
+
+          <form id="createForm" class="create-form">
+            <label class="field">
+              <span>角色名</span>
+              <input
+                id="playerName"
+                name="playerName"
+                type="text"
+                maxlength="12"
+                autocomplete="off"
+                placeholder="输入学生角色名"
+                required
+              />
+            </label>
+
+            <fieldset class="gender-field">
+              <legend>性别</legend>
+              <label>
+                <input type="radio" name="gender" value="male" checked />
+                <span>男</span>
+              </label>
+              <label>
+                <input type="radio" name="gender" value="female" />
+                <span>女</span>
+              </label>
+            </fieldset>
+
+            <button class="primary-button" type="submit">
+              <span class="button-icon" aria-hidden="true">＋</span>
+              新建角色
+            </button>
+          </form>
+
+          <div id="profileList" class="profile-list" aria-live="polite"></div>
+        </section>
+
+        <section class="game-area" aria-label="游戏主界面">
+          <div id="emptyState" class="empty-state">
+            <div class="empty-mark" aria-hidden="true">◇</div>
+            <h2>请选择或新建角色</h2>
+          </div>
+
+          <div id="gameView" class="game-view" hidden>
+            <section class="status-grid" aria-label="角色信息面板">
+              <article class="status-tile hero-tile">
+                <div>
+                  <p class="tile-label">当前角色</p>
+                  <h2 id="activeName">未选择</h2>
+                </div>
+                <span id="activeGender" class="gender-badge">男</span>
+              </article>
+
+              <article class="status-tile">
+                <p class="tile-label">行动点</p>
+                <strong id="actionPoints">0</strong>
+              </article>
+
+              <article class="status-tile pet-status-tile">
+                <p class="tile-label">宠物状态</p>
+                <strong id="petStatus">未孵化</strong>
+                <div class="pet-status-row">
+                  <img id="petSmallIcon" class="pet-small-icon" src="" alt="" hidden />
+                  <span id="petDetail" class="tile-note">经验达标后孵蛋</span>
+                </div>
+              </article>
+            </section>
+            <!-- 课间计时器 -->
+            <section class="timer-panel" aria-label="课堂计时器">
+              <div class="timer-header">
+                <span class="timer-title">⏱ 课间计时器</span>
+                <span class="timer-display" id="timerDisplay">01:00</span>
+              </div>
+              <div class="timer-controls">
+                <button id="timerStartBtn" class="timer-btn primary" type="button">开始</button>
+                <button id="timerPauseBtn" class="timer-btn secondary" type="button">暂停</button>
+                <button id="timerAddBtn" class="timer-btn add" type="button">+30秒 (20行动点)</button>
+                <button id="timerResetBtn" class="timer-btn danger" type="button">重置</button>
+              </div>
+            </section>
+<!-- 宠物栏 -->
+            <section class="panel pet-team-panel" aria-labelledby="petTeamTitle">
+              <div class="panel-heading">
+                <h2 id="petTeamTitle">🐾 宠物栏（最多3只）</h2>
+              </div>
+              <div id="petTeamList" class="pet-team-list"></div>
+            </section>
+<section id="hatchPanel" class="panel hatch-panel" aria-labelledby="hatchTitle">
+              <div class="panel-heading">
+                <h2 id="hatchTitle">宠物概览</h2>
+              </div>
+              <div id="hatchContent" class="hatch-content"></div>
+            </section>
+<section class="panel stat-panel" aria-labelledby="statsTitle">
+              <div class="panel-heading">
+                <h2 id="statsTitle">宠物属性</h2>
+                <div class="power-score">⚔️ 战斗力 <strong id="powerValue">--</strong></div>
+              </div>
+              <div class="stat-bars">
+                <div class="stat-row" data-stat="hp">
+                  <div class="stat-meta">
+                    <span>❤️ 生命 HP</span>
+                    <strong id="hpValue">未孵化</strong>
+                  </div>
+                  <div class="progress-track">
+                    <div id="hpBar" class="progress-fill hp-fill"></div>
+                  </div>
+                </div>
+                <div class="stat-row" data-stat="exp">
+                  <div class="stat-meta">
+                    <span>✨ 经验</span>
+                    <strong id="expValue">0 / 120</strong>
+                  </div>
+                  <div class="progress-track">
+                    <div id="expBar" class="progress-fill exp-fill"></div>
+                  </div>
+                  <div class="exp-hint" id="expHint"></div>
+                </div>
+              </div>
+              <div class="battle-stats">
+                <div class="battle-stat">
+                  <span class="battle-stat-icon">⚔️</span>
+                  <span class="battle-stat-label">攻击</span>
+                  <strong id="attackValue">--</strong>
+                </div>
+                <div class="battle-stat">
+                  <span class="battle-stat-icon">🛡️</span>
+                  <span class="battle-stat-label">防御</span>
+                  <strong id="defenseValue">--</strong>
+                </div>
+                <div class="battle-stat">
+                  <span class="battle-stat-icon">⚡</span>
+                  <span class="battle-stat-label">速度</span>
+                  <strong id="speedValue">--</strong>
+                </div>
+              </div>
+              <div class="type-info" id="typeInfo" hidden>
+                <span class="type-label" id="typeLabel"></span>
+                <span class="type-strong" id="typeStrong"></span>
+                <span class="type-weak" id="typeWeak"></span>
+              </div>
+            </section>
+
+
+
+            
+
+            
+
+            <!-- 全局结果消息 -->
+            <div id="resultMessage" class="result-message global-result" aria-live="polite"></div>
+
+            <!-- 视图切换导航 -->
+            <div class="view-nav">
+              <button id="navWorld" class="view-nav-btn active" type="button">
+                <span class="button-icon" aria-hidden="true">🗺</span>大世界
+              </button>
+              <button id="navShop" class="view-nav-btn" type="button">
+                <span class="button-icon" aria-hidden="true">🏪</span>商店
+              </button>
+              <button id="navRank" class="view-nav-btn" type="button">
+                <span class="button-icon" aria-hidden="true">🏆</span>排行榜
+              </button>
+            </div>
+
+            <!-- 大世界视图 -->
+            <div id="worldView" class="view-container">
+              <section class="panel world-panel" aria-labelledby="worldTitle">
+                <div class="panel-heading">
+                  <h2 id="worldTitle">大世界场景</h2>
+                  <span class="panel-hint">点击场景进入探索</span>
+                </div>
+                <div id="sceneGrid" class="scene-grid"></div>
+              </section>
+            </div>
+
+            <!-- 场景内部视图 -->
+            <div id="sceneView" class="view-container" hidden>
+              <section class="panel scene-inner-panel" aria-labelledby="sceneInnerTitle">
+                <div class="panel-heading">
+                  <button id="backToWorld" class="ghost-button back-button" type="button">
+                    <span class="button-icon" aria-hidden="true">←</span>返回大世界
+                  </button>
+                  <h2 id="sceneInnerTitle">场景</h2>
+                  <label class="skip-battle-label">
+                    <input type="checkbox" id="skipBattleToggle" />
+                    <span>跳过战斗</span>
+                  </label>
+                </div>
+                <div id="sceneAtmosphere" class="scene-atmosphere"></div>
+                <div id="sceneSpotList" class="scene-spot-list"></div>
+                <div id="sceneResult" class="result-message" aria-live="polite"></div>
+                <div id="sceneInventory" class="scene-inventory"></div>
+              </section>
+            </div>
+
+            <!-- 商店视图 -->
+            <div id="shopView" class="view-container" hidden>
+              <section class="panel shop-panel" aria-labelledby="shopTitle">
+                <div class="panel-heading">
+                  <h2 id="shopTitle">道具商店</h2>
+                  <span class="panel-hint">经验当钱花，统一定价</span>
+                </div>
+                <div class="shop-tabs">
+                  <button id="shopTabMarket" class="shop-tab active" type="button">逛市场</button>
+                  <button id="shopTabSell" class="shop-tab" type="button">我要卖</button>
+                  <button id="shopTabMine" class="shop-tab" type="button">我的上架</button>
+                  <button id="shopTabBalls" class="shop-tab" type="button">咕噜球</button>
+                </div>
+                <div id="shopContent" class="shop-content"></div>
+              </section>
+            </div>
+            <!-- 排行榜视图 -->
+            <div id="rankView" class="view-container" hidden>
+              <section class="panel rank-panel" aria-labelledby="rankTitle">
+                <div class="panel-heading">
+                  <h2 id="rankTitle">战力排行榜</h2>
+                  <span class="panel-hint">按三种宠物战力总和排名</span>
+                </div>
+                <div id="rankContent" class="rank-content"></div>
+              </section>
+            </div>
+
+            
+
+          </div>
+        </section>
+
+        <aside class="panel teacher-panel" aria-labelledby="teacherTitle">
+          <div class="panel-heading">
+            <h2 id="teacherTitle">老师后台</h2>
+          </div>
+
+          <form id="teacherLogin" class="teacher-login">
+            <label class="field">
+              <span>权限码</span>
+              <input id="teacherKey" type="password" autocomplete="off" placeholder="输入权限码" />
+            </label>
+            <button class="secondary-button" type="submit">
+              <span class="button-icon" aria-hidden="true">✓</span>
+              进入后台
+            </button>
+          </form>
+
+          <div id="teacherControls" class="teacher-controls" hidden>
+            <label class="field">
+              <span>学生角色</span>
+              <select id="teacherSelect"></select>
+            </label>
+            <label class="field">
+              <span>行动点数量</span>
+              <input id="apAmount" type="number" min="1" step="1" value="1" />
+            </label>
+            <div class="teacher-actions">
+              <button id="addAp" class="secondary-button" type="button">
+                <span class="button-icon" aria-hidden="true">＋</span>
+                增加
+              </button>
+              <button id="subtractAp" class="danger-button" type="button">
+                <span class="button-icon" aria-hidden="true">−</span>
+                扣除
+              </button>
+            </div>
+            <div class="pet-debug-section">
+              <label class="field">
+                <span>🐾 宠物等级调试</span>
+                <span class="field-hint">给选中学生的出战宠物加等级，用来测试进化演出</span>
+              </label>
+              <label class="field">
+                <span>提升等级数</span>
+                <input id="petLevelAmount" type="number" min="1" step="1" value="10" />
+              </label>
+              <div class="teacher-actions">
+                <button id="boostPetLevel" class="secondary-button" type="button">
+                  <span class="button-icon" aria-hidden="true">⬆</span>
+                  宠物升级
+                </button>
+                <button id="boostPetLevelMax" class="ghost-button" type="button">
+                  直接进化到顶
+                </button>
+              </div>
+              <div id="petLevelMessage" class="teacher-message"></div>
+            </div>
+            <div class="pull-student-section">
+              <label class="field">
+                <span>拉入学生（输入姓名）</span>
+                <input id="pullStudentName" type="text" placeholder="输入学生角色名" />
+              </label>
+              <div class="teacher-actions">
+                <button id="pullStudent" class="secondary-button" type="button">拉入</button>
+                <button id="clearPulled" class="ghost-button" type="button">清空拉入</button>
+              </div>
+              <div class="teacher-actions">
+                <button id="addAllPulledAp" class="primary-button" type="button">🎁 全员+60行动点</button>
+              </div>
+              <div id="pulledList" class="pulled-list"></div>
+            <div class="rank-reward-section">
+              <label class="field">
+                <span>🏆 排行榜奖励</span>
+                <span class="field-hint">按战力排名自动发放行动点</span>
+              </label>
+              <div class="teacher-actions">
+                <button id="publishRankReward" class="primary-button" type="button">发布本周奖励</button>
+              </div>
+              <div id="rankRewardResult" class="teacher-message"></div>
+            <div class="guide-reset-section">
+              <label class="field">
+                <span>📖 新手引导</span>
+                <span class="field-hint">给选中的学生重新显示新手引导</span>
+              </label>
+              <div class="teacher-actions">
+                <button id="resetGuide" class="secondary-button" type="button">重置引导</button>
+              </div>
+            </div>
+            </div>
+            </div>
+            <div class="export-save-section">
+              <label class="field">
+                <span>📤 全班存档同步到云端</span>
+                <span class="field-hint">把后台里的每个孩子建成云端账号，密码统一 1234</span>
+              </label>
+              <div class="teacher-actions">
+                <button id="pushAllToCloud" class="primary-button" type="button">一键上传云端（密码1234）</button>
+                <button id="exportAllSaves" class="secondary-button" type="button">先导出 JSON 备份</button>
+              </div>
+              <div id="exportMessage" class="teacher-message"></div>
+            </div>
+            <button id="teacherLogout" class="ghost-button" type="button">退出后台</button>
+          </div>
+
+          <div id="teacherMessage" class="teacher-message" aria-live="polite"></div>
+        </aside>
+      </main>
+    </div>
+
+    <!-- 战斗弹窗 -->
+    <div id="battleModal" class="modal-overlay" hidden>
+      <div class="modal battle-modal">
+        <div class="battle-header">
+          <strong id="battleTitle">遭遇战斗！</strong>
+        </div>
+
+        <!-- 战斗舞台：双方对峙 -->
+        <div class="battle-stage" id="battleStage">
+          <!-- 我方 -->
+          <div class="battle-side player" id="battlePlayerSide">
+            <div class="battle-sprite-wrap">
+              <div class="battle-sprite" id="battlePlayerSprite">
+                <img id="battlePlayerImage" src="" alt="" />
+                <span id="battlePlayerFallback" class="battle-sprite-fallback" hidden>🐾</span>
+              </div>
+            </div>
+            <div class="battle-meta">
+              <span class="battle-name" id="battlePlayerName">我方</span>
+              <span class="battle-lv" id="battlePlayerLv">Lv.1</span>
+            </div>
+            <div class="battle-hp-track">
+              <div class="battle-hp-fill player" id="battlePlayerHp"></div>
+            </div>
+            <span class="battle-hp-num" id="battlePlayerHpNum">0/0</span>
+          </div>
+
+          <div class="battle-vs" id="battleVs">VS</div>
+
+          <!-- 敌方 -->
+          <div class="battle-side enemy" id="battleEnemySide">
+            <div class="battle-sprite-wrap">
+              <div class="battle-sprite" id="battleEnemySprite">
+                <img id="battleEnemyImage" src="" alt="" />
+                <span id="battleEnemyFallback" class="battle-sprite-fallback" hidden>👾</span>
+              </div>
+            </div>
+            <div class="battle-meta">
+              <span class="battle-name" id="battleEnemyName">野生</span>
+              <span class="battle-lv" id="battleEnemyLv">Lv.1</span>
+            </div>
+            <div class="battle-hp-track">
+              <div class="battle-hp-fill enemy" id="battleEnemyHp"></div>
+            </div>
+            <span class="battle-hp-num" id="battleEnemyHpNum">0/0</span>
+          </div>
+
+          <!-- 伤害飘字层 -->
+          <div class="battle-fx" id="battleFx"></div>
+        </div>
+
+        <div class="battle-log" id="battleLog"></div>
+        <div class="battle-result" id="battleResult"></div>
+      </div>
+    </div>
+
+    <!-- 捕捉窗口 -->
+    <div id="captureModal" class="modal-overlay" hidden>
+      <div class="modal capture-modal">
+        <div class="modal-header">
+          <h3>🎯 捕捉野生宠物！</h3>
+          <button id="captureClose" class="modal-close" type="button">×</button>
+        </div>
+        <div class="capture-pet-info">
+          <img id="capturePetImage" src="" alt="野生宠物">
+          <div class="capture-pet-detail">
+            <strong id="capturePetName">未知宠物</strong>
+            <span id="captureShinyLabel" class="shiny-label" style="display:none;">✨异色稀有</span>
+            <span id="capturePetLevel">Lv.1</span>
+            <span id="capturePetType">系别</span>
+          </div>
+        </div>
+        <div class="capture-balls">
+          <p>选择咕噜球进行捕捉：</p>
+          <div id="captureBallList" class="capture-ball-list"></div>
+        </div>
+        <div class="capture-result" id="captureResult"></div>
+      </div>
+    </div>
+
+    <!-- 系别克制弹窗 -->
+    <div id="typeTooltip" class="type-tooltip" hidden></div>
+
+    <!-- 排行榜弹窗 -->
+    <div id="rankModal" class="modal-overlay" hidden>
+      <div class="modal rank-modal">
+        <div class="modal-header">
+          <h3>🏆 排行榜</h3>
+          <button id="rankClose" class="modal-close" type="button">×</button>
+        </div>
+        <div class="rank-tabs">
+          <button id="rankTabPower" class="rank-tab active" type="button">战力榜</button>
+          <button id="rankTabExp" class="rank-tab" type="button">经验榜</button>
+        </div>
+        <div id="rankList" class="rank-list"></div>
+      </div>
+    </div>
+
+    <!-- 进化演出 -->
+    <div id="evolveModal" class="evolve-overlay" hidden>
+      <div class="evolve-card" id="evolveCard">
+        <div class="evolve-flash" id="evolveFlash"></div>
+        <div class="evolve-burst" id="evolveBurst"></div>
+
+        <div class="evolve-sprite-wrap" id="evolveSpriteWrap">
+          <div class="evolve-halo" id="evolveHalo"></div>
+          <img id="evolveSprite" class="evolve-sprite" src="" alt="" />
+          <span id="evolveSpriteFallback" class="evolve-fallback" hidden>🐾</span>
+        </div>
+
+        <p class="evolve-caption" id="evolveCaption">进化中…</p>
+        <h3 class="evolve-title" id="evolveTitle" hidden>✨ 进化成功！</h3>
+        <p class="evolve-name" id="evolveName"></p>
+        <button id="evolveClose" class="evolve-close" type="button" hidden>点击继续</button>
+      </div>
+    </div>
+
+    <script src="./data/petConfig.js?v=20261114c"></script>
+    <script src="./app.js?v=20261114c"></script>
+
+  <!-- 新手引导系统 -->
+  <div id="guideOverlay" class="guide-overlay" hidden>
+    <div class="guide-mask"></div>
+    <div class="guide-modal">
+      <div class="guide-header">
+        <span class="guide-step" id="guideStep">1 / 7</span>
+        <button id="guideSkip" class="guide-skip" type="button">跳过引导</button>
+      </div>
+      <div class="guide-content">
+        <h2 class="guide-title" id="guideTitle">欢迎来到卡罗西亚大陆！</h2>
+        <p class="guide-desc" id="guideDesc"></p>
+        <div class="guide-highlight" id="guideHighlight"></div>
+      </div>
+      <div class="guide-footer">
+        <button id="guidePrev" class="guide-btn secondary" type="button">上一步</button>
+        <button id="guideNext" class="guide-btn primary" type="button">下一步</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 智能提示容器 -->
+  <div id="toastContainer" class="toast-container"></div>
+  </body>
+</html>
+
