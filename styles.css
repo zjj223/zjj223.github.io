@@ -880,32 +880,33 @@ button:focus-visible {
 @media (max-width: 1280px) {
   .app-grid {
     grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+    grid-template-areas:
+      "teacher game"
+      "profile game";
+    grid-template-rows: max-content 1fr;
     gap: 14px;
-  }
-
-  .profile-panel {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .game-area {
-    grid-column: 2;
-    grid-row: 1 / span 2;
+    align-items: start;
   }
 
   .teacher-panel {
-    grid-column: 1;
-    grid-row: 2;
+    grid-area: teacher;
     position: static;
-    max-height: none;
-    overflow: visible;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+
+  .profile-panel {
+    grid-area: profile;
+  }
+
+  .game-area {
+    grid-area: game;
   }
 
   .app-grid.is-student .profile-panel,
   .app-grid.is-student .teacher-panel,
   .app-grid.is-student .game-area {
-    grid-column: auto;
-    grid-row: auto;
+    grid-area: auto;
   }
 
   .scene-grid {
