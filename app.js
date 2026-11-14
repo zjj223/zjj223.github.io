@@ -826,6 +826,11 @@
       }
     }
     els.loginView.classList.add("hidden");
+    // 老师端：恢复三栏桌面布局
+    const teacherGrid = document.querySelector(".app-grid");
+    if (teacherGrid) {
+      teacherGrid.classList.remove("is-student");
+    }
     // 老师端恢复"角色存档"面板
     const teacherPanel = document.querySelector(".profile-panel");
     if (teacherPanel) {
@@ -891,6 +896,11 @@
         console.warn("写本地缓存失败", err);
       }
       els.loginView.classList.add("hidden");
+      // 学生端切换为桌面宽屏：单列外壳 + 内部"宠物侧栏 / 主区"
+      const studentGrid = document.querySelector(".app-grid");
+      if (studentGrid) {
+        studentGrid.classList.add("is-student");
+      }
       setSaveStatus("云端存档已加载");
       // 学生端只有一个角色，隐藏"角色存档/新建角色"面板
       const studentPanel = document.querySelector(".profile-panel");
