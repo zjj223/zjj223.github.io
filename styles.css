@@ -4625,3 +4625,399 @@ button:active:not(:disabled) {
 .stage-spot-layer .stage-spot:active {
   transform: translate(-50%, -50%) !important;
 }
+/* ===== 洛克王国式全屏大世界（学生端） ===== */
+.app-grid.is-student {
+  display: block;
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+
+.app-grid.is-student .game-area {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: #10301f;
+  display: block;
+  overflow: hidden;
+}
+
+.app-grid.is-student .game-view {
+  height: 100%;
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+/* 顶部信息条：角色名 / 行动点 */
+.app-grid.is-student .status-grid {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  width: auto;
+}
+
+.app-grid.is-student .status-tile {
+  padding: 5px 12px;
+  margin: 0;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16);
+  min-width: 0;
+  width: auto;
+}
+
+.app-grid.is-student .status-tile .tile-label {
+  font-size: 10px;
+  margin: 0 0 1px;
+  color: #5b7a68;
+}
+
+.app-grid.is-student .hero-tile h2 {
+  font-size: 17px;
+  margin: 0;
+  line-height: 1.15;
+}
+
+.app-grid.is-student .status-tile > strong {
+  font-size: 19px;
+  line-height: 1.15;
+}
+
+.app-grid.is-student .pet-status-tile {
+  display: none;
+}
+
+.app-grid.is-student .game-stage {
+  display: block;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+
+.app-grid.is-student .game-sidebar {
+  display: none;
+}
+
+.app-grid.is-student .game-main {
+  display: block;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+
+.app-grid.is-student .view-nav {
+  display: none;
+}
+
+.app-grid.is-student .view-container {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.app-grid.is-student .world-panel {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.app-grid.is-student .world-panel .panel-heading {
+  display: none;
+}
+
+.app-grid.is-student .scene-inner-panel {
+  background: #f7fbf5;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 96px 12px 8px;
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  position: relative;
+  overflow-y: auto;
+}
+
+.app-grid.is-student .scene-inner-panel .panel-heading {
+  position: absolute;
+  top: 58px;
+  left: 12px;
+  right: 12px;
+  z-index: 30;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.app-grid.is-student .scene-inner-panel .panel-heading h2 {
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.65);
+  font-size: 20px;
+  margin: 0;
+}
+
+.app-grid.is-student .scene-grid.map-mode {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  gap: 0;
+}
+
+/* 地图保持 16:9，坐标点不会错位 */
+.app-grid.is-student .continent {
+  width: min(100%, calc((100vh - 24px) * 16 / 9));
+  max-height: calc(100vh - 24px);
+  aspect-ratio: 16 / 9;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.app-grid.is-student .scene-stage {
+  width: min(100%, calc((100vh - 320px) * 16 / 9));
+  min-width: 320px;
+  flex: 0 0 auto;
+  border-radius: 0;
+  margin: 0 auto;
+}
+
+.app-grid.is-student .scene-result,
+.app-grid.is-student .scene-inventory {
+  width: min(100%, 920px);
+  margin: 0 auto;
+}
+
+/* 地图上的训练师 */
+.map-player {
+  position: absolute;
+  width: 46px;
+  height: 78px;
+  transform: translate(-50%, -100%);
+  z-index: 7;
+  pointer-events: none;
+  transition: left 0.42s linear, top 0.42s linear;
+  filter: drop-shadow(0 6px 9px rgba(0, 0, 0, 0.38));
+}
+
+.map-player img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* 右下角功能坞 */
+.dock-bar {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 40;
+  display: flex;
+  gap: 10px;
+}
+
+.dock-btn {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.24);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  transition: box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.dock-icon {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.dock-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #24402e;
+  line-height: 1.15;
+}
+
+.dock-btn:hover {
+  background: #ffffff;
+  box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
+  transform: none !important;
+}
+
+/* 弹窗：宠物 / 商店 / 计时 */
+.zone-modal {
+  z-index: 1200;
+}
+
+.zone-modal-box {
+  width: min(760px, 92vw);
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 10px;
+}
+
+.zone-modal-box.wide {
+  width: min(940px, 94vw);
+}
+
+.zone-modal-box.narrow {
+  width: min(440px, 92vw);
+}
+
+.zone-modal-body {
+  overflow-y: auto;
+  padding: 6px 14px 4px;
+}
+
+.zone-modal-body .panel {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  padding: 0 0 10px;
+  margin: 0 0 6px;
+  border-bottom: 1px dashed rgba(60, 100, 70, 0.18);
+}
+
+.zone-modal-body .panel:last-child {
+  border-bottom: none;
+}
+
+.zone-modal-body .timer-panel {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+/* 弹窗进场也不要依赖 opacity 动画（后台标签会冻结） */
+.modal-overlay,
+.zone-modal {
+  animation: none;
+}
+/* 弹窗外框：覆盖通用 .modal 的 400px 限宽与弹出动画 */
+.zone-modal-box {
+  animation: none;
+  max-width: none;
+  padding: 0 0 10px;
+}
+
+.zone-modal-box .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px 6px;
+}
+
+.zone-modal-box .modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #24402e;
+}
+
+.modal-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: #eef2ee;
+  color: #3a5a45;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+.modal-close:hover {
+  background: #e2e9e2;
+  transform: none !important;
+}
+/* 所有弹窗内框都不要 opacity 入场动画（后台标签会冻结在 opacity:0） */
+.modal {
+  animation: none;
+}
+
+.zone-modal-box,
+.rank-modal,
+.capture-modal,
+.evolve-modal {
+  animation: none;
+}
+/* 所有弹窗统一头部布局：标题左、关闭右 */
+.modal .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 0 10px;
+}
+
+.modal .modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.modal .modal-close {
+  margin: 0;
+}
+
+.rank-modal {
+  max-width: 520px;
+}
+/* 排行榜标签激活态（--accent 变量未定义，这里显式给色） */
+.rank-tab.active {
+  background: linear-gradient(135deg, #ff9800, #ffb74d);
+  color: #ffffff;
+  border-color: #ff9800;
+}
+
+/* 计时器在白色弹窗里的可读性 */
+.timer-display {
+  color: #24402e;
+  font-weight: 800;
+}
+
+.timer-title {
+  color: #4c6b56;
+}
