@@ -4177,9 +4177,11 @@
       const img = document.createElement("img");
       img.src = pet.image || "";
       img.alt = pet.name;
+      img.className = "pet-team-img";
       img.onerror = () => { img.style.display = "none"; };
 
       const nameDiv = document.createElement("div");
+      nameDiv.className = "pet-team-meta";
       const name = document.createElement("div");
       name.className = "pet-team-name";
       name.textContent = pet.nickname ? `${pet.name}（${pet.nickname}）` : pet.name;
