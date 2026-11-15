@@ -601,6 +601,7 @@
     ],
   });
   const MARKET_STORAGE_KEY = "carlosia_market_v1";
+  const MARKET_TABLE = "market_listings";
   const MARKET_FEE_RATE = 0.1; // 卖家手续费 10%
   // 每个道具的统一定价（经验值）- 已×5
   const ITEM_PRICES = Object.freeze({
@@ -730,7 +731,6 @@
   let currentShopTab = "market"; // "market" 逛市场 / "sell" 我要卖 / "mine" 我的上架
   let marketState = { listings: [] };
   let isExploring = false; // 探索动画进行中，防止重复点击
-  let skipBattle = false; // 跳过战斗动画，直接结算
   let pulledProfileIds = []; // 老师拉入的学生ID列表（不存档）
   let timerInterval = null; // 计时器interval
   let timerSeconds = TIMER_DURATION; // 计时器剩余秒数
@@ -1098,7 +1098,6 @@
     els.evolveName = document.getElementById("evolveName");
     els.evolveClose = document.getElementById("evolveClose");
     els.evolveCaption = document.getElementById("evolveCaption");
-    els.skipBattleToggle = document.getElementById("skipBattleToggle");
     els.sceneGrid = document.getElementById("sceneGrid");
     els.resultMessage = document.getElementById("resultMessage");
     els.hatchPanel = document.getElementById("hatchPanel");
@@ -1257,9 +1256,6 @@
     els.navWorld.addEventListener("click", () => switchView("world"));
     els.navShop.addEventListener("click", () => switchView("shop"));
     els.backToWorld.addEventListener("click", () => switchView("world"));
-    els.skipBattleToggle.addEventListener("change", (e) => {
-      skipBattle = e.target.checked;
-    });
     // 场景内部探索
     els.sceneSpotList.addEventListener("click", handleSpotExplore);
     // 商店标签
@@ -1568,6 +1564,31 @@
     }
   }
 
+  function rowToListing(row) {
+    return {
+      id: row.id,
+      sellerId: row.seller_id,
+      sellerName: row.seller_name,
+      itemId: row.item_id,
+      itemName: row.item_name,
+      price: row.price,
+      listedAt: row.listed_at,
+    };
+  }
+
+  // 市场存在云端：全班共用一个市场，谁上架谁都能看见、都能买
+  async function loadMarketFromCloud() {
+    if (!CLOUD_ENABLED) return marketState;
+    try {
+      const rows = await cloudRequest(`${MARKET_TABLE}?select=*&order=listed_at.desc`);
+      marketState.listings = Array.isArray(rows) ? rows.map(rowToListing) : [];
+      saveMarket();
+    } catch (error) {
+      console.warn("读取云端市场失败（先用本地缓存）", error);
+    }
+    return marketState;
+  }
+
   function getItemDef(itemId) {
     for (const sceneId of Object.keys(SCENE_ITEMS)) {
       const found = SCENE_ITEMS[sceneId].find((item) => item.id === itemId);
@@ -1580,8 +1601,8 @@
     return ITEM_PRICES[itemId] || 50;
   }
 
-  // 上架道具
-  function listItem(itemId) {
+  // 上架道具（写入云端共享市场，全班可见）
+  async function listItem(itemId) {
     const profile = getActiveProfile();
     if (!profile) return { ok: false, msg: "请先选择角色。" };
     const count = profile.inventory[itemId] || 0;
@@ -1589,8 +1610,6 @@
     const itemDef = getItemDef(itemId);
     if (!itemDef) return { ok: false, msg: "道具不存在。" };
     const price = getItemPrice(itemId);
-    profile.inventory[itemId] = count - 1;
-    if (profile.inventory[itemId] <= 0) delete profile.inventory[itemId];
     const listing = {
       id: `list_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       sellerId: profile.id,
@@ -1600,20 +1619,54 @@
       price,
       listedAt: new Date().toISOString(),
     };
+    if (CLOUD_ENABLED) {
+      try {
+        await cloudRequest(MARKET_TABLE, {
+          method: "POST",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify({
+            id: listing.id,
+            seller_id: listing.sellerId,
+            seller_name: listing.sellerName,
+            item_id: listing.itemId,
+            item_name: listing.itemName,
+            price: listing.price,
+          }),
+        });
+      } catch (error) {
+        console.error("上架到云端市场失败", error);
+        return { ok: false, msg: "上架失败，请检查网络后重试。" };
+      }
+    }
+    profile.inventory[itemId] = count - 1;
+    if (profile.inventory[itemId] <= 0) delete profile.inventory[itemId];
     marketState.listings.push(listing);
     saveMarket();
     saveState("已上架");
     return { ok: true, msg: `已上架【${itemDef.name}】，售价 ${price} 经验。` };
   }
 
-  // 下架道具
-  function unlistItem(listingId) {
+  // 下架道具（同时从云端市场撤下）
+  async function unlistItem(listingId) {
     const profile = getActiveProfile();
     if (!profile) return { ok: false, msg: "请先选择角色。" };
     const idx = marketState.listings.findIndex((l) => l.id === listingId);
     if (idx < 0) return { ok: false, msg: "该上架不存在。" };
     const listing = marketState.listings[idx];
     if (listing.sellerId !== profile.id) return { ok: false, msg: "只能下架自己的道具。" };
+    if (CLOUD_ENABLED) {
+      try {
+        await cloudRequest(
+          `${MARKET_TABLE}?id=eq.${encodeURIComponent(listingId)}&seller_id=eq.${encodeURIComponent(
+            profile.id
+          )}`,
+          { method: "DELETE", headers: { Prefer: "return=minimal" } }
+        );
+      } catch (error) {
+        console.error("下架失败", error);
+        return { ok: false, msg: "下架失败，请检查网络后重试。" };
+      }
+    }
     profile.inventory[listing.itemId] = (profile.inventory[listing.itemId] || 0) + 1;
     marketState.listings.splice(idx, 1);
     saveMarket();
@@ -1621,27 +1674,53 @@
     return { ok: true, msg: `已下架【${listing.itemName}】，已退回背包。` };
   }
 
-  // 购买道具
-  function buyItem(listingId) {
+  // 给卖家加经验（卖家云端的存档一起更新）
+  async function addExpToSeller(sellerName, amount) {
+    if (!sellerName || !amount) return;
+    try {
+      const row = await cloudGetStudent(sellerName);
+      if (!row || !row.save) return;
+      const save = Object.assign({}, row.save);
+      save.exp = (save.exp || 0) + amount;
+      await cloudUpsertStudent(row.name, row.pass, save);
+    } catch (error) {
+      console.warn("给卖家结算经验失败", error);
+    }
+  }
+
+  // 购买道具（云端共享市场，买家卖家都能实时同步）
+  async function buyItem(listingId) {
     const profile = getActiveProfile();
     if (!profile) return { ok: false, msg: "请先选择角色。" };
-    const idx = marketState.listings.findIndex((l) => l.id === listingId);
-    if (idx < 0) return { ok: false, msg: "该道具已被买走或下架。" };
-    const listing = marketState.listings[idx];
+    const listing = marketState.listings.find((l) => l.id === listingId);
+    if (!listing) return { ok: false, msg: "该道具已被买走或下架。" };
     if (listing.sellerId === profile.id) return { ok: false, msg: "不能购买自己上架的道具。" };
     if (profile.exp < listing.price) return { ok: false, msg: `经验不足，需要 ${listing.price} 经验。` };
-    // 扣买家经验
-    profile.exp -= listing.price;
-    // 道具进买家背包
-    profile.inventory[listing.itemId] = (profile.inventory[listing.itemId] || 0) + 1;
-    // 卖家获得经验（扣手续费）
-    const seller = state.profiles.find((p) => p.id === listing.sellerId);
-    const sellerReceive = Math.floor(listing.price * (1 - MARKET_FEE_RATE));
-    if (seller) {
-      seller.exp += sellerReceive;
+
+    // 先抢下云端这条商品，避免两个同学同时买同一件
+    if (CLOUD_ENABLED) {
+      let removed = null;
+      try {
+        removed = await cloudRequest(
+          `${MARKET_TABLE}?id=eq.${encodeURIComponent(listingId)}`,
+          { method: "DELETE", headers: { Prefer: "return=representation" } }
+        );
+      } catch (error) {
+        console.error("购买失败", error);
+        return { ok: false, msg: "购买失败，请检查网络后重试。" };
+      }
+      if (!Array.isArray(removed) || removed.length === 0) {
+        marketState.listings = marketState.listings.filter((l) => l.id !== listingId);
+        saveMarket();
+        return { ok: false, msg: "手慢了，这件道具已经被别人买走。" };
+      }
     }
-    // 从市场移除
-    marketState.listings.splice(idx, 1);
+
+    profile.exp -= listing.price;
+    profile.inventory[listing.itemId] = (profile.inventory[listing.itemId] || 0) + 1;
+    const sellerReceive = Math.floor(listing.price * (1 - MARKET_FEE_RATE));
+    await addExpToSeller(listing.sellerName, sellerReceive);
+    marketState.listings = marketState.listings.filter((l) => l.id !== listingId);
     saveMarket();
     saveState("购买已存档");
     return {
@@ -1800,7 +1879,7 @@
             if (Math.random() < 0.15 && profile.pets.length < 3) {
               setTimeout(() => {
                 showCaptureModal(wildPet);
-              }, skipBattle ? 400 : 3400);
+              }, 3400);
             }
           } else {
             // 失败：50%概率扣除一个道具，有道具则给50%经验，没道具给15%经验
@@ -2816,11 +2895,18 @@
   }
 
   // ===== 商店渲染 =====
-  function renderShop(tab) {
+  async function renderShop(tab) {
     currentShopTab = tab;
     els.shopTabMarket.classList.toggle("active", tab === "market");
     els.shopTabSell.classList.toggle("active", tab === "sell");
     els.shopTabMine.classList.toggle("active", tab === "mine");
+
+    // 逛市场时先从云端拉全班的最新挂单
+    if (tab === "market") {
+      await loadMarketFromCloud();
+      if (currentShopTab !== tab) return;
+    }
+
     els.shopContent.replaceChildren();
 
     const profile = getActiveProfile();
@@ -2995,20 +3081,23 @@
     els.shopContent.appendChild(grid);
   }
 
-  function handleShopAction(event) {
+  async function handleShopAction(event) {
     const button = event.target.closest("[data-action]");
     if (!button) return;
     const action = button.dataset.action;
     if (action === "buy") {
-      const result = buyItem(button.dataset.listingId);
+      button.disabled = true;
+      const result = await buyItem(button.dataset.listingId);
       setResult(result.msg, !result.ok);
       render();
     } else if (action === "list") {
-      const result = listItem(button.dataset.itemId);
+      button.disabled = true;
+      const result = await listItem(button.dataset.itemId);
       setResult(result.msg, !result.ok);
       render();
     } else if (action === "unlist") {
-      const result = unlistItem(button.dataset.listingId);
+      button.disabled = true;
+      const result = await unlistItem(button.dataset.listingId);
       setResult(result.msg, !result.ok);
       render();
     }
@@ -3466,7 +3555,6 @@
 
   // 显示战斗弹窗（双方对峙 + 攻击演出）
   function showBattleModal(playerPet, wildPet, battle) {
-    if (skipBattle) return; // 跳过战斗演出
     if (!els.battleModal) return;
 
     clearBattleTimers();
@@ -4521,19 +4609,35 @@
   // ============================================
   // 排行榜系统（视图版）
   // ============================================
-  function renderRankView() {
+  async function renderRankView() {
     if (!els.rankContent) return;
     els.rankContent.replaceChildren();
 
-    const profiles = state.profiles
-      .filter(p => p.pets && p.pets.length > 0)
+    // 排行榜从云端拉全班，保证每个同学看到的都是同一张榜
+    let sourceProfiles = state.profiles;
+    if (CLOUD_ENABLED) {
+      try {
+        const rows = await cloudGetAllStudents();
+        if (Array.isArray(rows) && rows.length) {
+          sourceProfiles = rows.map((row) => profileFromCloud(row));
+        }
+      } catch (error) {
+        console.warn("读取云端排行榜失败（先显示本地数据）", error);
+      }
+    }
+    if (!els.rankContent) return;
+    els.rankContent.replaceChildren();
+
+    const profiles = sourceProfiles
+      .filter((p) => p && p.name)
       .map(p => {
-        const totalPower = p.pets.reduce((sum, pet) => sum + getPetPower(pet), 0);
+        const pets = p.pets || [];
+        const totalPower = pets.reduce((sum, pet) => sum + getPetPower(pet), 0);
         return {
           name: p.name,
           power: totalPower,
-          petCount: p.pets.length,
-          maxLevel: Math.max(...p.pets.map(pet => pet.level)),
+          petCount: pets.length,
+          maxLevel: pets.length ? Math.max(...pets.map(pet => pet.level)) : 0,
         };
       })
       .sort((a, b) => b.power - a.power);
@@ -4551,11 +4655,13 @@
 
       const name = document.createElement("div");
       name.className = "rank-name";
-      name.textContent = p.name;
+      const me = getActiveProfile();
+      name.textContent = me && me.name === p.name ? `${p.name}（我）` : p.name;
 
       const sub = document.createElement("div");
       sub.className = "rank-sub";
-      sub.textContent = `${p.petCount}只宠物 · 最高Lv.${p.maxLevel}`;
+      sub.textContent =
+        p.petCount > 0 ? `${p.petCount}只宠物 · 最高Lv.${p.maxLevel}` : "还没有宠物";
 
       info.append(name, sub);
 
@@ -4577,8 +4683,21 @@
     }
   }
 
-  function publishRankReward() {
-    const profiles = state.profiles
+  async function publishRankReward() {
+    // 以云端全班名单为准发奖，保证每个孩子都真的收到
+    let sourceProfiles = state.profiles;
+    if (CLOUD_ENABLED) {
+      try {
+        const rows = await cloudGetAllStudents();
+        if (Array.isArray(rows) && rows.length) {
+          sourceProfiles = rows.map((row) => profileFromCloud(row));
+        }
+      } catch (error) {
+        console.warn("读取云端全班名单失败（改用本地名单发奖）", error);
+      }
+    }
+
+    const profiles = sourceProfiles
       .filter(p => p.pets && p.pets.length > 0)
       .map(p => ({
         id: p.id,
@@ -4588,22 +4707,44 @@
       .sort((a, b) => b.power - a.power);
 
     let rewardMsg = [];
+    const changed = [];
     profiles.forEach((p, index) => {
       let reward = 5;
       if (index < 3) reward = 20;
       else if (index < 10) reward = 15;
       else if (index < 30) reward = 10;
 
-      const profile = state.profiles.find(pr => pr.id === p.id);
+      const profile = sourceProfiles.find(pr => pr.id === p.id) ||
+        sourceProfiles.find(pr => pr.name === p.name);
       if (profile) {
-        profile.actionPoints += reward;
+        profile.actionPoints = (profile.actionPoints || 0) + reward;
         rewardMsg.push(`${p.name}: +${reward}行动点`);
+        changed.push(profile);
+      }
+    });
+
+    // 写回云端
+    if (CLOUD_ENABLED) {
+      for (const profile of changed) {
+        try {
+          await cloudUpsertStudent(profile.name, profile.pass, profile);
+        } catch (error) {
+          console.warn(`发奖写回云端失败：${profile.name}`, error);
+        }
+      }
+    }
+
+    // 老师端本地列表也同步一份，界面显示一致
+    changed.forEach((profile) => {
+      const local = state.profiles.find(pr => pr.name === profile.name);
+      if (local) {
+        local.actionPoints = profile.actionPoints;
       }
     });
 
     saveState("排行榜奖励已发布");
     if (els.rankRewardResult) {
-      els.rankRewardResult.textContent = `✅ 已发布奖励！共${profiles.length}人获得奖励。`;
+      els.rankRewardResult.textContent = `✅ 已发布奖励！共${profiles.length}人获得奖励（已写入云端）。`;
     }
     render();
   }
@@ -4751,7 +4892,7 @@
 
   // 重写renderShop支持咕噜球标签
   const _originalRenderShop = renderShop;
-  renderShop = function(tab) {
+  renderShop = async function(tab) {
     currentShopTab = tab;
     if (els.shopTabMarket) els.shopTabMarket.classList.toggle("active", tab === "market");
     if (els.shopTabSell) els.shopTabSell.classList.toggle("active", tab === "sell");
@@ -4764,19 +4905,19 @@
     if (tab === "balls") {
       renderBallShop(profile);
     } else {
-      _originalRenderShop(tab);
+      await _originalRenderShop(tab);
     }
   };
 
   // 重写handleShopAction支持购买咕噜球
   const _originalHandleShopAction = handleShopAction;
-  handleShopAction = function(event) {
+  handleShopAction = async function(event) {
     const buyBtn = event.target.closest(".ball-shop-buy");
     if (buyBtn) {
       buyBall(buyBtn.dataset.ballId);
       return;
     }
-    _originalHandleShopAction(event);
+    await _originalHandleShopAction(event);
   };
 
   // 重写switchView支持排行榜视图
@@ -4927,10 +5068,10 @@
     }
 
     // 4. 战斗没跳过提示
-    if (context.battleStart && !skipBattle) {
+    if (context.battleStart) {
       showToast(
         "⚔️ 战斗开始！",
-        "可以勾选右上角'跳过战斗'直接结算，节省时间。",
+        "战斗结果会自动结算，经验马上到账。",
         "info",
         3000
       );
