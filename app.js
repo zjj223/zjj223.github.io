@@ -83,6 +83,30 @@
     });
   }
 
+  // 一键把全班密码改成同一个值（老师控场用）
+  function cloudSetAllPasswords(newPass) {
+    return cloudRequest(`${CLOUD_TABLE}?name=not.is.null`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({
+        pass: newPass,
+        updated_at: new Date().toISOString(),
+      }),
+    });
+  }
+
+  // 统计云端账号密码分布，用来确认"是不是真的全改了"
+  async function cloudPasswordStats() {
+    const rows = await cloudRequest(`${CLOUD_TABLE}?select=name,pass`);
+    const list = rows || [];
+    const counter = {};
+    list.forEach((r) => {
+      const k = String((r && r.pass) || "");
+      counter[k] = (counter[k] || 0) + 1;
+    });
+    return { total: list.length, counter };
+  }
+
   // 把云端返回的一行还原成角色对象
   function profileFromCloud(row) {
     const raw = row && row.save && typeof row.save === "object" ? row.save : {};
@@ -1444,6 +1468,12 @@
     if (els.exportAllSaves) {
       els.exportAllSaves.addEventListener("click", exportAllSaves);
     }
+    document
+      .getElementById("lockAllPasswords")
+      ?.addEventListener("click", () => setAllStudentPasswords("6985179"));
+    document
+      .getElementById("unlockAllPasswords")
+      ?.addEventListener("click", () => setAllStudentPasswords("1234"));
     els.pullStudent.addEventListener("click", handlePullStudent);
     els.clearPulled.addEventListener("click", () => {
       pulledProfileIds = [];
@@ -2684,6 +2714,54 @@
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
     setExportMessage(`已导出 ${(state.profiles || []).length} 个学生`);
+  }
+
+  // 老师后台：一键改全班密码（锁住 / 恢复）
+  async function setAllStudentPasswords(newPass) {
+    const box = document.getElementById("lockMessage");
+    const setMsg = (text, isError) => {
+      if (box) {
+        box.textContent = text;
+        box.classList.toggle("is-error", Boolean(isError));
+      }
+      setTeacherMessage(text, Boolean(isError));
+    };
+    if (!CLOUD_ENABLED) {
+      setMsg("云端未配置，无法修改密码", true);
+      return;
+    }
+    const usage = newPass === "6985179"
+      ? "锁住全班：非上课时间孩子用 1234 登不进来"
+      : "恢复全班：改回 1234，正常上课";
+    if (!confirm(`确定把全班学生密码改成 ${newPass} 吗？\n${usage}`)) {
+      return;
+    }
+    setMsg("正在改密码，请稍等…");
+    try {
+      await cloudSetAllPasswords(newPass);
+      // 本地存档里的密码也同步，避免之后"一键上传云端"又写回 1234
+      (state.profiles || []).forEach((p) => {
+        p.pass = newPass;
+      });
+      try {
+        localStorage.setItem(activeStorageKey, JSON.stringify(state));
+      } catch (err) {
+        console.warn("本地密码同步失败", err);
+      }
+      const stats = await cloudPasswordStats();
+      const matched = stats.counter[newPass] || 0;
+      const others = stats.total - matched;
+      if (others <= 0) {
+        setMsg(`✅ 完成：${stats.total} 个账号密码已全部改成 ${newPass}`);
+      } else {
+        setMsg(
+          `⚠️ 部分未成功：共 ${stats.total} 个账号，${matched} 个已是 ${newPass}，还有 ${others} 个是其他密码`,
+          true
+        );
+      }
+    } catch (err) {
+      setMsg(`❌ 失败：${err.message || err}`, true);
+    }
   }
 
   function handlePullStudent() {
