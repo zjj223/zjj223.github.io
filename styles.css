@@ -6058,3 +6058,25 @@ button:active:not(:disabled) {
   width: 0;
   background: linear-gradient(90deg, #f4a7c3, #e2639c);
 }
+/* ===== 鼠标点击走动 ===== */
+.scene-stage {
+  cursor: pointer;
+}
+
+.walk-mark {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 2px rgba(90, 160, 255, 0.65);
+  pointer-events: none;
+  z-index: 5;
+  animation: walkPulse 0.6s ease-out forwards;
+}
+
+@keyframes walkPulse {
+  from { transform: scale(0.45); opacity: 1; }
+  to { transform: scale(1.7); opacity: 0; }
+}
