@@ -5891,3 +5891,105 @@ button:active:not(:disabled) {
   height: 100%;
   display: block;
 }
+/* ===== 宠物操作按钮：挂在属性栏底部 ===== */
+#petActionBar {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #e2ece5;
+}
+
+.pet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pet-actions-row {
+  display: flex;
+  gap: 6px;
+}
+
+.pet-act-btn,
+.pet-act-tag {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 5px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  transform: none !important;
+}
+
+.pet-act-tag {
+  display: grid;
+  place-items: center;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+/* 概览里的进化提示：一行就好 */
+.pet-evolve-line {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #55705f;
+  background: #f3f8f4;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+/* 进化阶段改成一行横排 */
+#petColDetail .evolution-track {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+#petColDetail .evolution-step {
+  flex: 0 0 auto;
+  width: 88px;
+  padding: 5px;
+  gap: 2px;
+}
+
+#petColDetail .evolution-step img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+#petColDetail .evolution-step span {
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 82px;
+}
+
+/* 概览区整体压紧 */
+#petColDetail .hatch-content {
+  gap: 10px;
+}
+
+#petColDetail .hatch-copy {
+  gap: 8px;
+}
+/* 进化阶段三等分，不再横向溢出 */
+#petColDetail .evolution-track {
+  gap: 6px;
+  overflow: visible;
+}
+
+#petColDetail .evolution-step {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
