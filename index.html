@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>卡罗西亚大陆</title>
-    <link rel="stylesheet" href="./styles.css?v=20261115g" />
+    <link rel="stylesheet" href="./styles.css?v=20261115h" />
   </head>
   <body>
     <!-- 老师登录界面 -->
@@ -223,6 +223,26 @@
               <div class="game-main">
             <!-- 全局结果消息 -->
             <div id="resultMessage" class="result-message global-result" aria-live="polite"></div>
+
+            <!-- 右下角功能坞（学生端） -->
+            <div id="dockBar" class="dock-bar" hidden>
+              <button id="dockPet" class="dock-btn" type="button">
+                <span class="dock-icon" aria-hidden="true">🐾</span>
+                <span class="dock-label">宠物</span>
+              </button>
+              <button id="dockShop" class="dock-btn" type="button">
+                <span class="dock-icon" aria-hidden="true">🏪</span>
+                <span class="dock-label">商店</span>
+              </button>
+              <button id="dockRank" class="dock-btn" type="button">
+                <span class="dock-icon" aria-hidden="true">🏆</span>
+                <span class="dock-label">排行榜</span>
+              </button>
+              <button id="dockTimer" class="dock-btn" type="button">
+                <span class="dock-icon" aria-hidden="true">⏱</span>
+                <span class="dock-label">计时</span>
+              </button>
+            </div>
 
             <!-- 视图切换导航 -->
             <div class="view-nav">
@@ -503,6 +523,39 @@
       </div>
     </div>
 
+    <!-- 宠物面板弹窗（学生端） -->
+    <div id="petModal" class="modal-overlay zone-modal" hidden>
+      <div class="modal zone-modal-box">
+        <div class="modal-header">
+          <h3>🐾 我的宠物</h3>
+          <button id="petModalClose" class="modal-close" type="button">×</button>
+        </div>
+        <div id="petModalBody" class="zone-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- 商店弹窗（学生端） -->
+    <div id="shopModal" class="modal-overlay zone-modal" hidden>
+      <div class="modal zone-modal-box wide">
+        <div class="modal-header">
+          <h3>🏪 道具商店</h3>
+          <button id="shopModalClose" class="modal-close" type="button">×</button>
+        </div>
+        <div id="shopModalBody" class="zone-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- 计时器弹窗（学生端） -->
+    <div id="timerModal" class="modal-overlay zone-modal" hidden>
+      <div class="modal zone-modal-box narrow">
+        <div class="modal-header">
+          <h3>⏱ 课堂计时</h3>
+          <button id="timerModalClose" class="modal-close" type="button">×</button>
+        </div>
+        <div id="timerModalBody" class="zone-modal-body"></div>
+      </div>
+    </div>
+
     <!-- 进化演出 -->
     <div id="evolveModal" class="evolve-overlay" hidden>
       <div class="evolve-card" id="evolveCard">
@@ -522,8 +575,8 @@
       </div>
     </div>
 
-    <script src="./data/petConfig.js?v=20261115g"></script>
-    <script src="./app.js?v=20261115g"></script>
+    <script src="./data/petConfig.js?v=20261115h"></script>
+    <script src="./app.js?v=20261115h"></script>
 
   <!-- 新手引导系统 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
