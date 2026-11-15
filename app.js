@@ -1226,6 +1226,8 @@
     els.defenseValue = document.getElementById("defenseValue");
     els.speedValue = document.getElementById("speedValue");
     els.expHint = document.getElementById("expHint");
+    els.bondValue = document.getElementById("bondValue");
+    els.bondBar = document.getElementById("bondBar");
     els.typeInfo = document.getElementById("typeInfo");
     els.typeLabel = document.getElementById("typeLabel");
     els.typeStrong = document.getElementById("typeStrong");
@@ -2938,6 +2940,8 @@
       els.defenseValue.textContent = "--";
       els.speedValue.textContent = "--";
       els.typeInfo.hidden = true;
+      if (els.bondValue) els.bondValue.textContent = "--";
+      if (els.bondBar) els.bondBar.style.width = "0%";
       return;
     }
 
@@ -2951,6 +2955,11 @@
     els.attackValue.textContent = String(getPetAttack(profile.pet));
     els.defenseValue.textContent = String(getPetDefense(profile.pet));
     els.speedValue.textContent = String(getPetSpeed(profile.pet));
+
+    // 亲密度（放在宠物属性栏）
+    const bondLevel = profile.pet.bond || 0;
+    if (els.bondValue) els.bondValue.textContent = `Lv.${bondLevel} / 10`;
+    if (els.bondBar) els.bondBar.style.width = `${Math.min(100, (bondLevel / 10) * 100)}%`;
 
     // 系别标签（点击弹出克制说明）
     els.typeInfo.hidden = false;
@@ -3457,14 +3466,6 @@
       text.textContent = nextStage
         ? `下一阶段：${nextStage.name} · Lv.${nextEvolutionLevel} 自动进化`
         : "已达最高进化阶段";
-      const bondLevel = profile.pet.bond || 0;
-      const tags = createHatchTags([
-        profile.pet.style,
-        profile.pet.type,
-        genderLabel(profile.gender),
-        `可用经验 ${profile.exp}`,
-        `亲密度 Lv.${bondLevel}`,
-      ]);
       const buttons = [];
       if (profile.compensationEligible && !profile.compensationClaimed) {
         const compensationButton = document.createElement("button");
@@ -3476,7 +3477,7 @@
         buttons.push(compensationButton);
       }
 
-      copy.prepend(title, text, tags);
+      copy.prepend(title, text);
       copy.append(...buttons);
 
       els.hatchContent.append(visual, copy);
@@ -4502,11 +4503,6 @@
       level.className = "pet-team-level";
       level.textContent = `Lv.${pet.level} · ${pet.type}`;
       nameDiv.append(name, level);
-
-      const bond = document.createElement("div");
-      bond.className = "pet-team-bond";
-      bond.textContent = `亲密度 ${pet.bond || 0}/10`;
-      nameDiv.appendChild(bond);
 
       header.append(img, nameDiv);
       card.append(header);
