@@ -2842,6 +2842,12 @@
     });
 
     els.sceneGrid.appendChild(cont);
+
+    // 预加载十张场景底图，进场景时不用等
+    Object.keys(SCENE_IMG).forEach((key) => {
+      const pre = new Image();
+      pre.src = SCENE_IMG[key];
+    });
   }
 
   function renderSceneInner(profile) {
