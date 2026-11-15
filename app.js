@@ -971,9 +971,43 @@
   }
 
   function moveScenePlayer(dx, dy) {
+    stopSceneWalk();
     scenePlayerPos.x = Math.max(6, Math.min(94, scenePlayerPos.x + dx));
     scenePlayerPos.y = Math.max(22, Math.min(92, scenePlayerPos.y + dy));
     positionScenePlayer();
+  }
+
+  // 鼠标点击走动：点哪儿，角色就走哪儿
+  const sceneWalkTarget = { x: null, y: null };
+  let sceneWalkTimer = null;
+  let walkClickBound = false;
+
+  function stopSceneWalk() {
+    sceneWalkTarget.x = null;
+    sceneWalkTarget.y = null;
+    if (sceneWalkTimer) {
+      clearInterval(sceneWalkTimer);
+      sceneWalkTimer = null;
+    }
+  }
+
+  function walkSceneTo(tx, ty) {
+    sceneWalkTarget.x = Math.max(6, Math.min(94, tx));
+    sceneWalkTarget.y = Math.max(22, Math.min(92, ty));
+    if (sceneWalkTimer) return;
+    sceneWalkTimer = setInterval(() => {
+      const dx = sceneWalkTarget.x - scenePlayerPos.x;
+      const dy = sceneWalkTarget.y - scenePlayerPos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (!isFinite(dist) || dist < 0.8) {
+        stopSceneWalk();
+        return;
+      }
+      const step = Math.min(0.9, dist);
+      scenePlayerPos.x += (dx / dist) * step;
+      scenePlayerPos.y += (dy / dist) * step;
+      positionScenePlayer();
+    }, 16);
   }
 
   function resetScenePlayer() {
@@ -1092,6 +1126,30 @@
     const timerPanel = document.querySelector("#timerModalBody .timer-panel");
     if (timerPanel) timerPanel.style.display = "";
     positionMapPlayer();
+
+    // 场景里点地面就走过去（document 捕获阶段，避免被其他点击处理吞掉）
+    if (!walkClickBound) {
+      walkClickBound = true;
+      document.addEventListener("click", (e) => {
+        if (currentView !== "scene") return;
+        const target = e.target;
+        if (!target || !target.closest) return;
+        if (target.closest(".stage-spot")) return;
+        const stage = target.closest(".scene-stage");
+        if (!stage) return;
+        const r = stage.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        const tx = ((e.clientX - r.left) / r.width) * 100;
+        const ty = ((e.clientY - r.top) / r.height) * 100;
+        const mark = document.createElement("div");
+        mark.className = "walk-mark";
+        mark.style.left = `${tx}%`;
+        mark.style.top = `${ty}%`;
+        stage.appendChild(mark);
+        setTimeout(() => mark.remove(), 620);
+        walkSceneTo(tx, ty);
+      }, true);
+    }
   }
 
   function showStudentError(message) {
@@ -2037,6 +2095,8 @@
     selectedSceneId = scene.id;
     selectedSpotId = null;
     resetScenePlayer();
+    stopSceneWalk();
+    positionScenePlayer();
     switchView("scene");
   }
 
@@ -2044,7 +2104,9 @@
     currentView = view;
     if (view === "world") {
       selectedSpotId = null;
+      stopSceneWalk();
     }
+    if (view !== "scene") stopSceneWalk();
     render();
   }
 
