@@ -4244,3 +4244,105 @@ button:active:not(:disabled) {
   45% { transform: translateX(0) scale(1.02); box-shadow: 0 0 0 3px rgba(255, 196, 0, 0.55); }
   100% { transform: translateX(0) scale(1); box-shadow: 0 0 0 0 rgba(255, 196, 0, 0); }
 }
+
+/* ===== 学生端：宠物栏改竖排紧凑卡片，3 只宠物也不横向溢出 ===== */
+.app-grid.is-student .pet-team-list {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  overflow-x: visible;
+  overflow-y: visible;
+  padding-bottom: 0;
+  gap: 8px;
+}
+
+.app-grid.is-student .pet-team-item {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-areas:
+    "pic name"
+    "pic bond"
+    "acts acts";
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 2px;
+}
+
+.app-grid.is-student .pet-team-header {
+  display: contents;
+}
+
+.app-grid.is-student .pet-team-img {
+  grid-area: pic;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: #fff;
+}
+
+.app-grid.is-student .pet-team-meta {
+  grid-area: name;
+  min-width: 0;
+}
+
+.app-grid.is-student .pet-team-meta .pet-team-name {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-grid.is-student .pet-team-meta .pet-team-level {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.app-grid.is-student .pet-team-bond {
+  grid-area: bond;
+  margin: 0;
+  font-size: 11px;
+  color: #e91e63;
+}
+
+.app-grid.is-student .pet-team-actions {
+  grid-area: acts;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.app-grid.is-student .pet-team-actions button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 5px 4px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.app-grid.is-student .pet-team-empty {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+/* ===== 学生端：窄窗口降级为单列，避免主区被压扁溢出 ===== */
+@media (max-width: 900px) {
+  .app-grid.is-student .game-stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-grid.is-student .status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .app-grid.is-student .status-grid > :nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
