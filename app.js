@@ -21,6 +21,7 @@
   };
   const CLOUD_ENABLED = Boolean(CLOUD_CONFIG.url && CLOUD_CONFIG.key);
   const CLOUD_TABLE = "students";
+  const PASS_BACKUP_KEY = "carlosia_pass_backup_v1";
   let cloudSyncTimer = null;
   let cloudSyncBusy = false;
   let cloudSyncQueued = null;
@@ -105,6 +106,51 @@
       counter[k] = (counter[k] || 0) + 1;
     });
     return { total: list.length, counter };
+  }
+
+  // 备份每个人的原密码（锁班前调用）
+  async function cloudBackupPasswords() {
+    const rows = await cloudRequest(`${CLOUD_TABLE}?select=name,pass`);
+    return (rows || []).map((r) => ({ name: r.name, pass: String((r && r.pass) || "") }));
+  }
+
+  // 逐人写回各自密码（只改 pass，不动存档）；并发分批，避免中途卡住
+  async function cloudRestorePasswords(list, onProgress) {
+    let ok = 0;
+    const fails = [];
+    const chunk = 8;
+    for (let i = 0; i < list.length; i += chunk) {
+      const part = list.slice(i, i + chunk);
+      const results = await Promise.all(
+        part.map(async (item) => {
+          try {
+            await cloudRequest(`${CLOUD_TABLE}?name=eq.${encodeURIComponent(item.name)}`, {
+              method: "PATCH",
+              headers: { Prefer: "return=minimal" },
+              body: JSON.stringify({ pass: item.pass }),
+            });
+            return true;
+          } catch (err) {
+            console.warn("恢复密码失败", item.name, err);
+            fails.push(item.name);
+            return false;
+          }
+        })
+      );
+      ok += results.filter(Boolean).length;
+      if (typeof onProgress === "function") {
+        onProgress(Math.min(i + chunk, list.length), list.length);
+      }
+    }
+    return { ok, fails };
+  }
+
+  // 逐人核对：返回还没改对的人
+  async function cloudVerifyPasswords(list) {
+    const rows = await cloudRequest(`${CLOUD_TABLE}?select=name,pass`);
+    const map = new Map();
+    (rows || []).forEach((r) => map.set(r.name, String((r && r.pass) || "")));
+    return list.filter((item) => map.get(item.name) !== String(item.pass || ""));
   }
 
   // 把云端返回的一行还原成角色对象
@@ -1470,10 +1516,13 @@
     }
     document
       .getElementById("lockAllPasswords")
-      ?.addEventListener("click", () => setAllStudentPasswords("6985179"));
+      ?.addEventListener("click", lockAllPasswords);
     document
       .getElementById("unlockAllPasswords")
-      ?.addEventListener("click", () => setAllStudentPasswords("1234"));
+      ?.addEventListener("click", restoreAllPasswords);
+    document
+      .getElementById("exportPassBackup")
+      ?.addEventListener("click", exportPassBackup);
     els.pullStudent.addEventListener("click", handlePullStudent);
     els.clearPulled.addEventListener("click", () => {
       pulledProfileIds = [];
@@ -2716,52 +2765,161 @@
     setExportMessage(`已导出 ${(state.profiles || []).length} 个学生`);
   }
 
-  // 老师后台：一键改全班密码（锁住 / 恢复）
-  async function setAllStudentPasswords(newPass) {
-    const box = document.getElementById("lockMessage");
-    const setMsg = (text, isError) => {
-      if (box) {
-        box.textContent = text;
-        box.classList.toggle("is-error", Boolean(isError));
-      }
-      setTeacherMessage(text, Boolean(isError));
-    };
-    if (!CLOUD_ENABLED) {
-      setMsg("云端未配置，无法修改密码", true);
-      return;
+  const LOCK_PASS = "6985179";
+
+  function lockMsgBox() {
+    return document.getElementById("lockMessage");
+  }
+
+  function setLockMessage(text, isError) {
+    const box = lockMsgBox();
+    if (box) {
+      box.textContent = text;
+      box.classList.toggle("is-error", Boolean(isError));
     }
-    const usage = newPass === "6985179"
-      ? "锁住全班：非上课时间孩子用 1234 登不进来"
-      : "恢复全班：改回 1234，正常上课";
-    if (!confirm(`确定把全班学生密码改成 ${newPass} 吗？\n${usage}`)) {
-      return;
-    }
-    setMsg("正在改密码，请稍等…");
+    setTeacherMessage(text, Boolean(isError));
+  }
+
+  function readPassBackup() {
     try {
-      await cloudSetAllPasswords(newPass);
-      // 本地存档里的密码也同步，避免之后"一键上传云端"又写回 1234
-      (state.profiles || []).forEach((p) => {
-        p.pass = newPass;
-      });
-      try {
-        localStorage.setItem(activeStorageKey, JSON.stringify(state));
-      } catch (err) {
-        console.warn("本地密码同步失败", err);
-      }
+      const raw = localStorage.getItem(PASS_BACKUP_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data || !Array.isArray(data.list) || !data.list.length) return null;
+      return data;
+    } catch (err) {
+      console.warn("读取密码备份失败", err);
+      return null;
+    }
+  }
+
+  function writePassBackup(list) {
+    const data = { at: new Date().toISOString(), count: list.length, list };
+    try {
+      localStorage.setItem(PASS_BACKUP_KEY, JSON.stringify(data));
+    } catch (err) {
+      console.warn("保存密码备份失败", err);
+    }
+    return data;
+  }
+
+  // 老师后台：锁住全班（先备份每人原密码，再统一改成 6985179）
+  async function lockAllPasswords() {
+    if (!CLOUD_ENABLED) {
+      setLockMessage("云端未配置，无法操作", true);
+      return;
+    }
+    try {
+      setLockMessage("正在检查当前状态…");
       const stats = await cloudPasswordStats();
-      const matched = stats.counter[newPass] || 0;
-      const others = stats.total - matched;
-      if (others <= 0) {
-        setMsg(`✅ 完成：${stats.total} 个账号密码已全部改成 ${newPass}`);
+      const backup = readPassBackup();
+      const alreadyLocked =
+        stats.total > 0 && (stats.counter[LOCK_PASS] || 0) === stats.total;
+      if (alreadyLocked && backup) {
+        setLockMessage(
+          `ℹ️ 现在已经是锁住状态，备份里有 ${backup.count} 人的原密码，直接点「恢复各自原密码」即可`
+        );
+        return;
+      }
+      if (
+        !confirm(
+          `确定锁住全班吗？\n会先备份 ${stats.total} 个人的当前密码，再统一改成 ${LOCK_PASS}。\n之后可以随时点「恢复各自原密码」。`
+        )
+      ) {
+        return;
+      }
+      setLockMessage("正在备份原密码…");
+      const list = await cloudBackupPasswords();
+      writePassBackup(list);
+      setLockMessage(`已备份 ${list.length} 人原密码，正在改成 ${LOCK_PASS}…`);
+      await cloudSetAllPasswords(LOCK_PASS);
+      const after = await cloudPasswordStats();
+      const locked = after.counter[LOCK_PASS] || 0;
+      if (locked === after.total) {
+        setLockMessage(`✅ 已锁住：${after.total} 个账号密码全部为 ${LOCK_PASS}（原密码已备份）`);
       } else {
-        setMsg(
-          `⚠️ 部分未成功：共 ${stats.total} 个账号，${matched} 个已是 ${newPass}，还有 ${others} 个是其他密码`,
+        setLockMessage(
+          `⚠️ 部分未成功：${after.total} 个账号中 ${locked} 个已锁，还有 ${
+            after.total - locked
+          } 个没改到`,
           true
         );
       }
     } catch (err) {
-      setMsg(`❌ 失败：${err.message || err}`, true);
+      setLockMessage(`❌ 失败：${err.message || err}`, true);
     }
+  }
+
+  // 老师后台：恢复各自原密码
+  async function restoreAllPasswords() {
+    if (!CLOUD_ENABLED) {
+      setLockMessage("云端未配置，无法操作", true);
+      return;
+    }
+    const backup = readPassBackup();
+    if (!backup) {
+      setLockMessage(
+        "⚠️ 这台电脑上没找到密码备份，无法恢复原密码。请先「导出密码备份」找回，或手工重设。",
+        true
+      );
+      return;
+    }
+    if (
+      !confirm(
+        `确定恢复 ${backup.count} 个人的原密码吗？\n备份时间：${new Date(
+          backup.at
+        ).toLocaleString()}`
+      )
+    ) {
+      return;
+    }
+    try {
+      let done = 0;
+      const total = backup.count;
+      setLockMessage(`正在逐人恢复（共 ${total} 人）…`);
+      let result = await cloudRestorePasswords(backup.list, (n) => {
+        done = n;
+        setLockMessage(`正在恢复 ${n} / ${total} …`);
+      });
+      // 逐人核对，把没改对的再补一次
+      let bad = await cloudVerifyPasswords(backup.list);
+      if (bad.length) {
+        setLockMessage(`核对发现 ${bad.length} 人未生效，正在补写…`);
+        result = await cloudRestorePasswords(bad);
+        bad = await cloudVerifyPasswords(backup.list);
+      }
+      if (!bad.length) {
+        setLockMessage(`✅ 已恢复：${total} 个人都换回了各自原密码`);
+      } else {
+        setLockMessage(
+          `⚠️ 还有 ${bad.length} 人没改回去（${bad
+            .map((x) => x.name)
+            .join("、")}），可再点一次「恢复」重试`,
+          true
+        );
+      }
+    } catch (err) {
+      setLockMessage(`❌ 失败：${err.message || err}`, true);
+    }
+  }
+
+  // 老师后台：导出密码备份文件（换电脑/清缓存前的保险）
+  function exportPassBackup() {
+    const backup = readPassBackup();
+    if (!backup) {
+      setLockMessage("⚠️ 本机没有密码备份可导出", true);
+      return;
+    }
+    const data = JSON.stringify(backup, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `卡罗西亚_密码备份_${stamp}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    setLockMessage(`已导出 ${backup.count} 人的密码备份`);
   }
 
   function handlePullStudent() {
