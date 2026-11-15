@@ -4806,11 +4806,17 @@ button:active:not(:disabled) {
 }
 
 .app-grid.is-student .scene-stage {
-  width: min(100%, calc((100vh - 240px) * 16 / 9));
-  min-width: 320px;
+  width: min(96vw, calc((100vh - 240px) * 16 / 9));
+  min-width: 300px;
   flex: 0 0 auto;
   border-radius: 0;
   margin: 0 auto;
+}
+
+/* 场景舞台的父级氛围层原本是 0 宽，这里补上占位 */
+.app-grid.is-student .scene-inner-panel .sceneAtmosphere {
+  width: 100%;
+  display: block;
 }
 
 .app-grid.is-student .scene-result,
