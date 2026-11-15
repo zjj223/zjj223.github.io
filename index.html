@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>卡罗西亚大陆</title>
-    <link rel="stylesheet" href="./styles.css?v=20261115l" />
+    <link rel="stylesheet" href="./styles.css?v=20261115m" />
   </head>
   <body>
     <!-- 老师登录界面 -->
@@ -226,22 +226,25 @@
 
             <!-- 右下角功能坞（学生端） -->
             <div id="dockBar" class="dock-bar" hidden>
-              <button id="dockPet" class="dock-btn" type="button">
-                <span class="dock-icon" aria-hidden="true">🐾</span>
-                <span class="dock-label">宠物</span>
-              </button>
-              <button id="dockShop" class="dock-btn" type="button">
-                <span class="dock-icon" aria-hidden="true">🏪</span>
-                <span class="dock-label">商店</span>
-              </button>
-              <button id="dockRank" class="dock-btn" type="button">
-                <span class="dock-icon" aria-hidden="true">🏆</span>
-                <span class="dock-label">排行榜</span>
-              </button>
-              <button id="dockTimer" class="dock-btn" type="button">
-                <span class="dock-icon" aria-hidden="true">⏱</span>
-                <span class="dock-label">计时</span>
-              </button>
+              <div id="dockProfile" class="dock-profile" aria-live="polite"></div>
+              <div class="dock-actions">
+                <button id="dockPet" class="dock-btn" type="button">
+                  <span class="dock-icon" aria-hidden="true">🐾</span>
+                  <span class="dock-label">宠物</span>
+                </button>
+                <button id="dockShop" class="dock-btn" type="button">
+                  <span class="dock-icon" aria-hidden="true">🏪</span>
+                  <span class="dock-label">商店</span>
+                </button>
+                <button id="dockRank" class="dock-btn" type="button">
+                  <span class="dock-icon" aria-hidden="true">🏆</span>
+                  <span class="dock-label">排行榜</span>
+                </button>
+                <button id="dockTimer" class="dock-btn" type="button">
+                  <span class="dock-icon" aria-hidden="true">⏱</span>
+                  <span class="dock-label">计时</span>
+                </button>
+              </div>
             </div>
 
             <!-- 视图切换导航 -->
@@ -271,16 +274,16 @@
             <!-- 场景内部视图 -->
             <div id="sceneView" class="view-container" hidden>
               <section class="panel scene-inner-panel" aria-labelledby="sceneInnerTitle">
-                <div class="panel-heading">
+                <div class="scene-topbar">
                   <button id="backToWorld" class="ghost-button back-button" type="button">
                     <span class="button-icon" aria-hidden="true">←</span>返回大世界
                   </button>
                   <h2 id="sceneInnerTitle">场景</h2>
+                  <div id="sceneInventory" class="scene-inventory"></div>
                 </div>
                 <div id="sceneAtmosphere" class="scene-atmosphere"></div>
                 <div id="sceneSpotList" class="scene-spot-list"></div>
                 <div id="sceneResult" class="result-message" aria-live="polite"></div>
-                <div id="sceneInventory" class="scene-inventory"></div>
               </section>
             </div>
 
@@ -536,6 +539,7 @@
             <div class="pet-col pet-col-detail" id="petColDetail"></div>
             <div class="pet-col pet-col-ability" id="petColAbility"></div>
           </div>
+          <div id="petActionBar" class="pet-action-bar"></div>
         </div>
       </div>
     </div>
@@ -581,8 +585,8 @@
       </div>
     </div>
 
-    <script src="./data/petConfig.js?v=20261115l"></script>
-    <script src="./app.js?v=20261115l"></script>
+    <script src="./data/petConfig.js?v=20261115m"></script>
+    <script src="./app.js?v=20261115m"></script>
 
   <!-- 新手引导系统 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
