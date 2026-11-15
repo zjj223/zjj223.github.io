@@ -970,8 +970,19 @@
           timer.style.display = "";
           timerBody.appendChild(timer);
         }
+        // 三栏布局：左宠物列表 / 中宠物详情 / 右宠物能力
+        const listCol = petBody.querySelector("#petColList");
+        const detailCol = petBody.querySelector("#petColDetail");
+        const abilityCol = petBody.querySelector("#petColAbility");
+        const teamPanel = sidebar.querySelector(".pet-team-panel");
+        const overviewPanel = sidebar.querySelector(".hatch-panel");
+        const statsPanel = sidebar.querySelector(".stat-panel");
+        if (listCol && teamPanel) listCol.appendChild(teamPanel);
+        if (detailCol && overviewPanel) detailCol.appendChild(overviewPanel);
+        if (abilityCol && statsPanel) abilityCol.appendChild(statsPanel);
+        // 剩余未归类的节点仍放中栏，避免丢失
         while (sidebar.firstElementChild) {
-          petBody.appendChild(sidebar.firstElementChild);
+          (detailCol || petBody).appendChild(sidebar.firstElementChild);
         }
         sidebar.style.display = "none";
       }
