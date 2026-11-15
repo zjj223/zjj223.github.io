@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>卡罗西亚大陆</title>
-    <link rel="stylesheet" href="./styles.css?v=20261115k" />
+    <link rel="stylesheet" href="./styles.css?v=20261115l" />
   </head>
   <body>
     <!-- 老师登录界面 -->
@@ -525,12 +525,18 @@
 
     <!-- 宠物面板弹窗（学生端） -->
     <div id="petModal" class="modal-overlay zone-modal" hidden>
-      <div class="modal zone-modal-box">
+      <div class="modal zone-modal-box pet">
         <div class="modal-header">
           <h3>🐾 我的宠物</h3>
           <button id="petModalClose" class="modal-close" type="button">×</button>
         </div>
-        <div id="petModalBody" class="zone-modal-body"></div>
+        <div id="petModalBody" class="zone-modal-body">
+          <div class="pet-three-col">
+            <div class="pet-col pet-col-list" id="petColList"></div>
+            <div class="pet-col pet-col-detail" id="petColDetail"></div>
+            <div class="pet-col pet-col-ability" id="petColAbility"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -575,8 +581,8 @@
       </div>
     </div>
 
-    <script src="./data/petConfig.js?v=20261115k"></script>
-    <script src="./app.js?v=20261115k"></script>
+    <script src="./data/petConfig.js?v=20261115l"></script>
+    <script src="./app.js?v=20261115l"></script>
 
   <!-- 新手引导系统 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
