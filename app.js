@@ -921,6 +921,7 @@
       if (studentTeacherBox) {
         studentTeacherBox.style.display = "none";
       }
+      setupZoneLayout();
       render();
     } catch (err) {
       console.error("学生登录失败", err);
@@ -929,6 +930,114 @@
       els.studentLoginBtn.disabled = false;
       els.studentLoginBtn.textContent = oldLabel;
     }
+  }
+
+  // ===== 洛克王国式全屏大世界：功能坞 + 角色走动 =====
+  let zoneLayoutReady = false;
+  const mapPlayerPos = { x: 50, y: 84 };
+
+  function positionMapPlayer() {
+    const el = document.getElementById("mapPlayer");
+    if (!el) return;
+    el.style.left = `${mapPlayerPos.x}%`;
+    el.style.top = `${mapPlayerPos.y}%`;
+  }
+
+  function moveMapPlayer(dx, dy) {
+    mapPlayerPos.x = Math.max(5, Math.min(95, mapPlayerPos.x + dx));
+    mapPlayerPos.y = Math.max(8, Math.min(92, mapPlayerPos.y + dy));
+    positionMapPlayer();
+  }
+
+  function setupZoneLayout() {
+    if (!zoneLayoutReady) {
+      zoneLayoutReady = true;
+
+      const petBody = document.getElementById("petModalBody");
+      const shopBody = document.getElementById("shopModalBody");
+      const timerBody = document.getElementById("timerModalBody");
+
+      // 宠物侧栏整体搬进宠物弹窗（计时器单独挪到计时弹窗）
+      const sidebar = document.querySelector(".game-sidebar");
+      if (sidebar && petBody) {
+        const timer = sidebar.querySelector(".timer-panel");
+        if (timer && timerBody) {
+          timer.style.display = "";
+          timerBody.appendChild(timer);
+        }
+        while (sidebar.firstElementChild) {
+          petBody.appendChild(sidebar.firstElementChild);
+        }
+        sidebar.style.display = "none";
+      }
+
+      // 商店面板搬进商店弹窗
+      const shopPanel = document.querySelector("#shopView .shop-panel");
+      if (shopPanel && shopBody) {
+        shopBody.appendChild(shopPanel);
+      }
+
+      const hide = (id) => {
+        const m = document.getElementById(id);
+        if (m) m.hidden = true;
+      };
+      document.getElementById("petModalClose")?.addEventListener("click", () => hide("petModal"));
+      document.getElementById("shopModalClose")?.addEventListener("click", () => hide("shopModal"));
+      document.getElementById("timerModalClose")?.addEventListener("click", () => hide("timerModal"));
+      ["petModal", "shopModal", "timerModal"].forEach((id) => {
+        const m = document.getElementById(id);
+        if (m) {
+          m.addEventListener("click", (e) => {
+            if (e.target === m) m.hidden = true;
+          });
+        }
+      });
+
+      const show = (id) => {
+        const m = document.getElementById(id);
+        if (!m) return;
+        m.hidden = false;
+        const body = m.querySelector(".zone-modal-body");
+        if (body) body.scrollTop = 0;
+      };
+
+      document.getElementById("dockPet")?.addEventListener("click", () => show("petModal"));
+      document.getElementById("dockShop")?.addEventListener("click", () => {
+        renderShop(currentShopTab);
+        show("shopModal");
+      });
+      document.getElementById("dockRank")?.addEventListener("click", () => showRank("power"));
+      document.getElementById("dockTimer")?.addEventListener("click", () => show("timerModal"));
+
+      // 方向键 / WASD 走动
+      document.addEventListener("keydown", (e) => {
+        if (!document.querySelector(".app-grid.is-student")) return;
+        if (currentView !== "world") return;
+        const tag = (e.target && e.target.tagName) || "";
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+        const dirs = {
+          ArrowLeft: [-3, 0],
+          ArrowRight: [3, 0],
+          ArrowUp: [0, -3],
+          ArrowDown: [0, 3],
+          a: [-3, 0],
+          d: [3, 0],
+          w: [0, -3],
+          s: [0, 3],
+        };
+        const dir = dirs[key];
+        if (!dir) return;
+        e.preventDefault();
+        moveMapPlayer(dir[0], dir[1]);
+      });
+    }
+
+    const dockBar = document.getElementById("dockBar");
+    if (dockBar) dockBar.hidden = false;
+    const timerPanel = document.querySelector("#timerModalBody .timer-panel");
+    if (timerPanel) timerPanel.style.display = "";
+    positionMapPlayer();
   }
 
   function showStudentError(message) {
@@ -2842,6 +2951,29 @@
     });
 
     els.sceneGrid.appendChild(cont);
+
+    // 玩家角色：全屏大世界里能走动的训练师
+    const playerEl = document.createElement("div");
+    playerEl.className = "map-player";
+    playerEl.id = "mapPlayer";
+    const spriteName =
+      profile && profile.gender === "female" ? "trainer-girl-sprite.png" : "trainer-boy-sprite.png";
+    playerEl.innerHTML = `<img alt="" src="./assets/boxworld/${spriteName}">`;
+    playerEl.style.left = `${mapPlayerPos.x}%`;
+    playerEl.style.top = `${mapPlayerPos.y}%`;
+    cont.appendChild(playerEl);
+
+    // 点地图空白处，角色走过去
+    cont.addEventListener("click", (e) => {
+      if (e.target.closest(".map-pin")) return;
+      const rect = cont.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      mapPlayerPos.x = Math.max(5, Math.min(95, x));
+      mapPlayerPos.y = Math.max(8, Math.min(92, y));
+      positionMapPlayer();
+    });
 
     // 预加载十张场景底图，进场景时不用等
     Object.keys(SCENE_IMG).forEach((key) => {
