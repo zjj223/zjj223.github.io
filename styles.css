@@ -5027,3 +5027,116 @@ button:active:not(:disabled) {
 .timer-title {
   color: #4c6b56;
 }
+/* ===== P0-1 底部工具栏（对标洛克王国一条横栏） ===== */
+.dock-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(26, 58, 40, 0.88), rgba(14, 36, 24, 0.96));
+  border-top: 2px solid rgba(255, 226, 160, 0.3);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -6px 22px rgba(0, 0, 0, 0.35);
+  z-index: 40;
+}
+
+.dock-btn {
+  width: auto;
+  height: 36px;
+  min-width: 92px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f0f8f1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-shadow: none;
+  cursor: pointer;
+  padding-block: 0;
+  transition: background 0.15s ease;
+}
+
+.dock-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.dock-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f0f8f1;
+  line-height: 1;
+}
+
+.dock-btn:hover {
+  background: rgba(255, 255, 255, 0.26);
+  box-shadow: none;
+  transform: none !important;
+}
+
+/* 底栏占了 48px，地图相应让出高度 */
+.app-grid.is-student .continent {
+  width: min(100%, calc((100vh - 76px) * 16 / 9));
+  max-height: calc(100vh - 76px);
+}
+/* 去掉老规则留下的 1180px 限宽，让地图真正铺满 */
+.app-grid.is-student .continent {
+  max-width: none;
+}
+
+/* 底栏 4 个入口沿整条均分，像洛克王国那样铺开 */
+.dock-bar {
+  justify-content: space-evenly;
+  gap: 0;
+}
+
+.dock-btn {
+  flex: 1 1 0;
+  max-width: 200px;
+  min-width: 96px;
+}
+/* 地图在可用区域内垂直居中，别贴着顶、下方留一大片 */
+.app-grid.is-student .scene-grid.map-mode {
+  padding: 46px 0 54px;
+  box-sizing: border-box;
+}
+
+/* 底栏按钮收紧并居中，别拉成四条长条 */
+.dock-bar {
+  justify-content: center;
+  gap: 10px;
+}
+
+.dock-btn {
+  flex: 0 1 160px;
+  max-width: 160px;
+  min-width: 110px;
+}
+/* ===== P0-2 出战宠物跟随 ===== */
+.map-pet {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -100%);
+  z-index: 6;
+  pointer-events: none;
+  transition: left 0.42s linear, top 0.42s linear;
+  filter: drop-shadow(0 4px 7px rgba(0, 0, 0, 0.36));
+}
+
+.map-pet img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
