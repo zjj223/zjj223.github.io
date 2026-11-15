@@ -4806,7 +4806,7 @@ button:active:not(:disabled) {
 }
 
 .app-grid.is-student .scene-stage {
-  width: min(100%, calc((100vh - 320px) * 16 / 9));
+  width: min(100%, calc((100vh - 240px) * 16 / 9));
   min-width: 320px;
   flex: 0 0 auto;
   border-radius: 0;
