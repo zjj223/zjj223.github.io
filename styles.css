@@ -4610,3 +4610,7 @@ button:active:not(:disabled) {
 .view-container {
   animation: none;
 }
+/* 登录卡片同理：后台标签冻结 opacity 动画会让整个登录框不可见 */
+.login-card {
+  animation: none;
+}
