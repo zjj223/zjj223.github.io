@@ -2750,50 +2750,98 @@
     els.typeWeak.textContent = "";
   }
 
+  // ===== 箱庭大世界：区域点坐标 / 场景底图 / 地标表情 =====
+  const SCENE_MAP_POS = {
+    "grassland": [16, 68],
+    "volcano": [38, 45],
+    "mermaid-bay": [82, 52],
+    "academy": [66, 84],
+    "snow-valley": [19, 22],
+    "thunder-valley": [45, 56],
+    "shadow-forest": [71, 44],
+    "dark-swamp": [50, 24],
+    "dragon-realm": [77, 20],
+    "sky-city": [53, 9],
+  };
+
+  const SCENE_IMG = {
+    "grassland": "assets/boxworld/scene-grassland.webp",
+    "volcano": "assets/boxworld/scene-volcano.webp",
+    "mermaid-bay": "assets/boxworld/scene-bay.webp",
+    "academy": "assets/boxworld/scene-academy.webp",
+    "snow-valley": "assets/boxworld/scene-snow.webp",
+    "thunder-valley": "assets/boxworld/scene-thunder.webp",
+    "shadow-forest": "assets/boxworld/scene-shadow.webp",
+    "dark-swamp": "assets/boxworld/scene-swamp.webp",
+    "dragon-realm": "assets/boxworld/scene-dragon.webp",
+    "sky-city": "assets/boxworld/scene-sky.webp",
+  };
+
+  const SCENE_EMOJI = {
+    "grassland": "🌿",
+    "volcano": "🔥",
+    "mermaid-bay": "🌊",
+    "academy": "🔬",
+    "snow-valley": "❄️",
+    "thunder-valley": "⚡",
+    "shadow-forest": "🌲",
+    "dark-swamp": "🌫️",
+    "dragon-realm": "🐉",
+    "sky-city": "🏛️",
+  };
+
+  // 六个探索点在场景图上的固定位置（百分比，与 spots 顺序一一对应）
+  const STAGE_SPOT_XY = [[26, 76], [78, 47], [64, 26], [38, 63], [55, 21], [8, 55]];
+
   function renderSceneGrid() {
+    els.sceneGrid.classList.add("map-mode");
     els.sceneGrid.replaceChildren();
     const profile = getActiveProfile();
+
+    const cont = document.createElement("div");
+    cont.className = "continent";
+
+    const bg = document.createElement("img");
+    bg.className = "continent-bg";
+    bg.src = "assets/boxworld/map-continent.webp";
+    bg.alt = "卡罗西亚大陆";
+    cont.appendChild(bg);
+
     SCENES.forEach((scene) => {
       const unlocked = isSceneUnlocked(scene, profile);
+      const lockReason = getSceneLockReason(scene, profile);
+      const pos = SCENE_MAP_POS[scene.id] || [50, 50];
+
       const button = document.createElement("button");
       button.type = "button";
-      button.className = `scene-card ${unlocked ? "" : "locked"} ${
+      button.className = `map-pin ${unlocked ? "" : "locked"} ${
         scene.id === selectedSceneId ? "selected" : ""
       }`;
       button.dataset.sceneId = scene.id;
       button.disabled = !unlocked;
-      const lockReason = getSceneLockReason(scene, profile);
+      button.style.left = `${pos[0]}%`;
+      button.style.top = `${pos[1]}%`;
       button.setAttribute("aria-label", unlocked ? scene.name : `${scene.name}，${lockReason}`);
 
-      const art = document.createElement("div");
-      art.className = `scene-art ${scene.artClass}`;
-      art.innerHTML = sceneArt(scene.id);
+      const dot = document.createElement("span");
+      dot.className = "map-dot";
+      dot.textContent = SCENE_EMOJI[scene.id] || "📍";
 
-      const body = document.createElement("div");
-      body.className = "scene-body";
-      body.innerHTML = unlocked
-        ? `
-          <div class="scene-title">
-            <strong>${scene.name}</strong>
-            <span>${scene.tag}</span>
-          </div>
-          <div class="scene-type">${scene.element}</div>
-          <p class="scene-drops">经验 ${scene.drops.exp[0]}-${scene.drops.exp[1]}</p>
-          <p class="scene-feature">${scene.feature}</p>
-        `
-        : `
-          <div class="scene-title">
-            <strong>${scene.name}</strong>
-            <span class="lock-mark" aria-hidden="true">锁</span>
-          </div>
-          <div class="scene-type">${scene.element}</div>
-          <p class="scene-drops">${lockReason}</p>
-          <p class="scene-feature">提升宠物亲密度或捕捉更多宠物后解锁。</p>
-        `;
+      const name = document.createElement("span");
+      name.className = "map-name";
+      name.textContent = scene.name;
 
-      button.append(art, body);
-      els.sceneGrid.appendChild(button);
+      const meta = document.createElement("span");
+      meta.className = "map-meta";
+      meta.textContent = unlocked
+        ? `${scene.tag} · ${scene.drops.exp[0]}-${scene.drops.exp[1]}`
+        : lockReason;
+
+      button.append(dot, name, meta);
+      cont.appendChild(button);
     });
+
+    els.sceneGrid.appendChild(cont);
   }
 
   function renderSceneInner(profile) {
@@ -2801,48 +2849,69 @@
     if (!scene) return;
     els.sceneInnerTitle.textContent = scene.name;
 
-    // 场景氛围区
+    // 场景舞台：真实底图 + 训练师 + 宠物 + 六个探索点
     els.sceneAtmosphere.replaceChildren();
-    const atmosphere = document.createElement("div");
-    atmosphere.className = `scene-atmosphere-bg ${scene.artClass}`;
-    const atmosphereText = document.createElement("p");
-    atmosphereText.className = "scene-desc";
-    atmosphereText.textContent = scene.feature || "";
-    atmosphere.appendChild(atmosphereText);
-    els.sceneAtmosphere.appendChild(atmosphere);
+    const stageEl = document.createElement("div");
+    stageEl.className = "scene-stage";
 
-    // 探索地点列表
+    const stageBg = document.createElement("img");
+    stageBg.className = "scene-stage-bg";
+    stageBg.src = SCENE_IMG[scene.id] || "";
+    stageBg.alt = scene.name;
+    stageEl.appendChild(stageBg);
+
+    const stageDesc = document.createElement("p");
+    stageDesc.className = "scene-stage-desc";
+    stageDesc.textContent = scene.feature || "";
+    stageEl.appendChild(stageDesc);
+
+    const trainerEl = document.createElement("div");
+    trainerEl.className = "stage-player";
+    const trainerImg = document.createElement("img");
+    trainerImg.src = "assets/boxworld/trainer-boy-sprite.png";
+    trainerImg.alt = "";
+    trainerEl.appendChild(trainerImg);
+    stageEl.appendChild(trainerEl);
+
+    if (profile.pet && profile.pet.image) {
+      const petEl = document.createElement("div");
+      petEl.className = "stage-pet";
+      const petImgEl = document.createElement("img");
+      petImgEl.src = profile.pet.image;
+      petImgEl.alt = profile.pet.name || "";
+      petEl.appendChild(petImgEl);
+      stageEl.appendChild(petEl);
+    }
+
+    // 探索点直接落在图上的对应位置（沿用原有点击事件委托）
     els.sceneSpotList.replaceChildren();
+    els.sceneSpotList.className = "stage-spot-layer";
     const spots = SCENE_SPOTS[scene.id] || [];
     spots.forEach((spot, spotIndex) => {
+      const xy = STAGE_SPOT_XY[spotIndex] || [50, 50];
       const card = document.createElement("button");
       card.type = "button";
-      card.className = `spot-card${selectedSpotId === spot.id ? " selected" : ""}`;
+      card.className = `stage-spot${selectedSpotId === spot.id ? " selected" : ""}`;
       card.dataset.spotId = spot.id;
+      card.style.left = `${xy[0]}%`;
+      card.style.top = `${xy[1]}%`;
       card.disabled = isExploring;
-
-      const spotName = document.createElement("strong");
-      spotName.className = "spot-name";
-      spotName.textContent = spot.name;
-
-      const spotDesc = document.createElement("span");
-      spotDesc.className = "spot-desc";
-      spotDesc.textContent = spot.desc;
-
-      const spotMeta = document.createElement("span");
-      spotMeta.className = "spot-meta";
-      const mainItemObj = SCENE_ITEMS[scene.id]?.find((item) => item.id === spot.mainItem);
-      const dropRateText = spotIndex === 4 ? "掉率70%" : "掉率18%";
-      const mainItemText = (spotIndex === 4 || spotIndex === 5) ? " · 道具均等" : (mainItemObj ? ` · 易出【${mainItemObj.name}】` : "");
-      spotMeta.textContent = `经验 ${spot.exp[0]}-${spot.exp[1]} · ${dropRateText} · 免费探索${mainItemText}`;
+      card.title = `${spot.name}：${spot.desc}（经验 ${spot.exp[0]}-${spot.exp[1]}，免费探索）`;
 
       const spotIcon = document.createElement("span");
-      spotIcon.className = "spot-icon";
-      spotIcon.textContent = "🔍";
+      spotIcon.className = "stage-dot";
+      spotIcon.textContent = SCENE_EMOJI[scene.id] || "🔍";
 
-      card.append(spotIcon, spotName, spotDesc, spotMeta);
+      const spotName = document.createElement("span");
+      spotName.className = "stage-tag";
+      spotName.textContent = spot.name;
+
+      card.append(spotIcon, spotName);
       els.sceneSpotList.appendChild(card);
     });
+
+    stageEl.appendChild(els.sceneSpotList);
+    els.sceneAtmosphere.appendChild(stageEl);
 
     // 场景道具收集情况（显示在场景下面）
     if (els.sceneInventory) {
