@@ -954,6 +954,32 @@
     positionMapPlayer();
   }
 
+  // 场景内角色位置（进入场景时回到默认站位）
+  const scenePlayerPos = { x: 50, y: 72 };
+
+  function positionScenePlayer() {
+    const el = document.querySelector(".scene-stage .stage-player");
+    if (!el) return;
+    el.style.left = `${scenePlayerPos.x}%`;
+    el.style.top = `${scenePlayerPos.y}%`;
+    const petEl = document.querySelector(".scene-stage .stage-pet");
+    if (petEl) {
+      petEl.style.left = `${Math.min(94, scenePlayerPos.x - 3)}%`;
+      petEl.style.top = `${Math.min(92, scenePlayerPos.y + 1)}%`;
+    }
+  }
+
+  function moveScenePlayer(dx, dy) {
+    scenePlayerPos.x = Math.max(6, Math.min(94, scenePlayerPos.x + dx));
+    scenePlayerPos.y = Math.max(22, Math.min(92, scenePlayerPos.y + dy));
+    positionScenePlayer();
+  }
+
+  function resetScenePlayer() {
+    scenePlayerPos.x = 50;
+    scenePlayerPos.y = 72;
+  }
+
   function setupZoneLayout() {
     if (!zoneLayoutReady) {
       zoneLayoutReady = true;
@@ -1028,7 +1054,7 @@
       // 方向键 / WASD 走动
       document.addEventListener("keydown", (e) => {
         if (!document.querySelector(".app-grid.is-student")) return;
-        if (currentView !== "world") return;
+        if (currentView !== "world" && currentView !== "scene") return;
         const tag = (e.target && e.target.tagName) || "";
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
         const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
@@ -1045,7 +1071,11 @@
         const dir = dirs[key];
         if (!dir) return;
         e.preventDefault();
-        moveMapPlayer(dir[0], dir[1]);
+        if (currentView === "world") {
+          moveMapPlayer(dir[0], dir[1]);
+        } else {
+          moveScenePlayer(dir[0], dir[1]);
+        }
       });
     }
 
@@ -1542,6 +1572,53 @@
     };
   }
 
+  // 底栏角色信息面板：头像 + 名字 + 性别 + 行动点 + 出战宠物
+  function renderDockProfile(profile) {
+    const box = document.getElementById("dockProfile");
+    if (!box || !profile) return;
+    box.replaceChildren();
+
+    const pets = Array.isArray(profile.pets) ? profile.pets : [];
+    const activePet = pets[profile.activePetIndex] || profile.pet || null;
+
+    const avatar = document.createElement("img");
+    avatar.className = "dock-profile-avatar";
+    avatar.alt = "";
+    avatar.src =
+      profile.gender === "female"
+        ? "assets/boxworld/trainer-girl-sprite.png"
+        : "assets/boxworld/trainer-boy-sprite.png";
+    avatar.onerror = function () { avatar.style.visibility = "hidden"; };
+    box.appendChild(avatar);
+
+    const main = document.createElement("div");
+    main.className = "dock-profile-main";
+
+    const nameRow = document.createElement("div");
+    nameRow.className = "dock-profile-name";
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = profile.name;
+    const genderSpan = document.createElement("span");
+    genderSpan.className = "dock-profile-gender";
+    genderSpan.textContent = genderLabel(profile.gender);
+    nameRow.append(nameSpan, genderSpan);
+
+    const metaRow = document.createElement("div");
+    metaRow.className = "dock-profile-meta";
+    const apLabel = document.createElement("span");
+    apLabel.innerHTML = '行动点 <b>' + profile.actionPoints + '</b>';
+    metaRow.appendChild(apLabel);
+    if (activePet) {
+      const petLabel = document.createElement("span");
+      petLabel.innerHTML =
+        '宠物 <b>' + (activePet.name || "—") + '</b> Lv.' + (activePet.level || 1);
+      metaRow.appendChild(petLabel);
+    }
+
+    main.append(nameRow, metaRow);
+    box.appendChild(main);
+  }
+
   function normalizePet(pet) {
     if (!pet || typeof pet !== "object" || typeof pet.name !== "string") {
       return null;
@@ -1947,6 +2024,7 @@
     }
     selectedSceneId = scene.id;
     selectedSpotId = null;
+    resetScenePlayer();
     switchView("scene");
   }
 
@@ -2694,6 +2772,7 @@
     els.activeName.textContent = profile.name;
     els.activeGender.textContent = genderLabel(profile.gender);
     els.actionPoints.textContent = String(profile.actionPoints);
+    renderDockProfile(profile);
     if (profile.pet) {
       const bondLv = profile.pet.bond || 0;
       const statusLv = document.createElement("span");
@@ -3035,6 +3114,8 @@
 
     const trainerEl = document.createElement("div");
     trainerEl.className = "stage-player";
+    trainerEl.style.left = `${scenePlayerPos.x}%`;
+    trainerEl.style.top = `${scenePlayerPos.y}%`;
     const trainerImg = document.createElement("img");
     trainerImg.src = "assets/boxworld/trainer-boy-sprite.png";
     trainerImg.alt = "";
@@ -3044,6 +3125,8 @@
     if (profile.pet && profile.pet.image) {
       const petEl = document.createElement("div");
       petEl.className = "stage-pet";
+      petEl.style.left = `${Math.min(94, scenePlayerPos.x - 3)}%`;
+      petEl.style.top = `${Math.min(92, scenePlayerPos.y + 1)}%`;
       const petImgEl = document.createElement("img");
       petImgEl.src = profile.pet.image;
       petImgEl.alt = profile.pet.name || "";
@@ -4427,11 +4510,12 @@
       level.textContent = `Lv.${pet.level} · ${pet.type}`;
       nameDiv.append(name, level);
 
-      header.append(img, nameDiv);
-
       const bond = document.createElement("div");
       bond.className = "pet-team-bond";
       bond.textContent = `亲密度 ${pet.bond || 0}/10`;
+      nameDiv.appendChild(bond);
+
+      header.append(img, nameDiv);
 
       // 操作按钮区域
       const actions = document.createElement("div");
@@ -4445,8 +4529,8 @@
         // 第一只宠物：刷新按钮
         const refreshBtn = document.createElement("button");
         refreshBtn.className = "btn-switch";
-        refreshBtn.textContent = "🔄 刷新";
-        refreshBtn.title = "消耗1行动点随机更换宠物";
+        refreshBtn.textContent = "🔄";
+        refreshBtn.title = "刷新：消耗1行动点随机更换宠物";
         refreshBtn.dataset.action = "refresh";
         refreshBtn.dataset.index = index;
         row1.appendChild(refreshBtn);
@@ -4454,7 +4538,7 @@
         // 其他宠物：放生按钮
         const releaseBtn = document.createElement("button");
         releaseBtn.className = "btn-release";
-        releaseBtn.textContent = "放生";
+        releaseBtn.textContent = "🗑";
         releaseBtn.title = "放生这只宠物";
         releaseBtn.dataset.action = "release";
         releaseBtn.dataset.index = index;
@@ -4464,14 +4548,15 @@
       if (index !== profile.activePetIndex) {
         const switchBtn = document.createElement("button");
         switchBtn.className = "btn-switch";
-        switchBtn.textContent = "⚔️ 出战";
+        switchBtn.textContent = "⚔";
+        switchBtn.title = "设为出战宠物";
         switchBtn.dataset.action = "switch";
         switchBtn.dataset.index = index;
         row1.appendChild(switchBtn);
       } else {
         const activeTag = document.createElement("span");
         activeTag.className = "pet-team-active-tag";
-        activeTag.textContent = "✓ 出战中";
+        activeTag.textContent = "✓";
         row1.appendChild(activeTag);
       }
 
@@ -4486,11 +4571,11 @@
       bondBtn.dataset.action = "bond";
       bondBtn.dataset.index = index;
       if (bondScene) {
-        bondBtn.textContent = `💕 提升亲密度（${bondScene.name}）`;
-        bondBtn.title = `消耗${bondScene.name}的4个道具，提升1级亲密度`;
+        bondBtn.textContent = "💕";
+        bondBtn.title = `提升亲密度：消耗${bondScene.name}的4个道具，提升1级`;
         bondBtn.disabled = false;
       } else {
-        bondBtn.textContent = "💕 提升亲密度";
+        bondBtn.textContent = "💕";
         bondBtn.title = "集齐任意场景的4个道具后可提升亲密度";
         bondBtn.disabled = true;
       }
@@ -4502,16 +4587,18 @@
       renameBtn.dataset.action = "rename";
       renameBtn.dataset.index = index;
       if ((pet.bond || 0) >= BOND_NAME_UNLOCK_LEVEL) {
-        renameBtn.textContent = "✏️ 修改昵称";
+        renameBtn.textContent = "✏";
+        renameBtn.title = "修改昵称";
         renameBtn.disabled = false;
       } else {
-        renameBtn.textContent = `✏️ 昵称（亲密度${BOND_NAME_UNLOCK_LEVEL}解锁）`;
+        renameBtn.textContent = "🔒";
+        renameBtn.title = `亲密度${BOND_NAME_UNLOCK_LEVEL}解锁修改昵称`;
         renameBtn.disabled = true;
       }
       row2.appendChild(renameBtn);
 
       actions.append(row1, row2);
-      card.append(header, bond, actions);
+      card.append(header, actions);
       els.petTeamList.appendChild(card);
     });
   }
