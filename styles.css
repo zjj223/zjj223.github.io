@@ -5125,8 +5125,8 @@ button:active:not(:disabled) {
 /* ===== P0-2 出战宠物跟随 ===== */
 .map-pet {
   position: absolute;
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   transform: translate(-50%, -100%);
   z-index: 6;
   pointer-events: none;
@@ -5139,4 +5139,326 @@ button:active:not(:disabled) {
   height: 100%;
   object-fit: contain;
   display: block;
+}
+/* ===== P0-3 宠物弹窗三栏布局 ===== */
+.zone-modal-box.pet {
+  width: min(96vw, 1080px);
+  max-width: none;
+}
+
+.pet-three-col {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 290px;
+  gap: 14px;
+  align-items: start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pet-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* 三栏内的面板去掉自身外边距，靠 grid 间距控制 */
+.pet-col > .panel {
+  margin: 0;
+}
+
+/* 左栏宠物列表撑满，内部可滚动 */
+.pet-col-list .pet-team-list {
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
+}
+
+/* 中栏大图与资料 */
+.pet-col-detail .hatch-content {
+  padding: 4px 0;
+}
+
+/* 右栏能力条 */
+.pet-col-ability .stat-bars,
+.pet-col-ability .battle-stats {
+  margin-top: 6px;
+}
+
+@media (max-width: 900px) {
+  .pet-three-col {
+    grid-template-columns: 170px minmax(0, 1fr) 230px;
+    gap: 10px;
+  }
+}
+/* 三栏各自滚动，弹窗整体不溢出 */
+.zone-modal-box.pet .zone-modal-body {
+  overflow: visible;
+  max-height: none;
+}
+
+.pet-three-col {
+  max-height: calc(100vh - 170px);
+}
+
+.pet-col {
+  overflow-y: auto;
+  max-height: calc(100vh - 170px);
+}
+
+.pet-col-list > .panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 200px);
+}
+
+.pet-col-list .pet-team-list {
+  flex: 1 1 auto;
+  max-height: none;
+  overflow-y: auto;
+}
+
+/* 中栏大图稍微收一点，给资料留空间 */
+.pet-col-detail .pet-showcase,
+.pet-col-detail .hatch-visual {
+  max-width: 300px;
+}
+/* 弹窗放宽到 92vh，左栏列表自然长开 */
+.zone-modal-box.pet {
+  max-height: 92vh;
+}
+
+.pet-col-list,
+.pet-col-list > .panel,
+.pet-col-list .pet-team-list {
+  max-height: none;
+  overflow: visible;
+}
+
+.pet-col-list > .panel {
+  display: block;
+}
+
+.pet-col-detail {
+  overflow-y: auto;
+}
+/* 左栏宠物列表改成块级堆叠，宽度铺满、高度自然 */
+.pet-col-list .pet-team-list {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
+  height: auto;
+  overflow: visible;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.pet-col-list .pet-team-item {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.pet-col-list .pet-team-item img {
+  max-width: 100%;
+}
+/* 左栏卡片紧凑化：头像 + 名字 + 等级 一行，按钮缩到下方 */
+.pet-col-list .pet-team-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.pet-col-list .pet-team-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pet-col-list .pet-team-img {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  object-fit: contain;
+}
+
+.pet-col-list .pet-team-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pet-col-list .pet-team-name {
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pet-col-list .pet-team-level {
+  font-size: 11px;
+  line-height: 1.3;
+  color: #6b7d70;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pet-col-list .pet-team-bond {
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pet-col-list .pet-team-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pet-col-list .pet-team-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.pet-col-list .pet-team-row button,
+.pet-col-list .pet-team-active-tag {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 2px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+/* 卡片在左栏里必须撑满整宽 */
+.pet-col-list .pet-team-list {
+  align-items: stretch;
+  width: 100%;
+}
+
+.pet-col-list .pet-team-item {
+  align-self: stretch;
+  width: auto;
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+}
+
+.pet-col-list .pet-team-item > * {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pet-col-list .pet-team-item {
+  flex-direction: column;
+}
+/* 用 id 选择器压过 .app-grid.is-student .pet-team-* 的老规则 */
+#petColList .pet-team-list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  gap: 8px;
+  height: auto;
+  overflow: visible;
+  padding: 0;
+}
+
+#petColList .pet-team-item {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 0 auto;
+  gap: 6px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+#petColList .pet-team-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+}
+
+#petColList .pet-team-img {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  object-fit: contain;
+}
+
+#petColList .pet-team-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#petColList .pet-team-name {
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#petColList .pet-team-level {
+  font-size: 11px;
+  line-height: 1.3;
+  color: #6b7d70;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#petColList .pet-team-bond {
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#petColList .pet-team-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#petColList .pet-team-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+#petColList .pet-team-row button,
+#petColList .pet-team-active-tag {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 2px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
 }
