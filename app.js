@@ -941,6 +941,11 @@
     if (!el) return;
     el.style.left = `${mapPlayerPos.x}%`;
     el.style.top = `${mapPlayerPos.y}%`;
+    const petEl = document.getElementById("mapPet");
+    if (petEl) {
+      petEl.style.left = `${Math.min(97, mapPlayerPos.x + 1.9)}%`;
+      petEl.style.top = `${Math.min(94, mapPlayerPos.y + 0.7)}%`;
+    }
   }
 
   function moveMapPlayer(dx, dy) {
@@ -2962,6 +2967,20 @@
     playerEl.style.left = `${mapPlayerPos.x}%`;
     playerEl.style.top = `${mapPlayerPos.y}%`;
     cont.appendChild(playerEl);
+
+    // 出战宠物跟在训练师右后方一起走
+    const activePet = profile && Array.isArray(profile.pets) && profile.pets.length
+      ? profile.pets[Math.min(Math.max(Number(profile.activePetIndex) || 0, 0), profile.pets.length - 1)]
+      : null;
+    if (activePet && activePet.image) {
+      const petEl = document.createElement("div");
+      petEl.className = "map-pet";
+      petEl.id = "mapPet";
+      petEl.innerHTML = `<img alt="" src="${activePet.image}">`;
+      petEl.style.left = `${Math.min(97, mapPlayerPos.x + 1.9)}%`;
+      petEl.style.top = `${Math.min(94, mapPlayerPos.y + 0.7)}%`;
+      cont.appendChild(petEl);
+    }
 
     // 点地图空白处，角色走过去
     cont.addEventListener("click", (e) => {
