@@ -4614,3 +4614,14 @@ button:active:not(:disabled) {
 .login-card {
   animation: none;
 }
+/* 地图光点 / 探索点本身是 button，会被全局 button:hover 的位移覆盖，
+   丢失 translate(-50%,-50%) 的居中偏移，导致悬停时整块向右下跳。
+   这里把居中位移固定住，只保留圆点的放大反馈。 */
+.scene-grid.map-mode .map-pin,
+.scene-grid.map-mode .map-pin:hover,
+.scene-grid.map-mode .map-pin:active,
+.stage-spot-layer .stage-spot,
+.stage-spot-layer .stage-spot:hover,
+.stage-spot-layer .stage-spot:active {
+  transform: translate(-50%, -50%) !important;
+}
