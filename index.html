@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>卡罗西亚大陆</title>
-    <link rel="stylesheet" href="./styles.css?v=20261115q" />
+    <link rel="stylesheet" href="./styles.css?v=20261115r" />
   </head>
   <body>
     <!-- 老师登录界面 -->
@@ -429,6 +429,17 @@
               </div>
               <div id="exportMessage" class="teacher-message"></div>
             </div>
+            <div class="account-lock-section">
+              <label class="field">
+                <span>🔒 上课时间控制</span>
+                <span class="field-hint">一键把全班密码改成 6985179，非上课时间孩子进不来；下课前点「恢复」改回 1234</span>
+              </label>
+              <div class="teacher-actions">
+                <button id="lockAllPasswords" class="danger-button" type="button">🔒 锁住全班（6985179）</button>
+                <button id="unlockAllPasswords" class="secondary-button" type="button">🔓 恢复全班（1234）</button>
+              </div>
+              <div id="lockMessage" class="teacher-message"></div>
+            </div>
             <button id="teacherLogout" class="ghost-button" type="button">退出后台</button>
           </div>
 
@@ -594,8 +605,8 @@
       </div>
     </div>
 
-    <script src="./data/petConfig.js?v=20261115q"></script>
-    <script src="./app.js?v=20261115q"></script>
+    <script src="./data/petConfig.js?v=20261115r"></script>
+    <script src="./app.js?v=20261115r"></script>
 
   <!-- 新手引导系统 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
