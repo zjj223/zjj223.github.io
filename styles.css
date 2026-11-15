@@ -4605,3 +4605,8 @@ button:active:not(:disabled) {
   padding-top: 12px;
   border-top: 1px dashed rgba(60, 100, 70, 0.22);
 }
+/* ===== 稳定性修复：视图切换不再依赖 opacity 动画 =====
+   后台标签页会冻结 CSS animation，若停在 from{opacity:0} 会导致整块内容不可见 */
+.view-container {
+  animation: none;
+}
