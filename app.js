@@ -4,6 +4,7 @@
   const STORAGE_KEY = "carlosia_phase1_save_v1";
   const TEACHER_KEY = "teacher2026";
   const ACTION_COST = 1;
+  const MAX_PETS = 6;
   const HATCH_EXP_REQUIREMENT = 120;
   const PET_BASE_HP_MAX = 80;
   const PET_BASE_MP_MAX = 80; // 废弃：保留兼容旧存档，不再显示和使用
@@ -188,7 +189,7 @@
     },
     {
       title: "宠物系统",
-      desc: "每个玩家最多可以拥有3只宠物。第一只宠物可以用1行动点刷新，其他宠物需要在大世界探索中捕捉获得。每只宠物都有独立的等级、经验和亲密度。",
+      desc: "每个玩家最多可以拥有6只宠物。第一只宠物可以用1行动点刷新，其他宠物需要在大世界探索中捕捉获得。每只宠物都有独立的等级、经验和亲密度。",
       highlight: "宠物栏在左侧，可以切换出战宠物"
     },
     {
@@ -1006,6 +1007,9 @@
         if (listCol && teamPanel) listCol.appendChild(teamPanel);
         if (detailCol && overviewPanel) detailCol.appendChild(overviewPanel);
         if (abilityCol && statsPanel) abilityCol.appendChild(statsPanel);
+        // 操作按钮区挂到「宠物属性」栏底部
+        const actionBarEl = document.getElementById("petActionBar");
+        if (abilityCol && actionBarEl) abilityCol.appendChild(actionBarEl);
         // 剩余未归类的节点仍放中栏，避免丢失
         while (sidebar.firstElementChild) {
           (detailCol || petBody).appendChild(sidebar.firstElementChild);
@@ -1052,23 +1056,27 @@
       document.getElementById("dockTimer")?.addEventListener("click", () => show("timerModal"));
 
       // 方向键 / WASD 走动
-      document.addEventListener("keydown", (e) => {
-        if (!document.querySelector(".app-grid.is-student")) return;
+      window.addEventListener("keydown", (e) => {
         if (currentView !== "world" && currentView !== "scene") return;
         const tag = (e.target && e.target.tagName) || "";
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-        const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+        const code = e.code || "";
+        const key = (e.key || "").length === 1 ? e.key.toLowerCase() : e.key;
         const dirs = {
           ArrowLeft: [-3, 0],
           ArrowRight: [3, 0],
           ArrowUp: [0, -3],
           ArrowDown: [0, 3],
+          KeyA: [-3, 0],
+          KeyD: [3, 0],
+          KeyW: [0, -3],
+          KeyS: [0, 3],
           a: [-3, 0],
           d: [3, 0],
           w: [0, -3],
           s: [0, 3],
         };
-        const dir = dirs[key];
+        const dir = dirs[code] || dirs[key];
         if (!dir) return;
         e.preventDefault();
         if (currentView === "world") {
@@ -1427,6 +1435,8 @@
     els.timerResetBtn?.addEventListener("click", resetTimer);
     // 宠物栏事件（事件委托）
     els.petTeamList?.addEventListener("click", handlePetTeamClick);
+    // 宠物操作按钮区（在宠物属性栏底部）
+    document.getElementById("petActionBar")?.addEventListener("click", handlePetTeamClick);
     // 捕捉窗口事件
     els.captureClose?.addEventListener("click", closeCaptureModal);
     els.captureBallList?.addEventListener("click", handleCaptureBallClick);
@@ -3443,11 +3453,10 @@
         : profile.pet.name;
       title.textContent = `${displayName} Lv.${profile.pet.level} · 阶段 ${currentStage}/${stageCount}`;
       const text = document.createElement("p");
-      const upgradeCost = getUpgradeCost(profile.pet.level);
-      const evolutionText = nextStage
-        ? `下一阶段为${nextStage.name}，达到 Lv.${nextEvolutionLevel} 后可进化。`
-        : "已达到当前进化链最高阶段。";
-      text.textContent = `${profile.pet.desc || "已孵化宠物"} 系别：${profile.pet.type}。${evolutionText} 生命上限 ${profile.pet.hpMax}，攻击 ${getPetAttack(profile.pet)}，防御 ${getPetDefense(profile.pet)}，速度 ${getPetSpeed(profile.pet)}。宠物升级需要 ${upgradeCost} 经验。`;
+      text.className = "pet-evolve-line";
+      text.textContent = nextStage
+        ? `下一阶段：${nextStage.name} · Lv.${nextEvolutionLevel} 自动进化`
+        : "已达最高进化阶段";
       const bondLevel = profile.pet.bond || 0;
       const tags = createHatchTags([
         profile.pet.style,
@@ -3457,16 +3466,6 @@
         `亲密度 Lv.${bondLevel}`,
       ]);
       const buttons = [];
-      if (match?.template) {
-        copy.append(createEvolutionTrack(match.template, currentStage));
-      }
-      // 进化改为自动进化，移除手动进化按钮，显示进化进度提示
-      if (nextStage) {
-        const evolveHint = document.createElement("p");
-        evolveHint.className = "rename-hint";
-        evolveHint.textContent = `达到 Lv.${nextEvolutionLevel} 后将自动进化为【${nextStage.name}】。`;
-        copy.append(evolveHint);
-      }
       if (profile.compensationEligible && !profile.compensationClaimed) {
         const compensationButton = document.createElement("button");
         compensationButton.id = "compensationButton";
@@ -3476,18 +3475,6 @@
           '<span class="button-icon" aria-hidden="true">↻</span>领取补偿：随机宠物 +2行动点';
         buttons.push(compensationButton);
       }
-
-      // 升级宠物按钮已移除，升级改为探索时自动升级
-      const upgradeHint = document.createElement("p");
-      upgradeHint.className = "rename-hint";
-      upgradeHint.textContent = `宠物升级为自动升级，探索获得经验后自动升级（当前升级需要 ${upgradeCost} 经验）。`;
-      copy.append(upgradeHint);
-
-      // 亲密度和昵称操作已移到宠物栏
-      const bondHint = document.createElement("p");
-      bondHint.className = "rename-hint";
-      bondHint.textContent = `亲密度 Lv.${bondLevel}/10，集齐场景道具后可在宠物栏点击「提升亲密度」。修改昵称、刷新宠物等操作也在宠物栏中。`;
-      copy.append(bondHint);
 
       copy.prepend(title, text, tags);
       copy.append(...buttons);
@@ -4486,10 +4473,16 @@
       return;
     }
 
+    // 操作按钮统一放到「宠物属性」栏底部，只针对出战宠物
+    const actionBar = document.getElementById("petActionBar");
+    if (actionBar) actionBar.replaceChildren();
+
     profile.pets.forEach((pet, index) => {
       const card = document.createElement("div");
       card.className = `pet-team-item${index === profile.activePetIndex ? " active" : ""}`;
       card.dataset.index = index;
+      card.title = index === profile.activePetIndex ? "当前出战宠物" : "点击设为出战";
+      card.style.cursor = index === profile.activePetIndex ? "default" : "pointer";
 
       const header = document.createElement("div");
       header.className = "pet-team-header";
@@ -4516,90 +4509,77 @@
       nameDiv.appendChild(bond);
 
       header.append(img, nameDiv);
+      card.append(header);
+      els.petTeamList.appendChild(card);
 
-      // 操作按钮区域
+      // 操作按钮只给「出战宠物」，统一挂在宠物属性栏底部
+      if (index !== profile.activePetIndex || !actionBar) return;
+
       const actions = document.createElement("div");
-      actions.className = "pet-team-actions";
+      actions.className = "pet-actions";
 
-      // 第一行：主要操作
-      const row1 = document.createElement("div");
-      row1.className = "pet-team-row";
+      const btnRow = document.createElement("div");
+      btnRow.className = "pet-actions-row";
 
       if (index === 0) {
-        // 第一只宠物：刷新按钮
         const refreshBtn = document.createElement("button");
-        refreshBtn.className = "btn-switch";
-        refreshBtn.textContent = "🔄";
+        refreshBtn.className = "btn-switch pet-act-btn";
+        refreshBtn.textContent = "🔄 刷新";
         refreshBtn.title = "刷新：消耗1行动点随机更换宠物";
         refreshBtn.dataset.action = "refresh";
         refreshBtn.dataset.index = index;
-        row1.appendChild(refreshBtn);
+        btnRow.appendChild(refreshBtn);
       } else {
-        // 其他宠物：放生按钮
         const releaseBtn = document.createElement("button");
-        releaseBtn.className = "btn-release";
-        releaseBtn.textContent = "🗑";
+        releaseBtn.className = "btn-release pet-act-btn";
+        releaseBtn.textContent = "🗑 放生";
         releaseBtn.title = "放生这只宠物";
         releaseBtn.dataset.action = "release";
         releaseBtn.dataset.index = index;
-        row1.appendChild(releaseBtn);
+        btnRow.appendChild(releaseBtn);
       }
 
-      if (index !== profile.activePetIndex) {
-        const switchBtn = document.createElement("button");
-        switchBtn.className = "btn-switch";
-        switchBtn.textContent = "⚔";
-        switchBtn.title = "设为出战宠物";
-        switchBtn.dataset.action = "switch";
-        switchBtn.dataset.index = index;
-        row1.appendChild(switchBtn);
-      } else {
-        const activeTag = document.createElement("span");
-        activeTag.className = "pet-team-active-tag";
-        activeTag.textContent = "✓";
-        row1.appendChild(activeTag);
-      }
+      const activeTag = document.createElement("span");
+      activeTag.className = "pet-team-active-tag pet-act-tag";
+      activeTag.textContent = "✓ 出战中";
+      btnRow.appendChild(activeTag);
 
-      // 第二行：亲密度和昵称
-      const row2 = document.createElement("div");
-      row2.className = "pet-team-row";
+      const btnRow2 = document.createElement("div");
+      btnRow2.className = "pet-actions-row";
 
-      // 提升亲密度按钮（检查是否有场景道具集齐）
       const bondScene = findBondScene(profile, pet);
       const bondBtn = document.createElement("button");
-      bondBtn.className = "btn-bond";
+      bondBtn.className = "btn-bond pet-act-btn";
       bondBtn.dataset.action = "bond";
       bondBtn.dataset.index = index;
       if (bondScene) {
-        bondBtn.textContent = "💕";
+        bondBtn.textContent = "💕 提升亲密度";
         bondBtn.title = `提升亲密度：消耗${bondScene.name}的4个道具，提升1级`;
         bondBtn.disabled = false;
       } else {
-        bondBtn.textContent = "💕";
+        bondBtn.textContent = "💕 提升亲密度";
         bondBtn.title = "集齐任意场景的4个道具后可提升亲密度";
         bondBtn.disabled = true;
       }
-      row2.appendChild(bondBtn);
+      btnRow2.appendChild(bondBtn);
 
-      // 修改昵称按钮（亲密度>=3解锁）
       const renameBtn = document.createElement("button");
-      renameBtn.className = "btn-rename";
+      renameBtn.className = "btn-rename pet-act-btn";
       renameBtn.dataset.action = "rename";
       renameBtn.dataset.index = index;
       if ((pet.bond || 0) >= BOND_NAME_UNLOCK_LEVEL) {
-        renameBtn.textContent = "✏";
+        renameBtn.textContent = "✏️ 改昵称";
         renameBtn.title = "修改昵称";
         renameBtn.disabled = false;
       } else {
-        renameBtn.textContent = "🔒";
+        renameBtn.textContent = `✏️ 改昵称（亲密${BOND_NAME_UNLOCK_LEVEL}）`;
         renameBtn.title = `亲密度${BOND_NAME_UNLOCK_LEVEL}解锁修改昵称`;
         renameBtn.disabled = true;
       }
-      row2.appendChild(renameBtn);
+      btnRow2.appendChild(renameBtn);
 
-      actions.append(row1, row2);
-      card.append(header, actions);
-      els.petTeamList.appendChild(card);
+      actions.append(btnRow, btnRow2);
+      actionBar.appendChild(actions);
     });
   }
 
@@ -4618,7 +4598,22 @@
 
   function handlePetTeamClick(event) {
     const btn = event.target.closest("[data-action]");
-    if (!btn) return;
+    if (!btn) {
+      // 点整张卡片 = 切换出战
+      const card = event.target.closest(".pet-team-item");
+      if (card) {
+        const idx = parseInt(card.dataset.index);
+        const p = getActiveProfile();
+        if (p && idx !== p.activePetIndex) {
+          p.activePetIndex = idx;
+          syncActivePet(p);
+          saveState("已切换出战宠物");
+          render();
+          flashPetCard(idx, "is-switching");
+        }
+      }
+      return;
+    }
     const action = btn.dataset.action;
     const index = parseInt(btn.dataset.index);
     const profile = getActiveProfile();
@@ -4792,8 +4787,8 @@
 
     if (success) {
       // 捕捉成功：宠物降为1级0阶段
-      if (profile.pets.length >= 3) {
-        els.captureResult.textContent = "宠物栏已满（最多3只），无法捕捉！";
+      if (profile.pets.length >= MAX_PETS) {
+        els.captureResult.textContent = `宠物栏已满（最多${MAX_PETS}只），无法捕捉！`;
         return;
       }
       const petCountBefore = profile.pets.length;
