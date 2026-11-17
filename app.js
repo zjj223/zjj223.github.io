@@ -237,14 +237,16 @@
     3: 54,
   });
 
-  // 咕噜球配置
+  // 咕噜球配置（商店统一定价 10 洛克贝）
+  const BALL_PRICE = 10;
+  const PET_REFRESH_COST = 50; // 刷新起始宠物消耗 50 洛克贝
   const BALL_TYPES = Object.freeze([
-    { id: "ball1", name: "普通咕噜球", price: 1, catchRate: 0.05, color: "#9e9e9e", desc: "基础捕捉率5%" },
-    { id: "ball2", name: "中级咕噜球", price: 5, catchRate: 0.10, color: "#42a5f5", desc: "捕捉率10%" },
-    { id: "ball3", name: "高级咕噜球", price: 10, catchRate: 0.15, color: "#66bb6a", desc: "捕捉率15%" },
-    { id: "ball4", name: "超级咕噜球", price: 15, catchRate: 0.20, color: "#ffa726", desc: "捕捉率20%" },
-    { id: "ball5", name: "至尊咕噜球", price: 25, catchRate: 0.30, color: "#ab47bc", desc: "捕捉率30%" },
-    { id: "ball6", name: "国王咕噜球", price: 35, catchRate: 0.50, color: "#ef5350", desc: "捕捉率50%" },
+    { id: "ball1", name: "普通咕噜球", price: BALL_PRICE, catchRate: 0.05, color: "#9e9e9e", desc: "基础捕捉率5%" },
+    { id: "ball2", name: "中级咕噜球", price: BALL_PRICE, catchRate: 0.10, color: "#42a5f5", desc: "捕捉率10%" },
+    { id: "ball3", name: "高级咕噜球", price: BALL_PRICE, catchRate: 0.15, color: "#66bb6a", desc: "捕捉率15%" },
+    { id: "ball4", name: "超级咕噜球", price: BALL_PRICE, catchRate: 0.20, color: "#ffa726", desc: "捕捉率20%" },
+    { id: "ball5", name: "至尊咕噜球", price: BALL_PRICE, catchRate: 0.30, color: "#ab47bc", desc: "捕捉率30%" },
+    { id: "ball6", name: "国王咕噜球", price: BALL_PRICE, catchRate: 0.50, color: "#ef5350", desc: "捕捉率50%" },
   ]);
 
   // 计时器配置（2分钟）
@@ -259,7 +261,7 @@
     },
     {
       title: "宠物系统",
-      desc: "每个玩家最多可以拥有6只宠物。第一只宠物可以用1洛克贝刷新，其他宠物需要在大世界探索中捕捉获得。每只宠物都有独立的等级、经验和亲密度。",
+      desc: "每个玩家最多可以拥有6只宠物。第一只宠物可以用50洛克贝刷新，其他宠物需要在大世界探索中捕捉获得。每只宠物都有独立的等级、经验和亲密度。",
       highlight: "宠物栏在左侧，可以切换出战宠物"
     },
     {
@@ -5178,7 +5180,7 @@
         const refreshBtn = document.createElement("button");
         refreshBtn.className = "btn-switch pet-act-btn";
         refreshBtn.textContent = "🔄 刷新";
-        refreshBtn.title = "刷新：消耗1洛克贝随机更换宠物";
+        refreshBtn.title = "刷新：消耗50洛克贝随机更换宠物";
         refreshBtn.dataset.action = "refresh";
         refreshBtn.dataset.index = index;
         btnRow.appendChild(refreshBtn);
@@ -5306,11 +5308,11 @@
         render();
       }
     } else if (action === "refresh") {
-      if (profile.rockbell < 1) {
-        showResult("洛克贝不足！", true);
+      if (profile.rockbell < PET_REFRESH_COST) {
+        showResult(`洛克贝不足！刷新需要 ${PET_REFRESH_COST} 洛克贝。`, true);
         return;
       }
-      profile.rockbell -= 1;
+      profile.rockbell -= PET_REFRESH_COST;
       const newPet = createRandomPet();
       profile.pets[0] = newPet;
       profile.activePetIndex = 0;
