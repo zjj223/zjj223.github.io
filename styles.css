@@ -7910,3 +7910,75 @@ body {
   padding: 10px 8px !important;
   box-sizing: border-box !important;
 }
+
+/* ---------------- V27 大世界铺满 / 场景去白边 / 提示条透明 ---------------- */
+/* 1) 场景页底部那条米白：底栏真实高度只有 48px，旧 calc(100vh - 112px) 多留了 64px */
+#sceneView .scene-inner-panel {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+#sceneView .scene-atmosphere {
+  height: calc(100vh - 50px) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+#sceneView .scene-stage,
+#sceneView .scene-atmosphere .scene-stage {
+  border-radius: 0 !important;
+}
+#sceneView .scene-stage-bg {
+  object-fit: cover;
+}
+
+/* 2) 大世界：地图按高度撑满，左右空档用天空渐变接过去，看起来是一整张图 */
+#worldView .scene-grid.map-mode,
+.app-grid.is-student #sceneGrid.map-mode {
+  padding: 0 !important;
+  overflow: hidden;
+  background: radial-gradient(115% 95% at 50% 38%, #d8effb 0%, #b6e2f6 42%, #93d1ea 72%, #7cc4e2 100%);
+}
+#sceneGrid .continent {
+  flex: 0 0 auto;
+  max-width: none !important;
+  max-height: none !important;
+  /* 宽屏：按高度放大 1.16 倍，左右留白压到最小；窄屏：按宽度铺满，不横向溢出 */
+  width: min(100%, calc((100vh - 48px) * 16 / 9 * 1.16)) !important;
+  height: auto !important;
+  aspect-ratio: 16 / 9;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 auto;
+}
+#sceneGrid .continent-bg {
+  object-fit: cover;
+  object-position: center;
+}
+
+/* 3) 全局提示条：透明底 + 黑字 + 白描边，不挡画面 */
+#resultMessage,
+#resultMessage.global-result {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #14120d !important;
+  font-weight: 800 !important;
+  padding: 2px 8px !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.95), 0 0 3px rgba(255, 255, 255, 0.95), 0 0 10px rgba(255, 255, 255, 0.8), 0 0 18px rgba(255, 255, 255, 0.6);
+}
+#resultMessage.warning {
+  color: #8a2b12 !important;
+}
+
+/* 4) 场景内提示条同样透明化 */
+#sceneResult,
+#sceneResult.result-message {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #14120d !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.95), 0 0 3px rgba(255, 255, 255, 0.95), 0 0 10px rgba(255, 255, 255, 0.8);
+}
