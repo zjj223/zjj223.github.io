@@ -809,6 +809,7 @@
   let currentGuideStep = 0; // 当前引导步骤
   let guideStartIndex = 0; // 引导起始步骤（学生端已自动建档，跳过"创建角色"这一步）
   let captureTarget = null; // 当前捕捉目标野生宠物
+  let captureLocked = false; // 捕捉判定中：锁住咕噜球，防止连点一次抓多只
   let lastToastTime = {}; // 记录上次提示时间，避免重复提示
   // 本地存档键：老师端用全班存档，学生登录后切到自己的独立缓存，避免互相覆盖
   let activeStorageKey = STORAGE_KEY;
@@ -5294,6 +5295,7 @@
   // ============================================
   function showCaptureModal(wildPet) {
     captureTarget = wildPet;
+    captureLocked = false;
     if (!els.captureModal) return;
 
     els.capturePetImage.src = wildPet.image || "";
@@ -5321,7 +5323,8 @@
     BALL_TYPES.forEach((ball) => {
       const count = profile.balls?.[ball.id] || 0;
       const item = document.createElement("div");
-      item.className = `capture-ball-item${count === 0 ? " disabled" : ""}`;
+      // 判定中（captureLocked）也一律置灰，避免连点重复投球
+      item.className = `capture-ball-item${count === 0 || captureLocked ? " disabled" : ""}`;
       item.dataset.ballId = ball.id;
       item.style.setProperty("--ball-color", ball.color);
 
@@ -5341,10 +5344,22 @@
   function handleCaptureBallClick(event) {
     const item = event.target.closest(".capture-ball-item");
     if (!item || item.classList.contains("disabled")) return;
+    // 判定没结束前的任何再次点击都直接忽略：一次战斗只能抓一只
+    if (captureLocked) return;
     const ballId = item.dataset.ballId;
     const ball = BALL_TYPES.find(b => b.id === ballId);
     const profile = getActiveProfile();
     if (!ball || !profile || !captureTarget) return;
+
+    // 宠物栏已满：先提示，不白扣咕噜球
+    if (!profile.pets) profile.pets = [];
+    if (profile.pets.length >= MAX_PETS) {
+      els.captureResult.textContent = `宠物栏已满（最多${MAX_PETS}只），无法捕捉！`;
+      return;
+    }
+
+    // 上锁：从此刻起所有咕噜球置灰，直到弹窗关闭才解锁
+    captureLocked = true;
 
     // 消耗咕噜球
     if (!profile.balls) profile.balls = {};
@@ -5411,6 +5426,7 @@
   function closeCaptureModal() {
     if (els.captureModal) els.captureModal.hidden = true;
     captureTarget = null;
+    captureLocked = false;
   }
 
   // ============================================
@@ -5987,7 +6003,8 @@
     BALL_TYPES.forEach((ball) => {
       const count = profile.balls?.[ball.id] || 0;
       const item = document.createElement("div");
-      item.className = `capture-ball-item${count === 0 ? " disabled" : ""}`;
+      // 判定中（captureLocked）也一律置灰，避免连点重复投球
+      item.className = `capture-ball-item${count === 0 || captureLocked ? " disabled" : ""}`;
       item.dataset.ballId = ball.id;
       item.style.setProperty("--ball-color", ball.color);
 
