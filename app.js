@@ -2354,6 +2354,7 @@
     handleExplore(spot);
   }
 
+  let sceneResultTimer = null; // 场景提示 2 秒后自动消失
   function setSceneResult(message, warning, exploring, droppedItem, bondUp) {
     if (!els.sceneResult) return;
     els.sceneResult.textContent = message;
@@ -2371,6 +2372,22 @@
       els.sceneResult.classList.add("has-bond-up");
     } else {
       els.sceneResult.classList.remove("has-bond-up");
+    }
+    // 新提示顶替旧的，并重新计时；"探索中…"这种常驻状态不走倒计时
+    if (sceneResultTimer) {
+      clearTimeout(sceneResultTimer);
+      sceneResultTimer = null;
+    }
+    if (message && !exploring) {
+      sceneResultTimer = setTimeout(() => {
+        if (els.sceneResult) {
+          els.sceneResult.textContent = "";
+          els.sceneResult.className = "result-message";
+          els.sceneResult.removeAttribute("data-item-icon");
+          els.sceneResult.removeAttribute("data-item-name");
+        }
+        sceneResultTimer = null;
+      }, 2000);
     }
   }
 
