@@ -8046,3 +8046,56 @@ body {
 #sceneView #sceneResult:empty {
   display: none !important;
 }
+
+/* ================= V28 洛克贝货币体系 ================= */
+.store-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 2px 18px 0;
+}
+
+.fashion-shop-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0 10px;
+}
+
+.fashion-shop-card {
+  background: #fff;
+  border: 2px solid #e6e0d3;
+  border-radius: 14px;
+  padding: 18px 10px;
+  text-align: center;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .08);
+}
+
+.fashion-shop-card.is-locked {
+  opacity: .62;
+  filter: grayscale(.35);
+}
+
+.fashion-shop-icon {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.fashion-shop-name {
+  margin-top: 8px;
+  font-weight: 800;
+  color: #3c3830;
+  font-size: 14px;
+}
+
+.fashion-shop-tag {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #9a8f7c;
+}
+
+.shop-note {
+  text-align: center;
+  color: #7d7466;
+  font-size: 13px;
+  margin: 6px 0 2px;
+}
