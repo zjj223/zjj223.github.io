@@ -8017,3 +8017,32 @@ body {
   font-weight: 800 !important;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.95), 0 0 3px rgba(255, 255, 255, 0.95), 0 0 10px rgba(255, 255, 255, 0.8);
 }
+
+/* 覆盖旧规则 #sceneView #sceneResult（两个 id + !important，权重高于 #sceneResult）：
+   同权重 + 后出现，把米黄胶囊换成透明黑字，并移到画面偏上，不压底部道具区 */
+#sceneView #sceneResult {
+  top: 96px !important;
+  bottom: auto !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: max-content !important;
+  max-width: 92% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin: 0 !important;
+  padding: 2px 10px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #14120d !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  text-align: center;
+  z-index: 9 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.95), 0 0 3px rgba(255, 255, 255, 0.95), 0 0 12px rgba(255, 255, 255, 0.85);
+}
+#sceneView #sceneResult:empty {
+  display: none !important;
+}
