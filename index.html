@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>卡罗西亚大陆</title>
-    <link rel="stylesheet" href="./styles.css?v=20261115z2" />
+    <link rel="stylesheet" href="./styles.css?v=20261115z3" />
   </head>
   <body>
     <!-- 老师登录界面 -->
@@ -122,8 +122,8 @@
               </article>
 
               <article class="status-tile">
-                <p class="tile-label">行动点</p>
-                <strong id="actionPoints">0</strong>
+                <p class="tile-label">洛克贝</p>
+                <strong id="rockbell">0</strong>
               </article>
 
               <article class="status-tile pet-status-tile">
@@ -146,7 +146,7 @@
               <div class="timer-controls">
                 <button id="timerStartBtn" class="timer-btn primary" type="button">开始</button>
                 <button id="timerPauseBtn" class="timer-btn secondary" type="button">暂停</button>
-                <button id="timerAddBtn" class="timer-btn add" type="button">+30秒 (20行动点)</button>
+                <button id="timerAddBtn" class="timer-btn add" type="button">+30秒 (20洛克贝)</button>
                 <button id="timerResetBtn" class="timer-btn danger" type="button">重置</button>
               </div>
             </section>
@@ -246,16 +246,16 @@
                   <span class="dock-label">宠物</span>
                 </button>
                 <button id="dockShop" class="dock-btn" type="button">
-                  <span class="dock-icon" aria-hidden="true">🏪</span>
-                  <span class="dock-label">商店</span>
+                  <span class="dock-icon" aria-hidden="true">🛒</span>
+                  <span class="dock-label">市场</span>
                 </button>
                 <button id="dockRank" class="dock-btn" type="button">
                   <span class="dock-icon" aria-hidden="true">🏆</span>
                   <span class="dock-label">排行榜</span>
                 </button>
                 <button id="dockTimer" class="dock-btn" type="button">
-                  <span class="dock-icon" aria-hidden="true">⏱</span>
-                  <span class="dock-label">计时</span>
+                  <span class="dock-icon" aria-hidden="true">🏪</span>
+                  <span class="dock-label">商店</span>
                 </button>
               </div>
             </div>
@@ -305,14 +305,13 @@
             <div id="shopView" class="view-container" hidden>
               <section class="panel shop-panel" aria-labelledby="shopTitle">
                 <div class="panel-heading">
-                  <h2 id="shopTitle">道具商店</h2>
-                  <span class="panel-hint">经验当钱花，统一定价</span>
+                  <h2 id="shopTitle">市场</h2>
+                  <span class="panel-hint">用洛克贝交易，成交后收 1/5 手续费</span>
                 </div>
                 <div class="shop-tabs">
                   <button id="shopTabMarket" class="shop-tab active" type="button">逛市场</button>
                   <button id="shopTabSell" class="shop-tab" type="button">我要卖</button>
                   <button id="shopTabMine" class="shop-tab" type="button">我的上架</button>
-                  <button id="shopTabBalls" class="shop-tab" type="button">咕噜球</button>
                 </div>
                 <div id="shopContent" class="shop-content"></div>
               </section>
@@ -357,7 +356,7 @@
               <select id="teacherSelect"></select>
             </label>
             <label class="field">
-              <span>行动点数量</span>
+              <span>洛克贝数量</span>
               <input id="apAmount" type="number" min="1" step="1" value="1" />
             </label>
             <div class="teacher-actions">
@@ -400,13 +399,13 @@
                 <button id="clearPulled" class="ghost-button" type="button">清空拉入</button>
               </div>
               <div class="teacher-actions">
-                <button id="addAllPulledAp" class="primary-button" type="button">🎁 全员+60行动点</button>
+                <button id="addAllPulledAp" class="primary-button" type="button">🎁 全员+60洛克贝</button>
               </div>
               <div id="pulledList" class="pulled-list"></div>
             <div class="rank-reward-section">
               <label class="field">
                 <span>🏆 排行榜奖励</span>
-                <span class="field-hint">按战力排名自动发放行动点</span>
+                <span class="field-hint">按战力排名自动发放洛克贝</span>
               </label>
               <div class="teacher-actions">
                 <button id="publishRankReward" class="primary-button" type="button">发布本周奖励</button>
@@ -608,14 +607,29 @@
       </div>
     </div>
 
-    <!-- 商店弹窗（学生端） -->
+    <!-- 市场弹窗（学生端） -->
     <div id="shopModal" class="modal-overlay zone-modal" hidden>
       <div class="modal zone-modal-box wide">
         <div class="modal-header">
-          <h3>🏪 道具商店</h3>
+          <h3>🛒 市场</h3>
           <button id="shopModalClose" class="modal-close" type="button">×</button>
         </div>
         <div id="shopModalBody" class="zone-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- 商店弹窗（学生端）：咕噜球 / 时装 -->
+    <div id="storeModal" class="modal-overlay zone-modal" hidden>
+      <div class="modal zone-modal-box wide">
+        <div class="modal-header">
+          <h3>🏪 商店</h3>
+          <button id="storeModalClose" class="modal-close" type="button">×</button>
+        </div>
+        <div class="shop-tabs store-tabs">
+          <button id="storeTabBalls" class="shop-tab active" type="button">咕噜球</button>
+          <button id="storeTabFashion" class="shop-tab" type="button">时装</button>
+        </div>
+        <div id="storeModalBody" class="zone-modal-body"></div>
       </div>
     </div>
 
@@ -649,8 +663,8 @@
       </div>
     </div>
 
-    <script src="./data/petConfig.js?v=20261115z2"></script>
-    <script src="./app.js?v=20261115z2"></script>
+    <script src="./data/petConfig.js?v=20261115z3"></script>
+    <script src="./app.js?v=20261115z3"></script>
 
   <!-- 新手引导系统 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
