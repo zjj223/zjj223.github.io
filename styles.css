@@ -7957,19 +7957,54 @@ body {
   object-position: center;
 }
 
-/* 3) 全局提示条：透明底 + 黑字 + 白描边，不挡画面 */
+/* 3) 全局提示条：透明底 + 黑字 + 白描边，浮在画面上不占布局 */
 #resultMessage,
 #resultMessage.global-result {
+  position: fixed !important;
+  top: 74px !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translateX(-50%) !important;
+  z-index: 60 !important;
+  pointer-events: none !important;
+  max-width: 82vw;
+  margin: 0 !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   color: #14120d !important;
   font-weight: 800 !important;
   padding: 2px 8px !important;
+  text-align: center;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.95), 0 0 3px rgba(255, 255, 255, 0.95), 0 0 10px rgba(255, 255, 255, 0.8), 0 0 18px rgba(255, 255, 255, 0.6);
+}
+/* 没内容时彻底不占位，避免底部露出一条米白 */
+#resultMessage:empty {
+  display: none !important;
 }
 #resultMessage.warning {
   color: #8a2b12 !important;
+}
+
+/* 覆盖 V16「场景视图里把提示条压到底部 132px」的规则：
+   同权重 + 后出现，提示条统一浮在顶部，不再压住底部道具区 */
+.game-main:has(#sceneView:not([hidden])) #resultMessage,
+.game-main:has(#sceneView:not([hidden])) .global-result {
+  top: 76px !important;
+  bottom: auto !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #14120d !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.95), 0 0 3px rgba(255, 255, 255, 0.95), 0 0 12px rgba(255, 255, 255, 0.85);
+}
+.game-main:has(#sceneView:not([hidden])) #resultMessage:empty {
+  display: none !important;
 }
 
 /* 4) 场景内提示条同样透明化 */
