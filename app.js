@@ -800,6 +800,7 @@
   let state = null;
   let selectedSceneId = "grassland";
   let teacherUnlocked = false;
+  let teacherSelectedId = null; // 后台名单里点中的学生
   let resultMessage = "";
   let resultIsWarning = false;
   let currentView = "world"; // "world" 大世界 / "scene" 场景内 / "shop" 商店
@@ -904,6 +905,8 @@
       }
     }
     els.loginView.classList.add("hidden");
+    // 老师模式：只显示后台名单，不显示地图与其它面板
+    document.body.classList.add("is-teacher-mode");
     // 老师端：恢复三栏桌面布局
     const teacherGrid = document.querySelector(".app-grid");
     if (teacherGrid) {
@@ -1528,6 +1531,46 @@
     els.teacherLogin.addEventListener("submit", handleTeacherLogin);
     els.addAp.addEventListener("click", () => adjustActionPoints(1));
     els.subtractAp.addEventListener("click", () => adjustActionPoints(-1));
+
+    // 后台名单：点名字看详情、搜名字过滤
+    document.getElementById("teacherRoster")?.addEventListener("click", (e) => {
+      const chip = e.target.closest(".teacher-roster-chip");
+      if (!chip) return;
+      teacherSelectedId = chip.dataset.profileId;
+      const profiles = getTeacherRosterProfiles();
+      const profile = state.profiles.find((p) => p.id === teacherSelectedId);
+      if (!profile) return;
+      els.teacherSelect.value = profile.id;
+      renderTeacherRoster(profiles);
+      renderTeacherDetail(profile);
+    });
+
+    document.getElementById("teacherRosterSearch")?.addEventListener("input", () => {
+      renderTeacherRoster(getTeacherRosterProfiles());
+    });
+
+    // 后台详情：道具加减
+    document.getElementById("teacherDetail")?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".teacher-item-btn");
+      if (!btn || btn.disabled) return;
+      const profile = state.profiles.find((p) => p.id === teacherSelectedId);
+      if (!profile) return;
+      const delta = Number(btn.dataset.delta) || 0;
+      const id = btn.dataset.itemId;
+      if (!id || !delta) return;
+      if (btn.dataset.kind === "ball") {
+        if (!profile.balls) profile.balls = {};
+        profile.balls[id] = Math.max(0, (profile.balls[id] || 0) + delta);
+      } else {
+        if (!profile.inventory) profile.inventory = {};
+        profile.inventory[id] = Math.max(0, (profile.inventory[id] || 0) + delta);
+        if (profile.inventory[id] <= 0) delete profile.inventory[id];
+      }
+      saveState("后台调整道具");
+      renderTeacherDetail(profile);
+      renderTeacherRoster(getTeacherRosterProfiles());
+    });
+
     els.teacherLogout.addEventListener("click", handleTeacherLogout);
     if (els.pushAllToCloud) {
       els.pushAllToCloud.addEventListener("click", pushAllSavesToCloud);
@@ -2729,6 +2772,7 @@
     if (els.teacherKey.value.trim() === TEACHER_KEY) {
       teacherUnlocked = true;
       els.teacherKey.value = "";
+      document.body.classList.add("is-teacher-mode");
       setTeacherMessage("后台权限已开启。", false);
       render();
       return;
@@ -2738,6 +2782,7 @@
 
   function handleTeacherLogout() {
     teacherUnlocked = false;
+    document.body.classList.remove("is-teacher-mode");
     setTeacherMessage("后台权限已关闭。", false);
     render();
   }
@@ -3242,27 +3287,33 @@
   function renderTeacherPanel() {
     els.teacherLogin.hidden = teacherUnlocked;
     els.teacherControls.hidden = !teacherUnlocked;
-    const previousTeacherSelection = els.teacherSelect.value;
-    els.teacherSelect.replaceChildren();
 
     if (!teacherUnlocked) {
       return;
     }
 
-    // 老师后台下拉列表：如果拉入了学生，只显示被拉入的
+    // 老师后台名单：如果拉入了学生，只显示被拉入的
     const visibleProfiles = pulledProfileIds.length > 0
       ? state.profiles.filter((p) => pulledProfileIds.includes(p.id))
       : state.profiles;
 
-    if (visibleProfiles.length === 0) {
+    // 下拉框保留但隐藏，作为现有操作函数（加减洛克贝等）的统一入口
+    els.teacherSelect.replaceChildren();
+    visibleProfiles.forEach((profile) => {
       const option = document.createElement("option");
-      option.textContent = pulledProfileIds.length > 0 ? "拉入的学生暂无角色" : "暂无学生角色";
-      option.value = "";
+      option.value = profile.id;
+      option.textContent = `${profile.name}（洛克贝 ${profile.rockbell}）`;
       els.teacherSelect.appendChild(option);
+    });
+
+    if (visibleProfiles.length === 0) {
       els.teacherSelect.disabled = true;
       els.apAmount.disabled = true;
       els.addAp.disabled = true;
       els.subtractAp.disabled = true;
+      teacherSelectedId = null;
+      renderTeacherRoster([]);
+      renderTeacherDetail(null);
       return;
     }
 
@@ -3271,17 +3322,174 @@
     els.addAp.disabled = false;
     els.subtractAp.disabled = false;
 
-    visibleProfiles.forEach((profile) => {
-      const option = document.createElement("option");
-      option.value = profile.id;
-      option.textContent = `${profile.name}（洛克贝 ${profile.rockbell}）`;
-      els.teacherSelect.appendChild(option);
-    });
-    els.teacherSelect.value =
-      visibleProfiles.find((profile) => profile.id === previousTeacherSelection)?.id ||
-      state.selectedId ||
-      state.profiles[0].id;
+    // 选中：优先上次点开的，其次当前角色，最后第一个
+    const picked =
+      visibleProfiles.find((profile) => profile.id === teacherSelectedId) ||
+      visibleProfiles.find((profile) => profile.id === state.selectedId) ||
+      visibleProfiles[0];
+    teacherSelectedId = picked.id;
+    els.teacherSelect.value = picked.id;
+
+    renderTeacherRoster(visibleProfiles);
+    renderTeacherDetail(picked);
     renderPulledList();
+  }
+
+  function getTeacherRosterProfiles() {
+    return pulledProfileIds.length > 0
+      ? state.profiles.filter((p) => pulledProfileIds.includes(p.id))
+      : state.profiles;
+  }
+
+  // 后台名单：只显示名字 + 洛克贝，点一下看详情
+  function renderTeacherRoster(profiles) {
+    const box = document.getElementById("teacherRoster");
+    if (!box) return;
+    box.replaceChildren();
+    const keyword = (document.getElementById("teacherRosterSearch")?.value || "").trim();
+
+    if (!profiles.length) {
+      const empty = document.createElement("p");
+      empty.className = "teacher-roster-empty";
+      empty.textContent = "还没有学生角色。先用下面的「拉入学生」把名字加进来。";
+      box.appendChild(empty);
+      return;
+    }
+
+    profiles.forEach((profile) => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "teacher-roster-chip" + (profile.id === teacherSelectedId ? " active" : "");
+      chip.dataset.profileId = profile.id;
+
+      const name = document.createElement("span");
+      name.className = "teacher-roster-name";
+      name.textContent = profile.name;
+
+      const bell = document.createElement("span");
+      bell.className = "teacher-roster-bell";
+      bell.textContent = `💰 ${profile.rockbell}`;
+
+      chip.append(name, bell);
+      if (keyword && profile.name.indexOf(keyword) < 0) chip.hidden = true;
+      box.appendChild(chip);
+    });
+  }
+
+  // 后台详情：孩子的基本信息 + 各类道具的加减
+  function renderTeacherDetail(profile) {
+    const box = document.getElementById("teacherDetail");
+    if (!box) return;
+    box.replaceChildren();
+
+    if (!profile) {
+      const empty = document.createElement("p");
+      empty.className = "teacher-detail-empty";
+      empty.textContent = "点上面的名字，查看这个孩子的存档，并增减道具";
+      box.appendChild(empty);
+      return;
+    }
+
+    const info = document.createElement("div");
+    info.className = "teacher-detail-info";
+    const rows = [
+      ["名字", profile.name],
+      ["洛克贝", profile.rockbell],
+      ["经验", profile.exp],
+      ["宠物", `${(profile.pets || []).length} / 6`],
+    ];
+    rows.forEach(([key, value]) => {
+      const cell = document.createElement("div");
+      cell.className = "teacher-info-cell";
+      const k = document.createElement("span");
+      k.className = "teacher-info-key";
+      k.textContent = key;
+      const v = document.createElement("span");
+      v.className = "teacher-info-value";
+      v.textContent = value;
+      cell.append(k, v);
+      info.appendChild(cell);
+    });
+    box.appendChild(info);
+
+    // 咕噜球
+    box.appendChild(buildTeacherItemGroup("咕噜球", BALL_TYPES.map((ball) => ({
+      id: ball.id,
+      name: ball.name,
+      count: Number(profile.balls?.[ball.id]) || 0,
+      kind: "ball",
+    }))));
+
+    // 各场景道具
+    SCENES.forEach((scene) => {
+      const items = SCENE_ITEMS[scene.id] || [];
+      if (!items.length) return;
+      box.appendChild(buildTeacherItemGroup(scene.name, items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        icon: item.icon,
+        count: Number(profile.inventory?.[item.id]) || 0,
+        kind: "item",
+      }))));
+    });
+  }
+
+  function buildTeacherItemGroup(title, items) {
+    const section = document.createElement("div");
+    section.className = "teacher-item-section";
+
+    const head = document.createElement("h4");
+    head.textContent = title;
+    section.appendChild(head);
+
+    const list = document.createElement("div");
+    list.className = "teacher-item-list";
+
+    items.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "teacher-item-row";
+
+      const name = document.createElement("span");
+      name.className = "teacher-item-name";
+      if (item.icon && String(item.icon).indexOf("<svg") === 0) {
+        // 图标是内置 SVG 常量，直接渲染；名字用 title 提示
+        const icon = document.createElement("span");
+        icon.className = "teacher-item-icon";
+        icon.innerHTML = item.icon;
+        name.append(icon);
+      }
+      const label = document.createElement("span");
+      label.className = "teacher-item-label";
+      label.textContent = item.name;
+      name.append(label);
+
+      const count = document.createElement("span");
+      count.className = "teacher-item-count";
+      count.textContent = `×${item.count}`;
+
+      const minus = document.createElement("button");
+      minus.type = "button";
+      minus.className = "teacher-item-btn minus";
+      minus.textContent = "−";
+      minus.dataset.itemId = item.id;
+      minus.dataset.kind = item.kind;
+      minus.dataset.delta = "-1";
+      minus.disabled = item.count <= 0;
+
+      const plus = document.createElement("button");
+      plus.type = "button";
+      plus.className = "teacher-item-btn plus";
+      plus.textContent = "+";
+      plus.dataset.itemId = item.id;
+      plus.dataset.kind = item.kind;
+      plus.dataset.delta = "1";
+
+      row.append(name, count, minus, plus);
+      list.appendChild(row);
+    });
+
+    section.appendChild(list);
+    return section;
   }
 
   function renderStats(profile) {
