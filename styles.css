@@ -7197,3 +7197,716 @@ body {
   background: #fff6e2 !important;
   color: #5b4630 !important;
 }
+
+
+/* ---------------- V19 场景页全屏化：图铺满 + 顶栏浮层 + 道具抽屉 ---------------- */
+/* 原来的顶条是实体卡片（占 110px 高度），把场景图往下挤，看着就是"图上多一块白"。
+   这里把它彻底改成浮层：不占布局高度，只浮在图上。 */
+
+#sceneView {
+  height: 100% !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+#sceneView .scene-inner-panel {
+  display: block !important;
+  height: 100% !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 场景舞台：撑满视口减底栏，跟大地图一张图的尺寸感一致 */
+#sceneView .scene-atmosphere {
+  position: relative !important;
+  width: 100% !important;
+  height: calc(100vh - 118px) !important;
+  min-height: 430px !important;
+  left: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  overflow: hidden !important;
+}
+
+#sceneView .scene-stage {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+}
+
+#sceneView .scene-stage-bg {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+/* 顶栏：绝对定位浮层，透明背景 */
+#sceneView .scene-topbar {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 20 !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 14px 20px !important;
+  width: auto !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+
+#sceneView .scene-topbar > * {
+  pointer-events: auto !important;
+}
+
+/* 返回大世界：无底色方案 → 极淡半透明底 + 白字深描边，浅背景也读得清 */
+#sceneView .scene-topbar .back-button {
+  flex: 0 0 auto !important;
+  padding: 8px 16px !important;
+  border: 0 !important;
+  border-radius: var(--r-pill) !important;
+  background: rgba(24, 20, 14, 0.26) !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 0 8px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+#sceneView .scene-topbar .back-button:hover {
+  background: rgba(24, 20, 14, 0.42) !important;
+}
+
+#sceneView .scene-topbar .back-button .button-icon {
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* 场景名：白字 + 阴影，不要纸条 */
+#sceneView #sceneInnerTitle {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #ffffff !important;
+  font-size: 21px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1px !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.65), 0 0 3px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* 道具胶囊：顶栏右侧 */
+#sceneView .scene-bag-btn {
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
+  padding: 8px 16px !important;
+  border: 2px solid rgba(255, 255, 255, 0.72) !important;
+  border-radius: var(--r-pill) !important;
+  background: rgba(24, 20, 14, 0.3) !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  font-family: inherit !important;
+  cursor: pointer !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) !important;
+  transition: background 140ms ease !important;
+}
+
+#sceneView .scene-bag-btn:hover {
+  background: rgba(24, 20, 14, 0.46) !important;
+}
+
+/* 道具抽屉：默认收起，点胶囊从底部滑出 */
+#sceneView #sceneInventory {
+  position: fixed !important;
+  left: 50% !important;
+  bottom: 126px !important;
+  transform: translate(-50%, 150%) !important;
+  width: min(780px, 93vw) !important;
+  max-height: 44vh !important;
+  overflow-y: auto !important;
+  margin: 0 !important;
+  padding: 14px 16px !important;
+  border: 2px solid var(--line) !important;
+  border-radius: var(--r-lg) !important;
+  background: rgba(255, 251, 240, 0.98) !important;
+  box-shadow: 0 6px 0 #cdbb9c, 0 -10px 28px rgba(0, 0, 0, 0.22) !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: transform 230ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease !important;
+  z-index: 45 !important;
+}
+
+#sceneView #sceneInventory.open {
+  transform: translate(-50%, 0) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* 抽屉内部：一行放得下 4 个道具，说明文字在左 */
+#sceneView #sceneInventory > div {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  flex-wrap: nowrap !important;
+}
+
+#sceneView #sceneInventory .inventory-item-grid {
+  display: flex !important;
+  gap: 8px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+}
+
+#sceneView #sceneInventory .inventory-item {
+  flex: 0 1 84px !important;
+  min-width: 58px !important;
+  max-width: 84px !important;
+  padding: 6px 6px 5px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 2px !important;
+  border: 2px solid var(--line) !important;
+  border-radius: var(--r-md) !important;
+  background: #fffdf5 !important;
+  box-sizing: border-box !important;
+}
+
+#sceneView #sceneInventory .inventory-item.locked {
+  opacity: 0.5 !important;
+}
+
+#sceneView #sceneInventory .inventory-item-name {
+  width: 100% !important;
+  max-width: 100% !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  color: #6b5230 !important;
+}
+
+/* 场景底部的说明文字往上提，别被底栏压住 */
+#sceneView .scene-stage-desc {
+  bottom: 14px !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65) !important;
+}
+
+
+/* ---------------- V20 场景页收尾：提示条收纳 + 高度对齐底栏 ---------------- */
+/* 场景图高度改成减 112px，跟底栏严丝合缝，不留缝 */
+#sceneView .scene-atmosphere {
+  height: calc(100vh - 112px) !important;
+}
+
+/* 场景提示条原来是文档流里的一块（占 36px 高），会露出一条空米色条。
+   改成浮层，贴在底栏上方；内容为空时彻底不显示。 */
+#sceneView #sceneResult {
+  position: fixed !important;
+  left: 50% !important;
+  bottom: 124px !important;
+  transform: translateX(-50%) !important;
+  margin: 0 !important;
+  max-width: 68% !important;
+  z-index: 46 !important;
+}
+
+#sceneView #sceneResult:empty {
+  display: none !important;
+}
+
+/* 顶栏间距：返回按钮和场景名之间留出呼吸感 */
+#sceneView .scene-topbar {
+  gap: 22px !important;
+}
+
+
+/* ---------------- V21 场景道具抽屉细节：名字横排 + 图标放大 ---------------- */
+#sceneView #sceneInventory .inventory-item {
+  flex: 0 1 92px !important;
+  min-width: 76px !important;
+  max-width: 92px !important;
+  padding: 8px 8px 7px !important;
+  gap: 3px !important;
+}
+
+#sceneView #sceneInventory .inventory-item-icon {
+  font-size: 20px !important;
+  line-height: 1.1 !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+}
+
+#sceneView #sceneInventory .inventory-item-name {
+  writing-mode: horizontal-tb !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+  text-align: center !important;
+  color: #6b5230 !important;
+}
+
+#sceneView #sceneInventory .inventory-heading {
+  font-size: 13px !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+  color: #6b5230 !important;
+  font-weight: 800 !important;
+}
+
+
+/* ---------------- V22 宠物弹窗：一排六格 + 右栏页签切换 ---------------- */
+
+/* 布局改成：顶部横跨一整行的宠物栏 + 下面左右两栏 */
+#petInfoView .pet-three-col {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+#petColList {
+  grid-column: 1 / -1 !important;
+  grid-row: 1 !important;
+  overflow: visible !important;
+}
+
+#petColDetail {
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+#petColAbility {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+/* —— 宠物栏：一排六格 —— */
+#petColList .pet-team-panel {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+#petColList .pet-team-list {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  width: 100% !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+#petColList .pet-team-item {
+  flex: 1 1 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 8px 6px !important;
+  box-sizing: border-box !important;
+  border-radius: var(--r-md) !important;
+  height: auto !important;
+}
+
+#petColList .pet-team-item .pet-team-header {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 5px !important;
+  width: 100% !important;
+}
+
+#petColList .pet-team-img {
+  width: 42px !important;
+  height: 42px !important;
+  object-fit: contain !important;
+  flex: 0 0 auto !important;
+}
+
+#petColList .pet-team-meta {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  text-align: center !important;
+}
+
+#petColList .pet-team-name {
+  display: block !important;
+  width: 100% !important;
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+#petColList .pet-team-level {
+  display: block !important;
+  width: 100% !important;
+  font-size: 11px !important;
+  line-height: 1.3 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  color: #8a7657 !important;
+}
+
+/* 空槽：虚线框 + 「空位」，让 6 只的容量一眼可见 */
+#petColList .pet-team-item.is-empty {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 92px !important;
+  border: 2px dashed #cbbda3 !important;
+  background: rgba(255, 253, 245, 0.65) !important;
+  box-shadow: none !important;
+}
+
+#petColList .pet-team-empty-label {
+  font-size: 12px !important;
+  color: #a08e6c !important;
+  letter-spacing: 2px !important;
+}
+
+/* —— 右栏：页签在顶部 + 内容区 —— */
+#petColAbility {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  overflow-y: auto !important;
+  padding-right: 6px !important;
+}
+
+#petTabs {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+#petTabs .role-tab {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  padding: 8px 10px !important;
+  font-size: 13px !important;
+  border-radius: var(--r-pill) !important;
+}
+
+#petColAbility .stat-panel {
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+}
+
+#petColAbility #petItemsView {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+#petColAbility[data-mode="items"] .stat-panel {
+  display: none !important;
+}
+
+#petColAbility #petActionBar {
+  margin-top: auto !important;
+  flex: 0 0 auto !important;
+}
+
+/* —— 中栏：宠物大图撑满，不留大片空白 —— */
+#petColDetail {
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+}
+
+#petColDetail .hatch-panel {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+#petColDetail .hatch-visual {
+  flex: 1 1 auto !important;
+  min-height: 240px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+#petColDetail .hatch-visual img {
+  max-height: 100% !important;
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+
+
+/* ---------------- V23 宠物弹窗中栏：大图撑满，别留空白 ---------------- */
+#petColDetail .hatch-content {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  box-sizing: border-box !important;
+}
+
+#petColDetail .pet-card {
+  flex: 1 1 auto !important;
+  min-height: 250px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  padding: 10px !important;
+  box-sizing: border-box !important;
+}
+
+#petColDetail .pet-avatar {
+  max-height: 100% !important;
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+
+#petColDetail .hatch-copy {
+  flex: 0 0 auto !important;
+  min-width: 0 !important;
+}
+
+#petColDetail .hatch-copy h3 {
+  font-size: 15px !important;
+  line-height: 1.35 !important;
+  margin: 0 0 4px !important;
+  white-space: normal !important;
+}
+
+#petColDetail .pet-evolve-line {
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  margin: 0 !important;
+  padding: 6px 10px !important;
+  border-radius: var(--r-sm) !important;
+  background: #fdf4dd !important;
+  border: 2px solid #e8d8b4 !important;
+  color: #7a5c2a !important;
+  white-space: normal !important;
+}
+
+
+/* ---------------- V24 宠物右栏滚动条换暖色（去紫） ---------------- */
+#petColAbility {
+  scrollbar-width: thin !important;
+  scrollbar-color: #c2b294 #f4ecda !important;
+  padding-right: 8px !important;
+}
+
+#petColAbility::-webkit-scrollbar {
+  width: 9px !important;
+}
+
+#petColAbility::-webkit-scrollbar-track {
+  background: #f4ecda !important;
+  border-radius: 5px !important;
+}
+
+#petColAbility::-webkit-scrollbar-thumb {
+  background: #c2b294 !important;
+  border-radius: 5px !important;
+  border: 2px solid #f4ecda !important;
+}
+
+#petColDetail::-webkit-scrollbar {
+  width: 9px !important;
+}
+
+#petColDetail::-webkit-scrollbar-track {
+  background: #f4ecda !important;
+  border-radius: 5px !important;
+}
+
+#petColDetail::-webkit-scrollbar-thumb {
+  background: #c2b294 !important;
+  border-radius: 5px !important;
+  border: 2px solid #f4ecda !important;
+}
+
+/* 宠物栏标题更紧凑一点，给六个槽位多留空间 */
+#petColList .panel-heading {
+  margin: 0 0 6px !important;
+  padding: 0 !important;
+}
+
+#petColList .panel-heading h2 {
+  font-size: 14px !important;
+  margin: 0 !important;
+}
+
+
+/* ---------------- V25 角色弹窗：页签右竖排 + 内容撑满 ---------------- */
+#roleModal .role-layout {
+  grid-template-columns: 220px minmax(0, 1fr) !important;
+  align-items: stretch !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+#roleModal .role-main {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 92px !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+#roleModal #rolePanelArea {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  padding-right: 6px !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #c2b294 #f4ecda !important;
+}
+
+#roleModal .role-tabs {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  width: 100% !important;
+  height: auto !important;
+  align-self: start !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+#roleModal .role-tabs .role-tab {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  padding: 12px 6px !important;
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+  border-radius: var(--r-md) !important;
+  writing-mode: horizontal-tb !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+/* 信息 8 格：两列自适应，把下方空白吃掉 */
+#roleModal .role-info-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(74px, 1fr) !important;
+  gap: 10px !important;
+  height: 100% !important;
+  align-content: stretch !important;
+}
+
+/* 道具：每行 5 格 */
+#roleModal .role-item-grid {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+#roleModal #rolePanelArea::-webkit-scrollbar {
+  width: 9px !important;
+}
+
+#roleModal #rolePanelArea::-webkit-scrollbar-track {
+  background: #f4ecda !important;
+  border-radius: 5px !important;
+}
+
+#roleModal #rolePanelArea::-webkit-scrollbar-thumb {
+  background: #c2b294 !important;
+  border-radius: 5px !important;
+  border: 2px solid #f4ecda !important;
+}
+
+
+/* ---------------- V26 角色弹窗页签对比度 + 道具四列 ---------------- */
+/* 竖排页签选中态强制可见（白字必须配绿底，否则白底白字看不见） */
+#roleModal .role-tabs .role-tab.active,
+#roleModal .role-tabs .role-tab.active:hover,
+#roleModal .role-tabs .role-tab.active:focus {
+  background: var(--green) !important;
+  border-color: var(--green-deep) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+#roleModal .role-tabs .role-tab:not(.active) {
+  background: #fffdf6 !important;
+  color: #5b4630 !important;
+}
+
+#roleModal .role-tabs .role-tab:not(.active):hover {
+  background: #fff6e2 !important;
+  color: #5b4630 !important;
+}
+
+/* 每个场景固定 4 个道具，改成 4 列，格子更宽也不空位 */
+#roleModal .role-item-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+#roleModal .role-item-cell {
+  padding: 10px 8px !important;
+  box-sizing: border-box !important;
+}
