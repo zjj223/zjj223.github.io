@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>卡罗西亚大陆</title>
-    <link rel="stylesheet" href="./styles.css?v=20261115w" />
+    <link rel="stylesheet" href="./styles.css?v=20261115x" />
   </head>
   <body>
     <!-- 老师登录界面 -->
@@ -292,6 +292,7 @@
                     <span class="button-icon" aria-hidden="true">←</span>返回大世界
                   </button>
                   <h2 id="sceneInnerTitle">场景</h2>
+                  <button id="sceneBagBtn" class="scene-bag-btn" type="button">🎒 道具 0/0</button>
                   <div id="sceneInventory" class="scene-inventory"></div>
                 </div>
                 <div id="sceneAtmosphere" class="scene-atmosphere"></div>
@@ -589,19 +590,20 @@
           <button id="petModalClose" class="modal-close" type="button">×</button>
         </div>
         <div id="petModalBody" class="zone-modal-body">
-          <div class="pet-tabs" id="petTabs">
-            <button class="role-tab active" type="button" data-pet-tab="info">宠物信息</button>
-            <button class="role-tab" type="button" data-pet-tab="items">宠物道具</button>
-          </div>
           <div class="pet-info-view" id="petInfoView">
             <div class="pet-three-col">
               <div class="pet-col pet-col-list" id="petColList"></div>
               <div class="pet-col pet-col-detail" id="petColDetail"></div>
-              <div class="pet-col pet-col-ability" id="petColAbility"></div>
+              <div class="pet-col pet-col-ability" id="petColAbility">
+                <div class="pet-tabs" id="petTabs">
+                  <button class="role-tab active" type="button" data-pet-tab="info">宠物信息</button>
+                  <button class="role-tab" type="button" data-pet-tab="items">宠物道具</button>
+                </div>
+                <div class="pet-items-view" id="petItemsView" hidden></div>
+              </div>
             </div>
             <div id="petActionBar" class="pet-action-bar"></div>
           </div>
-          <div class="pet-items-view" id="petItemsView" hidden></div>
         </div>
       </div>
     </div>
@@ -647,8 +649,8 @@
       </div>
     </div>
 
-    <script src="./data/petConfig.js?v=20261115w"></script>
-    <script src="./app.js?v=20261115w"></script>
+    <script src="./data/petConfig.js?v=20261115x"></script>
+    <script src="./app.js?v=20261115x"></script>
 
   <!-- 新手引导系统 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
