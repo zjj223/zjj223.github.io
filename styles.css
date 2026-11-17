@@ -6080,3 +6080,543 @@ button:active:not(:disabled) {
   from { transform: scale(0.45); opacity: 1; }
   to { transform: scale(1.7); opacity: 0; }
 }
+/* ============================================================
+   界面视觉改造 V0–V5  |  2026-11-17
+   本块追加在 styles.css 末尾，靠"后写覆盖先写"生效。
+   凡是涉及学生端三栏 / 场景页的规则，统一用 #id 前缀，
+   以免被前面的 .app-grid.is-student .xxx (0,3,0) 压掉。
+   ============================================================ */
+
+/* ---------------- V0 设计令牌 ---------------- */
+:root {
+  --bg-deep: #e8dfcc;
+  --bg: #f7f1e3;
+  --surface: #fffdf6;
+  --surface-hi: #ffffff;
+  --ink: #2f2a22;
+  --muted: #7a6f5d;
+  --ink-soft: #6b6152;
+  --line: #cbbda3;
+  --green: #58a35f;
+  --green-deep: #2f6b3c;
+  --gold: #f2b23e;
+  --gold-deep: #b9751a;
+  --blue: #4b9ec9;
+  --red: #d9614a;
+  --ice: #7fc0c9;
+  --locked: #9a9690;
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 26px;
+  --r-pill: 999px;
+  --stroke: 2px solid var(--line);
+  --stroke-strong: 3px solid #a8916f;
+  --shadow-hard: 0 4px 0 #cdbb9c;
+  --shadow-soft: 0 10px 24px rgba(96, 76, 44, 0.14);
+  --shadow: 0 10px 24px rgba(96, 76, 44, 0.14);
+  --inner-hi: inset 0 2px 0 rgba(255, 255, 255, 0.85);
+  --font-num: "Bahnschrift", "DIN Alternate", "Microsoft YaHei", sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(1100px 520px at 50% -8%, rgba(255, 246, 222, 0.95), rgba(255, 246, 222, 0)),
+    var(--bg);
+  color: var(--ink);
+}
+
+/* ---------------- V1 面板与卡片 ---------------- */
+.panel {
+  padding: 18px 18px 20px;
+  border: var(--stroke);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-hard), var(--inner-hi);
+}
+
+.topbar {
+  border: var(--stroke);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-hard), var(--inner-hi);
+}
+
+/* 左栏宠物卡片：厚边 + 硬影（#petColList 权重 1,1,0 高于 0,3,0） */
+#petColList .pet-team-item {
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-hi);
+  box-shadow: 0 3px 0 #d8c8ab;
+  transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+#petColList .pet-team-item.active {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(242, 178, 62, 0.35), 0 3px 0 #d8c8ab;
+  transform: translateY(-1px);
+}
+
+/* 中栏：独立卡片 */
+.pet-col-detail {
+  border: var(--stroke);
+  border-radius: var(--r-md);
+  background: var(--surface-hi);
+  box-shadow: var(--shadow-hard), var(--inner-hi);
+}
+
+/* ---------------- V2 按钮体系 ---------------- */
+.primary-button,
+.secondary-button,
+.danger-button,
+.ghost-button {
+  min-height: 42px;
+  padding: 0 20px;
+  border-radius: var(--r-pill);
+  font-weight: 700;
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.16s ease;
+}
+
+.primary-button {
+  border: 2px solid var(--green-deep);
+  background: var(--green);
+  color: #ffffff;
+  box-shadow: 0 3px 0 var(--green-deep), var(--inner-hi);
+}
+
+.primary-button:hover:not(:disabled) {
+  background: #4d9453;
+}
+
+.primary-button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--green-deep), var(--inner-hi);
+}
+
+.secondary-button {
+  border: 2px solid #a9c8da;
+  background: #eff8fd;
+  color: #214f6f;
+  box-shadow: 0 3px 0 #a9c8da, var(--inner-hi);
+}
+
+.secondary-button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #a9c8da, var(--inner-hi);
+}
+
+/* 底栏四个入口：方块化 + 硬影（保留原有 flex 宽度设定） */
+.dock-btn {
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: 0 3px 0 #d8c8ab;
+  transform: none !important;
+}
+
+.dock-btn:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 0 0 #d8c8ab;
+}
+
+/* 宠物操作按钮（右侧属性栏下方） */
+.pet-act-btn {
+  border-radius: var(--r-pill) !important;
+  box-shadow: 0 2px 0 #d8c8ab;
+}
+
+/* ---------------- V3 进度条与数值 ---------------- */
+.progress-track {
+  height: 16px;
+  padding: 2px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: #efe6d2;
+  box-sizing: border-box;
+}
+
+.progress-fill {
+  border-radius: var(--r-pill);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.14), inset 0 2px 0 rgba(255, 255, 255, 0.45);
+}
+
+.bond-track {
+  height: 12px;
+  border: 2px solid #d9b8c9;
+  border-radius: var(--r-pill);
+  background: #f7ecf2;
+  box-sizing: border-box;
+}
+
+/* 数值用等宽圆体，和标签拉开对比 */
+.stat-meta strong,
+.bond-meta strong {
+  font-family: var(--font-num);
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+/* ---------------- V4 弹窗体系 ---------------- */
+.modal-overlay {
+  background: rgba(46, 36, 22, 0.58);
+}
+
+.zone-modal-box {
+  border: var(--stroke-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface-hi);
+  box-shadow: 0 10px 0 rgba(168, 145, 111, 0.3), 0 26px 60px rgba(60, 45, 25, 0.3);
+}
+
+.zone-modal-box .modal-header {
+  margin: 0;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, #ffe9b8, #ffd98a);
+  border-bottom: var(--stroke);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+
+/* ---------------- V5 三栏分区 ---------------- */
+.pet-col-detail,
+#petColAbility {
+  position: relative;
+}
+
+#petColDetail::before,
+#petColAbility::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 10%;
+  width: 0;
+  height: 80%;
+  border-left: 1px dashed #c9bca4;
+  pointer-events: none;
+}
+
+/* ============================================================
+   界面视觉改造 V6–V8  |  2026-11-17
+   场景页 / 大地图 / 登录页 / 动效
+   注意：.map-pin 与 .stage-spot 外层负责 translate 定位，
+   这里一律只改内部 .map-dot / .stage-dot，绝不动外层 transform，
+   否则地图点位会整体偏移。
+   ============================================================ */
+
+/* ---------------- V6 场景页 ---------------- */
+#sceneView .scene-topbar {
+  padding: 10px 14px;
+  border: 2px solid #d9c49c;
+  border-radius: var(--r-sm);
+  background: linear-gradient(180deg, #fff8e6, #fdeecb);
+  box-shadow: 0 3px 0 #d8c8ab;
+}
+
+#sceneView .scene-topbar .back-button {
+  border: 2px solid #8a6f4a;
+  border-radius: var(--r-pill);
+  background: #fff3d2;
+  color: #5d4526;
+  box-shadow: 0 3px 0 #8a6f4a;
+  transform: none !important;
+}
+
+#sceneView .scene-topbar .back-button:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 0 0 #8a6f4a;
+}
+
+#sceneView #sceneInnerTitle {
+  color: #5d4526;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding-bottom: 2px;
+  border-bottom: 2px solid #e2c88f;
+}
+
+/* 探索点：小木牌 */
+#sceneView .stage-dot {
+  border: 2px solid #8a6f4a;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fff6da, #ffe9b0);
+  box-shadow: 0 3px 0 #8a6f4a, 0 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+#sceneView .stage-tag {
+  color: #5d4526;
+  background: rgba(255, 246, 218, 0.94);
+  border: 1px solid #d9c49c;
+  border-radius: 8px;
+}
+
+/* 底部提示条：羊皮纸 */
+#sceneView #sceneResult {
+  color: var(--ink);
+  background: #fff7e0;
+  border: 2px solid var(--line);
+  border-radius: var(--r-sm);
+  box-shadow: 0 3px 0 #d8c8ab;
+}
+
+/* 顶条道具图标：统一放大到 22px（原规则用 0,3,0 压制，这里用 id 前缀反压） */
+#sceneView .scene-topbar .inventory-item-icon {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+#sceneView .scene-topbar .inventory-item-icon svg,
+#sceneView .scene-topbar .inventory-item-icon img {
+  width: 22px !important;
+  height: 22px !important;
+}
+
+/* ---------------- V7 大地图 + 登录页 ---------------- */
+/* 地标：米黄木牌 */
+#worldView .map-dot {
+  border: 2px solid #8a6f4a;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fff6da, #ffe9b0);
+  box-shadow: 0 3px 0 #8a6f4a, 0 0 0 3px rgba(255, 255, 255, 0.55);
+}
+
+#worldView .map-name {
+  color: #5d4526;
+  background: rgba(255, 248, 230, 0.92);
+  border: 1px solid #d9c49c;
+  border-radius: 8px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+/* 训练师脚下投影，人不再"浮"在地图上方 */
+.map-player::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 54px;
+  height: 16px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0) 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* 登录卡：游戏面板而非网页卡片 */
+.login-card {
+  border: var(--stroke-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface-hi);
+  box-shadow: 0 12px 0 rgba(168, 145, 111, 0.32), 0 30px 70px rgba(50, 38, 20, 0.32);
+}
+
+/* ---------------- V8 动效 ---------------- */
+/* 弹窗不做缩放入场：历史上 opacity 动画会在后台标签停在 from 导致白屏，
+   这里显式加固为 none，只保留按钮与呼吸动画。 */
+.zone-modal-box,
+.modal-overlay,
+.modal,
+.zone-modal,
+.rank-modal,
+.view-container,
+.login-card {
+  animation: none !important;
+}
+
+@keyframes pet-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* 中栏宠物大图轻微呼吸（只用 transform，不涉及 opacity，后台冻结也不会白屏） */
+.pet-col-detail .hatch-visual img {
+  animation: pet-breathe 3s ease-in-out infinite;
+}
+
+.button-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------------- V7+ 登录页背景与按钮修正 ---------------- */
+/* 原 .login-view 是紫色渐变（#667eea → #764ba2），与整套暖色令牌冲突，整体换掉 */
+.login-view {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(168, 145, 111, 0.06) 0 2px,
+      rgba(168, 145, 111, 0) 2px 26px
+    ),
+    radial-gradient(1100px 560px at 50% 0%, rgba(255, 243, 210, 0.95), rgba(255, 243, 210, 0)),
+    linear-gradient(160deg, #f7f1e3 0%, #e9ddc3 100%);
+}
+
+.login-button {
+  border: 2px solid var(--green-deep);
+  border-radius: var(--r-pill);
+  background: var(--green);
+  color: #ffffff;
+  box-shadow: 0 3px 0 var(--green-deep), var(--inner-hi);
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.16s ease;
+}
+
+.login-button:hover:not(:disabled) {
+  background: #4d9453;
+}
+
+.login-button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--green-deep), var(--inner-hi);
+}
+
+.login-form input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(242, 178, 62, 0.24);
+}
+
+.login-title {
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #3b3125;
+}
+
+.login-subtitle {
+  color: var(--muted);
+}
+
+.login-tab.is-active {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: 0 2px 0 #d8c8ab;
+}
+
+/* ---------------- V9 补齐：底栏木色化 / 引导弹窗去紫 ---------------- */
+/* 底栏原来是近黑的深绿渐变，改成木质深条，保留白字可读性 */
+.dock-bar {
+  border-top: 3px solid #a8916f;
+  background: linear-gradient(180deg, #6f5637 0%, #4c3b24 100%);
+  box-shadow: 0 -6px 18px rgba(60, 45, 25, 0.22);
+}
+
+.dock-btn {
+  color: #fff8e6;
+}
+
+/* 新手引导：与主弹窗同一套"厚边 + 大圆角 + 硬影" */
+.guide-modal {
+  border: var(--stroke-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface-hi);
+  box-shadow: 0 10px 0 rgba(168, 145, 111, 0.3), 0 26px 60px rgba(60, 45, 25, 0.3);
+}
+
+.guide-header {
+  border-bottom: 2px solid var(--line);
+}
+
+.guide-highlight {
+  background: #fff7e0;
+  border-left: 4px solid var(--gold);
+  border-radius: var(--r-sm);
+}
+
+.guide-btn {
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 3px 0 #d8c8ab;
+  transform: none !important;
+}
+
+.guide-btn:active {
+  transform: translateY(3px) !important;
+  box-shadow: 0 0 0 #d8c8ab;
+}
+
+.guide-btn.primary {
+  border-color: var(--green-deep);
+  background: var(--green);
+  color: #ffffff;
+  box-shadow: 0 3px 0 var(--green-deep);
+}
+
+.guide-btn.primary:active {
+  box-shadow: 0 0 0 var(--green-deep);
+}
+
+.guide-badge {
+  background: var(--gold);
+  color: #4a3410;
+}
+
+/* ---------------- V10 计时面板去紫 ---------------- */
+.timer-panel {
+  border: var(--stroke);
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, #fff8e6 0%, #fbeed0 100%);
+  box-shadow: var(--shadow-hard), var(--inner-hi);
+  color: var(--ink);
+}
+
+.timer-panel .timer-label,
+.timer-panel .timer-heading {
+  color: #5d4526;
+}
+
+.timer-panel .timer-time,
+.timer-panel .timer-value {
+  color: #2f2a22;
+  font-family: var(--font-num);
+  font-weight: 800;
+}
+
+/* ---------------- V11 全屏画布与底栏对比度 ---------------- */
+/* 地图外的留白不再用深绿，改成云海浅色，和地图本身衔接 */
+.app-grid.is-student .game-area {
+  background: linear-gradient(180deg, #d7ebf9 0%, #eef7fd 55%, #f8fcfe 100%);
+}
+
+/* 地图在可视区垂直居中，上下留白均匀；底部留出底栏高度 */
+.app-grid.is-student .scene-grid.map-mode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0 58px;
+  box-sizing: border-box;
+}
+
+/* 底栏按钮：米白底 + 深色字（原白字配白底几乎看不见） */
+.dock-btn {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.dock-btn span,
+.dock-btn strong,
+.dock-btn small,
+.dock-btn-label {
+  color: var(--ink);
+}
+
+/* ---------------- V12 覆盖 #sceneGrid 的 id 级 display:block ---------------- */
+/* #sceneGrid.map-mode 是 (1,1,0)，权重压过 .app-grid.is-student .scene-grid.map-mode，
+   必须带 id 才能把地图容器切成 flex 并垂直居中 */
+.app-grid.is-student #sceneGrid.map-mode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0 58px;
+  box-sizing: border-box;
+}
+
+#sceneGrid.map-mode {
+  align-items: center;
+  justify-content: center;
+}
