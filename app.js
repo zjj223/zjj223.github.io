@@ -3544,9 +3544,30 @@
     }
   }
 
+  let resultClearTimer = null; // 全局提示条 2 秒后自动消失
+  let lastRenderedResult = null;
   function renderResult() {
-    els.resultMessage.textContent = resultMessage;
+    const text = resultMessage;
+    els.resultMessage.textContent = text;
     els.resultMessage.classList.toggle("warning", resultIsWarning);
+    // 文案没变就不重新计时，避免走动/刷新导致提示一直挂着
+    if (text === lastRenderedResult) return;
+    lastRenderedResult = text;
+    if (resultClearTimer) {
+      clearTimeout(resultClearTimer);
+      resultClearTimer = null;
+    }
+    if (text) {
+      // 新的提示顶替旧的：先清上一个计时，再重新起 2 秒
+      resultClearTimer = setTimeout(() => {
+        resultMessage = "";
+        resultIsWarning = false;
+        lastRenderedResult = "";
+        els.resultMessage.textContent = "";
+        els.resultMessage.classList.remove("warning");
+        resultClearTimer = null;
+      }, 2000);
+    }
   }
 
   // ===== 商店渲染 =====
