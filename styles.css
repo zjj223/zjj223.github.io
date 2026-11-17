@@ -8099,3 +8099,302 @@ body {
   font-size: 13px;
   margin: 6px 0 2px;
 }
+/* ================= V29 老师后台：名单 + 详情 ================= */
+.teacher-select-hidden {
+  display: none !important;
+}
+
+.teacher-roster-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.teacher-roster-head h3 {
+  margin: 0;
+  font-size: 15px;
+  color: #2f2c26;
+}
+
+#teacherRosterSearch {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #d8d2c4;
+  background: #fff;
+  font-size: 13px;
+}
+
+.teacher-roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.teacher-roster-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 2px solid #ddd6c6;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s, background .15s;
+}
+
+.teacher-roster-chip:hover {
+  border-color: #9fd0ab;
+}
+
+.teacher-roster-chip.active {
+  border-color: #3f9d62;
+  background: #eef8ef;
+}
+
+.teacher-roster-name {
+  font-weight: 800;
+  font-size: 13px;
+  color: #2f2c26;
+}
+
+.teacher-roster-bell {
+  font-size: 12px;
+  color: #8a7f6b;
+}
+
+.teacher-detail {
+  border-top: 1px solid #e6e0d2;
+  padding-top: 10px;
+  margin-bottom: 10px;
+}
+
+.teacher-detail-info {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.teacher-info-cell {
+  background: #fff;
+  border: 1px solid #e6e0d2;
+  border-radius: 10px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.teacher-info-key {
+  font-size: 11px;
+  color: #8a7f6b;
+}
+
+.teacher-info-value {
+  font-weight: 800;
+  color: #2f2c26;
+  font-size: 14px;
+}
+
+.teacher-item-section {
+  margin-bottom: 10px;
+}
+
+.teacher-item-section h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #5a5346;
+}
+
+.teacher-item-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  gap: 6px;
+}
+
+.teacher-item-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid #e6e0d2;
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
+.teacher-item-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: #3c3830;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.teacher-item-count {
+  font-size: 12px;
+  font-weight: 800;
+  color: #4a4436;
+}
+
+.teacher-item-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid #cfc7b5;
+  background: #f7f3e8;
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.teacher-item-btn.plus {
+  background: #e7f6ea;
+  border-color: #9fd0ab;
+}
+
+.teacher-item-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.teacher-detail-empty,
+.teacher-roster-empty {
+  color: #8a7f6b;
+  font-size: 13px;
+  margin: 6px 0;
+}
+
+/* ================= 老师模式：纯后台界面 ================= */
+body.is-teacher-mode .app-grid {
+  display: block !important;
+}
+
+body.is-teacher-mode .app-grid > .panel.profile-panel,
+body.is-teacher-mode .app-grid > .game-area {
+  display: none !important;
+}
+
+body.is-teacher-mode .teacher-panel {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 100vh;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: #fbf7ec;
+  padding: 24px 28px 48px;
+}
+
+body.is-teacher-mode .app-shell .topbar {
+  display: none !important;
+}
+
+body.is-teacher-mode .teacher-panel #teacherRoster,
+body.is-teacher-mode .teacher-panel .teacher-detail {
+  max-width: 1180px;
+}
+
+body.is-teacher-mode .teacher-panel #teacherTitle {
+  font-size: 22px;
+}
+/* 后台道具行：图标 + 名称，整体不超出面板 */
+body.is-teacher-mode .teacher-panel *,
+.teacher-panel * {
+  box-sizing: border-box;
+}
+
+#teacherRoster,
+.teacher-item-list,
+.teacher-detail,
+.teacher-detail-info {
+  width: 100%;
+  max-width: 100%;
+}
+
+.teacher-roster {
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+}
+
+.teacher-item-list {
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+}
+
+.teacher-item-icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  margin-right: 4px;
+  vertical-align: middle;
+  flex: 0 0 auto;
+}
+
+.teacher-item-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.teacher-item-label {
+  vertical-align: middle;
+}
+
+.teacher-item-name {
+  display: flex;
+  align-items: center;
+}
+body.is-teacher-mode .app-shell {
+  padding: 0 !important;
+  max-width: none !important;
+}
+
+body.is-teacher-mode .teacher-panel {
+  box-sizing: border-box !important;
+  overflow-x: hidden;
+}
+
+body.is-teacher-mode .teacher-panel .panel-heading,
+body.is-teacher-mode .teacher-panel .teacher-roster-head {
+  max-width: 100%;
+}
+
+.teacher-item-list {
+  grid-template-columns: repeat(auto-fill, minmax(166px, 1fr));
+}
+
+.teacher-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.teacher-controls {
+  min-width: 0;
+}
+
+.teacher-controls > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.teacher-detail,
+.teacher-detail-info,
+.teacher-item-section,
+.teacher-item-list,
+.teacher-roster,
+.teacher-roster-head {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.teacher-item-row {
+  min-width: 0;
+}
