@@ -1569,6 +1569,7 @@
       saveState("后台调整道具");
       renderTeacherDetail(profile);
       renderTeacherRoster(getTeacherRosterProfiles());
+      pushTeacherProfileToCloud(profile);
     });
 
     els.teacherLogout.addEventListener("click", handleTeacherLogout);
@@ -3097,7 +3098,22 @@
       setTeacherMessage(`${profile.name} 洛克贝扣除 ${deducted}。`, false);
     }
     saveState("后台已存档");
+    pushTeacherProfileToCloud(profile);
     render();
+  }
+
+  // 后台改完立刻推云端（学生必须先退出登录，否则会被自己的存档覆盖）
+  async function pushTeacherProfileToCloud(profile) {
+    if (!profile || !CLOUD_ENABLED || location.protocol === "file:") {
+      return;
+    }
+    try {
+      await cloudUpsertStudent(profile.name, profile.pass || "1234", profile);
+      setTeacherMessage(`已同步云端：${profile.name}（孩子需重新登录才生效）`, false);
+    } catch (err) {
+      console.warn("同步云端失败", err);
+      setTeacherMessage(`云端同步失败：${profile.name}，请检查网络后重试`, true);
+    }
   }
 
   function getTeacherSelectedProfile() {
