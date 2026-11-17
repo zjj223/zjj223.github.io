@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>卡罗西亚大陆</title>
-    <link rel="stylesheet" href="./styles.css?v=20261115v" />
+    <link rel="stylesheet" href="./styles.css?v=20261115w" />
   </head>
   <body>
     <!-- 老师登录界面 -->
@@ -237,6 +237,10 @@
             <div id="dockBar" class="dock-bar" hidden>
               <div id="dockProfile" class="dock-profile" aria-live="polite"></div>
               <div class="dock-actions">
+                <button id="dockRole" class="dock-btn" type="button">
+                  <span class="dock-icon" aria-hidden="true">👤</span>
+                  <span class="dock-label">角色</span>
+                </button>
                 <button id="dockPet" class="dock-btn" type="button">
                   <span class="dock-icon" aria-hidden="true">🐾</span>
                   <span class="dock-label">宠物</span>
@@ -549,6 +553,34 @@
       </div>
     </div>
 
+    <!-- 角色信息弹窗（学生端） -->
+    <div id="roleModal" class="modal-overlay zone-modal" hidden>
+      <div class="modal zone-modal-box role">
+        <div class="modal-header">
+          <h3>👤 我的角色</h3>
+          <button id="roleModalClose" class="modal-close" type="button">×</button>
+        </div>
+        <div id="roleModalBody" class="zone-modal-body role-body">
+          <div class="role-layout">
+            <div class="role-portrait">
+              <div class="role-portrait-frame">
+                <img id="rolePortraitImg" alt="" src="" />
+              </div>
+              <div class="role-portrait-name" id="rolePortraitName">训练师</div>
+            </div>
+            <div class="role-main">
+              <div class="role-tabs" id="roleTabs">
+                <button class="role-tab active" type="button" data-role-tab="info">信息</button>
+                <button class="role-tab" type="button" data-role-tab="items">道具</button>
+                <button class="role-tab" type="button" data-role-tab="clothes">衣服</button>
+              </div>
+              <div class="role-panel-area" id="rolePanelArea"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 宠物面板弹窗（学生端） -->
     <div id="petModal" class="modal-overlay zone-modal" hidden>
       <div class="modal zone-modal-box pet">
@@ -557,12 +589,19 @@
           <button id="petModalClose" class="modal-close" type="button">×</button>
         </div>
         <div id="petModalBody" class="zone-modal-body">
-          <div class="pet-three-col">
-            <div class="pet-col pet-col-list" id="petColList"></div>
-            <div class="pet-col pet-col-detail" id="petColDetail"></div>
-            <div class="pet-col pet-col-ability" id="petColAbility"></div>
+          <div class="pet-tabs" id="petTabs">
+            <button class="role-tab active" type="button" data-pet-tab="info">宠物信息</button>
+            <button class="role-tab" type="button" data-pet-tab="items">宠物道具</button>
           </div>
-          <div id="petActionBar" class="pet-action-bar"></div>
+          <div class="pet-info-view" id="petInfoView">
+            <div class="pet-three-col">
+              <div class="pet-col pet-col-list" id="petColList"></div>
+              <div class="pet-col pet-col-detail" id="petColDetail"></div>
+              <div class="pet-col pet-col-ability" id="petColAbility"></div>
+            </div>
+            <div id="petActionBar" class="pet-action-bar"></div>
+          </div>
+          <div class="pet-items-view" id="petItemsView" hidden></div>
         </div>
       </div>
     </div>
@@ -608,8 +647,8 @@
       </div>
     </div>
 
-    <script src="./data/petConfig.js?v=20261115v"></script>
-    <script src="./app.js?v=20261115v"></script>
+    <script src="./data/petConfig.js?v=20261115w"></script>
+    <script src="./app.js?v=20261115w"></script>
 
   <!-- 新手引导系统 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
