@@ -254,17 +254,17 @@
   const GUIDE_STEPS = Object.freeze([
     {
       title: "欢迎来到卡罗西亚大陆！",
-      desc: "这是一个课堂养成游戏。你可以通过上课认真做题获得行动点，然后用行动点探索世界、培养宠物、和同学比拼战力！",
+      desc: "这是一个课堂养成游戏。你可以通过上课认真做题获得洛克贝，然后用洛克贝探索世界、培养宠物、和同学比拼战力！",
       highlight: "先创建或选择一个角色开始游戏吧！"
     },
     {
       title: "宠物系统",
-      desc: "每个玩家最多可以拥有6只宠物。第一只宠物可以用1行动点刷新，其他宠物需要在大世界探索中捕捉获得。每只宠物都有独立的等级、经验和亲密度。",
+      desc: "每个玩家最多可以拥有6只宠物。第一只宠物可以用1洛克贝刷新，其他宠物需要在大世界探索中捕捉获得。每只宠物都有独立的等级、经验和亲密度。",
       highlight: "宠物栏在左侧，可以切换出战宠物"
     },
     {
       title: "大世界探索",
-      desc: "点击场景进入探索，每次探索消耗1行动点。探索可以获得经验值和场景专属道具，还有可能遇到野生宠物进行战斗。集齐一个场景的4个道具可以提升1级亲密度。",
+      desc: "点击场景进入探索，每次探索消耗1洛克贝。探索可以获得经验值和场景专属道具，还有可能遇到野生宠物进行战斗。集齐一个场景的4个道具可以提升1级亲密度。",
       highlight: "亲密度越高，解锁的场景越多"
     },
     {
@@ -274,12 +274,12 @@
     },
     {
       title: "商店系统",
-      desc: "在商店可以用经验值购买场景道具，也可以上架自己的道具卖给其他同学。还有专门的咕噜球商店，用行动点购买各种咕噜球。",
-      highlight: "经验当钱花，统一定价"
+      desc: "在商店可以用经验值购买场景道具，也可以上架自己的道具卖给其他同学。还有专门的咕噜球商店，用洛克贝购买各种咕噜球。",
+      highlight: "用洛克贝交易，统一定价"
     },
     {
       title: "战力排行榜",
-      desc: "排行榜按三只宠物的战斗力总和排名。每周老师会发布排行榜奖励，排名越靠前奖励的行动点越多。",
+      desc: "排行榜按三只宠物的战斗力总和排名。每周老师会发布排行榜奖励，排名越靠前奖励的洛克贝越多。",
       highlight: "努力培养宠物，争夺榜首！"
     },
     {
@@ -673,7 +673,10 @@
   });
   const MARKET_STORAGE_KEY = "carlosia_market_v1";
   const MARKET_TABLE = "market_listings";
-  const MARKET_FEE_RATE = 0.1; // 卖家手续费 10%
+  const MARKET_FEE_RATE = 0.2; // 卖家手续费 1/5，向上取整
+  function marketFee(price) {
+    return Math.ceil(Number(price || 0) * MARKET_FEE_RATE);
+  }
   // 每个道具的统一定价（经验值）- 已×5
   const ITEM_PRICES = Object.freeze({
     "grass-clover": 200, "grass-feather": 250, "grass-dandelion": 150, "grass-dewdrop": 175,
@@ -800,6 +803,7 @@
   let currentView = "world"; // "world" 大世界 / "scene" 场景内 / "shop" 商店
   let selectedSpotId = null;
   let currentShopTab = "market"; // "market" 逛市场 / "sell" 我要卖 / "mine" 我的上架
+  let currentStoreTab = "balls"; // "balls" 咕噜球 / "fashion" 时装
   let marketState = { listings: [] };
   let isExploring = false; // 探索动画进行中，防止重复点击
   let pulledProfileIds = []; // 老师拉入的学生ID列表（不存档）
@@ -1135,7 +1139,8 @@
       document.getElementById("petModalClose")?.addEventListener("click", () => hide("petModal"));
       document.getElementById("shopModalClose")?.addEventListener("click", () => hide("shopModal"));
       document.getElementById("timerModalClose")?.addEventListener("click", () => hide("timerModal"));
-      ["petModal", "shopModal", "timerModal"].forEach((id) => {
+      document.getElementById("storeModalClose")?.addEventListener("click", () => hide("storeModal"));
+      ["petModal", "shopModal", "timerModal", "storeModal"].forEach((id) => {
         const m = document.getElementById(id);
         if (m) {
           m.addEventListener("click", (e) => {
@@ -1158,7 +1163,20 @@
         show("shopModal");
       });
       document.getElementById("dockRank")?.addEventListener("click", () => showRank("power"));
-      document.getElementById("dockTimer")?.addEventListener("click", () => show("timerModal"));
+      // 底栏「商店」：独立的咕噜球 / 时装商店（原「计时」入口）
+      document.getElementById("dockTimer")?.addEventListener("click", () => {
+        renderStore(currentStoreTab);
+        show("storeModal");
+      });
+      document.getElementById("storeTabBalls")?.addEventListener("click", () => renderStore("balls"));
+      document.getElementById("storeTabFashion")?.addEventListener("click", () => renderStore("fashion"));
+      // 商店里的购买按钮（事件委托，按钮是动态生成的）
+      document.getElementById("storeModalBody")?.addEventListener("click", (e) => {
+        const buyBtn = e.target.closest(".ball-shop-buy");
+        if (!buyBtn) return;
+        e.preventDefault();
+        buyBall(buyBtn.dataset.ballId);
+      });
 
       // 方向键 / WASD 走动
       window.addEventListener("keydown", (e) => {
@@ -1242,7 +1260,7 @@
       hp: 0,
       mp: 0,
       exp: 0,
-      actionPoints: 10,
+      rockbell: 0,
       egg: { granted: true, grantedAt: now, hatched: false, hatchedAt: null },
       pet: null,
       pets: [],
@@ -1342,7 +1360,7 @@
     els.gameView = document.getElementById("gameView");
     els.activeName = document.getElementById("activeName");
     els.activeGender = document.getElementById("activeGender");
-    els.actionPoints = document.getElementById("actionPoints");
+    els.rockbell = document.getElementById("rockbell");
     els.petStatus = document.getElementById("petStatus");
     els.petDetail = document.getElementById("petDetail");
     els.petSmallIcon = document.getElementById("petSmallIcon");
@@ -1701,7 +1719,7 @@
       hp: clampInteger(profile?.hp, 0, Number.MAX_SAFE_INTEGER),
       mp: clampInteger(profile?.mp, 0, Number.MAX_SAFE_INTEGER),
       exp: clampInteger(profile?.exp, 0, Number.MAX_SAFE_INTEGER),
-      actionPoints: clampInteger(profile?.actionPoints, 0, Number.MAX_SAFE_INTEGER),
+      rockbell: clampInteger(profile?.rockbell, 0, Number.MAX_SAFE_INTEGER),
       egg: {
         granted: Boolean(egg.granted || pet),
         grantedAt: typeof egg.grantedAt === "string" ? egg.grantedAt : null,
@@ -1731,7 +1749,7 @@
     };
   }
 
-  // 底栏角色信息面板：头像 + 名字 + 性别 + 行动点 + 出战宠物
+  // 底栏角色信息面板：头像 + 名字 + 性别 + 洛克贝 + 出战宠物
   function renderDockProfile(profile) {
     const box = document.getElementById("dockProfile");
     if (!box || !profile) return;
@@ -1765,7 +1783,7 @@
     const metaRow = document.createElement("div");
     metaRow.className = "dock-profile-meta";
     const apLabel = document.createElement("span");
-    apLabel.innerHTML = '行动点 <b>' + profile.actionPoints + '</b>';
+    apLabel.innerHTML = '洛克贝 <b>' + profile.rockbell + '</b>';
     metaRow.appendChild(apLabel);
     if (activePet) {
       const petLabel = document.createElement("span");
@@ -1970,7 +1988,8 @@
     if (count < 1) return { ok: false, msg: "背包中没有该道具。" };
     const itemDef = getItemDef(itemId);
     if (!itemDef) return { ok: false, msg: "道具不存在。" };
-    const price = getItemPrice(itemId);
+    // 最低挂牌 2 洛克贝：否则手续费会把卖家的钱吃光
+    const price = Math.max(2, getItemPrice(itemId));
     const listing = {
       id: `list_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       sellerId: profile.id,
@@ -2004,7 +2023,7 @@
     marketState.listings.push(listing);
     saveMarket();
     saveState("已上架");
-    return { ok: true, msg: `已上架【${itemDef.name}】，售价 ${price} 经验。` };
+    return { ok: true, msg: `已上架【${itemDef.name}】，售价 ${price} 洛克贝。` };
   }
 
   // 下架道具（同时从云端市场撤下）
@@ -2035,17 +2054,17 @@
     return { ok: true, msg: `已下架【${listing.itemName}】，已退回背包。` };
   }
 
-  // 给卖家加经验（卖家云端的存档一起更新）
-  async function addExpToSeller(sellerName, amount) {
+  // 给卖家加洛克贝（卖家云端的存档一起更新）
+  async function addRockbellToSeller(sellerName, amount) {
     if (!sellerName || !amount) return;
     try {
       const row = await cloudGetStudent(sellerName);
       if (!row || !row.save) return;
       const save = Object.assign({}, row.save);
-      save.exp = (save.exp || 0) + amount;
+      save.rockbell = (save.rockbell || 0) + amount;
       await cloudUpsertStudent(row.name, row.pass, save);
     } catch (error) {
-      console.warn("给卖家结算经验失败", error);
+      console.warn("给卖家结算洛克贝失败", error);
     }
   }
 
@@ -2056,7 +2075,7 @@
     const listing = marketState.listings.find((l) => l.id === listingId);
     if (!listing) return { ok: false, msg: "该道具已被买走或下架。" };
     if (listing.sellerId === profile.id) return { ok: false, msg: "不能购买自己上架的道具。" };
-    if (profile.exp < listing.price) return { ok: false, msg: `经验不足，需要 ${listing.price} 经验。` };
+    if (profile.rockbell < listing.price) return { ok: false, msg: `洛克贝不足，需要 ${listing.price} 洛克贝。` };
 
     // 先抢下云端这条商品，避免两个同学同时买同一件
     if (CLOUD_ENABLED) {
@@ -2077,16 +2096,18 @@
       }
     }
 
-    profile.exp -= listing.price;
+    profile.rockbell -= listing.price;
     profile.inventory[listing.itemId] = (profile.inventory[listing.itemId] || 0) + 1;
-    const sellerReceive = Math.floor(listing.price * (1 - MARKET_FEE_RATE));
-    await addExpToSeller(listing.sellerName, sellerReceive);
+    // 手续费 = 成交价的 1/5，向上取整，从卖家到手里扣
+    const fee = marketFee(listing.price);
+    const sellerReceive = Math.max(0, listing.price - fee);
+    await addRockbellToSeller(listing.sellerName, sellerReceive);
     marketState.listings = marketState.listings.filter((l) => l.id !== listingId);
     saveMarket();
     saveState("购买已存档");
     return {
       ok: true,
-      msg: `购买成功！获得【${listing.itemName}】，花费 ${listing.price} 经验。卖家 ${listing.sellerName} 获得 ${sellerReceive} 经验（扣${Math.round(MARKET_FEE_RATE * 100)}%手续费）。`,
+      msg: `购买成功！获得【${listing.itemName}】，花费 ${listing.price} 洛克贝。卖家 ${listing.sellerName} 到手 ${sellerReceive} 洛克贝（手续费 ${fee}）。`,
     };
   }
 
@@ -2106,7 +2127,7 @@
       hp: 0,
       mp: 0,
       exp: 0,
-      actionPoints: 10,
+      rockbell: 0,
       egg: { granted: true, grantedAt: now, hatched: false, hatchedAt: null },
       pet: null,
       pets: [],
@@ -2122,7 +2143,7 @@
     state.profiles.unshift(profile);
     state.selectedId = profile.id;
     selectedSceneId = "grassland";
-    resultMessage = "角色已创建！获得10点初始行动点和1个宠物蛋，快去孵化吧！";
+    resultMessage = "角色已创建！获得10点初始洛克贝和1个宠物蛋，快去孵化吧！";
     resultIsWarning = false;
     els.createForm.reset();
     saveState("角色已存档");
@@ -2210,7 +2231,7 @@
       render();
       return;
     }
-    // 探索不再消耗行动点：孩子可自由探索，行动点只用于消费（孵化、换宠、咕噜球、计时加速）
+    // 探索不再消耗洛克贝：孩子可自由探索，洛克贝只用于消费（孵化、换宠、咕噜球、计时加速）
     isExploring = true;
     const spotName = spot ? spot.name : "探索";
     const spots = SCENE_SPOTS[scene.id] || [];
@@ -2270,11 +2291,17 @@
         profile.exp += outcome.exp;
       }
 
+      // 洛克贝产出：每打完一场战斗 +1（不分场景、不分胜负）
+      if (encounter) {
+        profile.rockbell = (profile.rockbell || 0) + 1;
+      }
+
       const eggGranted = grantEggIfEligible(profile);
       const earnedExp = encounter && !battleWin
         ? (lostItem ? Math.floor(outcome.exp * 0.5) : (Object.keys(profile.inventory).length > 0 ? Math.floor(outcome.exp * 0.5) : Math.floor(outcome.exp * 0.15)))
         : outcome.exp;
       const parts = [`${scene.name}·${spotName}：经验 +${earnedExp}。`];
+      if (encounter) parts.push("洛克贝 +1。");
       if (eggGranted) parts.push("首次达标，已自动发放【随机初始宠物蛋】。");
 
       // 道具掉落：战败不获得
@@ -2460,10 +2487,10 @@
     const petTemplate = randomItem(PET_POOL);
     const previousPet = profile.pet;
     profile.pet = createStoredPet(petTemplate, new Date().toISOString(), previousPet, 1);
-    profile.actionPoints += COMPENSATION_ACTION_POINTS;
+    profile.rockbell += COMPENSATION_ACTION_POINTS;
     profile.compensationClaimed = true;
     setResult(
-      `补偿已领取：宠物已随机更换为 ${profile.pet.name}（${profile.pet.type}），行动点 +${COMPENSATION_ACTION_POINTS}。`,
+      `补偿已领取：宠物已随机更换为 ${profile.pet.name}（${profile.pet.type}），洛克贝 +${COMPENSATION_ACTION_POINTS}。`,
       false,
     );
     saveState("补偿已存档");
@@ -2636,21 +2663,21 @@
     render();
   }
 
-  // 随机新宠物：消耗 1 行动点，新宠物初始状态，经验归 0，亲密度归零，道具保留
+  // 随机新宠物：消耗 1 洛克贝，新宠物初始状态，经验归 0，亲密度归零，道具保留
   function handleRandomPet() {
     const profile = getActiveProfile();
     if (!profile?.pet) {
       return;
     }
-    if (profile.actionPoints < ACTION_COST) {
-      setResult(`行动点不足，随机新宠物需要 ${ACTION_COST} 行动点。`, true);
+    if (profile.rockbell < ACTION_COST) {
+      setResult(`洛克贝不足，随机新宠物需要 ${ACTION_COST} 洛克贝。`, true);
       render();
       return;
     }
 
     const oldPetName = profile.pet.name;
     const confirmed = window.confirm(
-      `确定消耗 ${ACTION_COST} 行动点重新随机宠物吗？\n\n` +
+      `确定消耗 ${ACTION_COST} 洛克贝重新随机宠物吗？\n\n` +
       `· 新宠物为初始状态（Lv.1，阶段 1）\n` +
       `· 角色经验将归 0（当前 ${profile.exp}）\n` +
       `· 宠物亲密度将归零（当前 Lv.${profile.pet.bond || 0}）\n` +
@@ -2661,8 +2688,8 @@
       return;
     }
 
-    // 扣行动点
-    profile.actionPoints -= ACTION_COST;
+    // 扣洛克贝
+    profile.rockbell -= ACTION_COST;
 
     // 随机新宠物（初始状态）
     const petTemplate = randomItem(PET_POOL);
@@ -2689,7 +2716,7 @@
     // 道具背包保留（inventory 不做任何修改）
 
     // 亲密度改为手动提升，移除自动触发逻辑
-    let randomMsg = `已重新随机宠物：${oldPetName} → ${profile.pet.name}（${profile.pet.style}）。行动点 -${ACTION_COST}，经验归 0，亲密度归零，道具保留。集齐场景道具后可在宠物栏手动提升亲密度。`;
+    let randomMsg = `已重新随机宠物：${oldPetName} → ${profile.pet.name}（${profile.pet.style}）。洛克贝 -${ACTION_COST}，经验归 0，亲密度归零，道具保留。集齐场景道具后可在宠物栏手动提升亲密度。`;
     setResult(randomMsg, false);
     saveState("随机新宠物已存档");
     render();
@@ -2983,7 +3010,7 @@
     els.pulledList.textContent = `已拉入：${names.join("、")}`;
   }
 
-  // 给所有拉入的学生每人加60行动点
+  // 给所有拉入的学生每人加60洛克贝
   function handleAddAllPulledAp() {
     if (pulledProfileIds.length === 0) {
       setTeacherMessage("请先拉入学生再发奖励。", true);
@@ -2993,12 +3020,12 @@
     pulledProfileIds.forEach((id) => {
       const profile = state.profiles.find((p) => p.id === id);
       if (profile) {
-        profile.actionPoints = (profile.actionPoints || 0) + 60;
+        profile.rockbell = (profile.rockbell || 0) + 60;
         count++;
       }
     });
     saveState("全员奖励发放");
-    setTeacherMessage(`已给 ${count} 名学生每人发放60行动点！`, false);
+    setTeacherMessage(`已给 ${count} 名学生每人发放60洛克贝！`, false);
     render();
   }
 
@@ -3010,17 +3037,17 @@
       return;
     }
     if (!Number.isInteger(amount) || amount < 1) {
-      setTeacherMessage("行动点数量必须为正整数。", true);
+      setTeacherMessage("洛克贝数量必须为正整数。", true);
       return;
     }
 
     if (direction > 0) {
-      profile.actionPoints += amount;
-      setTeacherMessage(`${profile.name} 行动点增加 ${amount}。`, false);
+      profile.rockbell += amount;
+      setTeacherMessage(`${profile.name} 洛克贝增加 ${amount}。`, false);
     } else {
-      const deducted = Math.min(profile.actionPoints, amount);
-      profile.actionPoints -= deducted;
-      setTeacherMessage(`${profile.name} 行动点扣除 ${deducted}。`, false);
+      const deducted = Math.min(profile.rockbell, amount);
+      profile.rockbell -= deducted;
+      setTeacherMessage(`${profile.name} 洛克贝扣除 ${deducted}。`, false);
     }
     saveState("后台已存档");
     render();
@@ -3108,7 +3135,7 @@
 
     els.activeName.textContent = profile.name;
     els.activeGender.textContent = genderLabel(profile.gender);
-    els.actionPoints.textContent = String(profile.actionPoints);
+    els.rockbell.textContent = String(profile.rockbell);
     renderDockProfile(profile);
     if (profile.pet) {
       const bondLv = profile.pet.bond || 0;
@@ -3193,7 +3220,7 @@
       const name = document.createElement("strong");
       name.textContent = profile.name;
       const meta = document.createElement("span");
-      meta.textContent = `${genderLabel(profile.gender)} · 行动点 ${profile.actionPoints} · 经验 ${profile.exp}`;
+      meta.textContent = `${genderLabel(profile.gender)} · 洛克贝 ${profile.rockbell} · 经验 ${profile.exp}`;
 
       button.append(name, meta);
 
@@ -3245,7 +3272,7 @@
     visibleProfiles.forEach((profile) => {
       const option = document.createElement("option");
       option.value = profile.id;
-      option.textContent = `${profile.name}（行动点 ${profile.actionPoints}）`;
+      option.textContent = `${profile.name}（洛克贝 ${profile.rockbell}）`;
       els.teacherSelect.appendChild(option);
     });
     els.teacherSelect.value =
@@ -3692,7 +3719,7 @@
     }
     const hint = document.createElement("p");
     hint.className = "shop-hint";
-    hint.textContent = "统一定价，卖出后系统收取 10% 手续费。点击道具即可上架。";
+    hint.textContent = "统一定价，成交后系统向卖家收取 1/5 手续费（向上取整）。点击道具即可上架。";
     els.shopContent.appendChild(hint);
 
     const grid = document.createElement("div");
@@ -3720,7 +3747,7 @@
 
       const priceEl = document.createElement("div");
       priceEl.className = "shop-item-price";
-      priceEl.textContent = `售价 ${price} 经验`;
+      priceEl.textContent = `售价 ${price} 洛克贝`;
 
       const listTag = document.createElement("span");
       listTag.className = "shop-list-tag";
@@ -3758,7 +3785,7 @@
       name.textContent = listing.itemName;
       const time = document.createElement("span");
       time.className = "shop-seller";
-      time.textContent = `售价 ${listing.price} 经验`;
+      time.textContent = `售价 ${listing.price} 洛克贝`;
       info.append(name, time);
 
       const cancelBtn = document.createElement("button");
@@ -3827,7 +3854,7 @@
         compensationButton.type = "button";
         compensationButton.className = "secondary-button compensation-button";
         compensationButton.innerHTML =
-          '<span class="button-icon" aria-hidden="true">↻</span>领取补偿：随机宠物 +2行动点';
+          '<span class="button-icon" aria-hidden="true">↻</span>领取补偿：随机宠物 +2洛克贝';
         buttons.push(compensationButton);
       }
 
@@ -4702,7 +4729,7 @@
       ["密码", profile.pass || "—"],
       ["称号", roleTitleOf(profile)],
       ["等级", "Lv." + (profile.level || 1)],
-      ["行动点", String(profile.actionPoints ?? 0)],
+      ["洛克贝", String(profile.rockbell ?? 0)],
       ["宠物数", petCountOf(profile) + " 只"],
       ["战斗力", powerEl ? powerEl.textContent : "—"],
     ];
@@ -4725,6 +4752,35 @@
     const wrap = document.createElement("div");
     wrap.className = "role-items-wrap";
     const inv = profile.inventory || {};
+
+    // 第一组：咕噜球（从商店买的捕捉球都放在这里）
+    const ballSection = document.createElement("div");
+    ballSection.className = "role-item-section";
+    const ballHead = document.createElement("h4");
+    const ballOwned = BALL_TYPES.filter((b) => Number(profile.balls?.[b.id]) > 0).length;
+    ballHead.textContent = "咕噜球　" + ballOwned + "/" + BALL_TYPES.length;
+    ballSection.appendChild(ballHead);
+    const ballGrid = document.createElement("div");
+    ballGrid.className = "role-item-grid";
+    BALL_TYPES.forEach((ball) => {
+      const count = Number(profile.balls?.[ball.id]) || 0;
+      const cell = document.createElement("div");
+      cell.className = "role-item-cell" + (count > 0 ? " owned" : " locked");
+      const icon = document.createElement("span");
+      icon.className = "role-item-icon";
+      icon.textContent = count > 0 ? "⚪" : "·";
+      const name = document.createElement("span");
+      name.className = "role-item-name";
+      name.textContent = ball.name;
+      const num = document.createElement("span");
+      num.className = "role-item-count";
+      num.textContent = count > 0 ? "×" + count : "未获得";
+      cell.append(icon, name, num);
+      ballGrid.appendChild(cell);
+    });
+    ballSection.appendChild(ballGrid);
+    wrap.appendChild(ballSection);
+
     SCENES.forEach((scene) => {
       const items = SCENE_ITEMS[scene.id] || [];
       if (!items.length) return;
@@ -5122,7 +5178,7 @@
         const refreshBtn = document.createElement("button");
         refreshBtn.className = "btn-switch pet-act-btn";
         refreshBtn.textContent = "🔄 刷新";
-        refreshBtn.title = "刷新：消耗1行动点随机更换宠物";
+        refreshBtn.title = "刷新：消耗1洛克贝随机更换宠物";
         refreshBtn.dataset.action = "refresh";
         refreshBtn.dataset.index = index;
         btnRow.appendChild(refreshBtn);
@@ -5250,11 +5306,11 @@
         render();
       }
     } else if (action === "refresh") {
-      if (profile.actionPoints < 1) {
-        showResult("行动点不足！", true);
+      if (profile.rockbell < 1) {
+        showResult("洛克贝不足！", true);
         return;
       }
-      profile.actionPoints -= 1;
+      profile.rockbell -= 1;
       const newPet = createRandomPet();
       profile.pets[0] = newPet;
       profile.activePetIndex = 0;
@@ -5501,7 +5557,7 @@
     updateTimerButtons();
   }
 
-  // 加时间：扣20行动点，加30秒，只有未启动时才能加
+  // 加时间：扣20洛克贝，加30秒，只有未启动时才能加
   function addTimerTime() {
     if (timerStarted) {
       showToast("⏱ 计时器已启动", "请先重置后再加时间", "warning");
@@ -5509,11 +5565,11 @@
     }
     const profile = getActiveProfile();
     if (!profile) return;
-    if (profile.actionPoints < 20) {
-      showToast("❌ 行动点不足", "加30秒需要20个行动点", "warning");
+    if (profile.rockbell < 20) {
+      showToast("❌ 洛克贝不足", "加30秒需要20个洛克贝", "warning");
       return;
     }
-    profile.actionPoints -= 20;
+    profile.rockbell -= 20;
     timerSeconds += 30;
     saveState("加时成功");
     updateTimerDisplay();
@@ -5663,8 +5719,8 @@
       const profile = sourceProfiles.find(pr => pr.id === p.id) ||
         sourceProfiles.find(pr => pr.name === p.name);
       if (profile) {
-        profile.actionPoints = (profile.actionPoints || 0) + reward;
-        rewardMsg.push(`${p.name}: +${reward}行动点`);
+        profile.rockbell = (profile.rockbell || 0) + reward;
+        rewardMsg.push(`${p.name}: +${reward}洛克贝`);
         changed.push(profile);
       }
     });
@@ -5684,7 +5740,7 @@
     changed.forEach((profile) => {
       const local = state.profiles.find(pr => pr.name === profile.name);
       if (local) {
-        local.actionPoints = profile.actionPoints;
+        local.rockbell = profile.rockbell;
       }
     });
 
@@ -5752,14 +5808,15 @@
   // ============================================
   // 咕噜球商店
   // ============================================
-  function renderBallShop(profile) {
-    if (!els.shopContent) return;
-    els.shopContent.replaceChildren();
+  function renderBallShop(profile, container) {
+    const box = container || els.shopContent;
+    if (!box) return;
+    box.replaceChildren();
 
     const header = document.createElement("div");
     header.className = "shop-header";
-    header.innerHTML = `<h3>咕噜球商店</h3><p>用行动点购买咕噜球，用于捕捉野生宠物</p><p>当前行动点: <strong>${profile.actionPoints}</strong></p>`;
-    els.shopContent.appendChild(header);
+    header.innerHTML = `<h3>咕噜球</h3><p>用洛克贝购买咕噜球，用于捕捉野生宠物</p><p>当前洛克贝: <strong>${profile.rockbell}</strong></p>`;
+    box.appendChild(header);
 
     const grid = document.createElement("div");
     grid.className = "ball-shop-grid";
@@ -5788,30 +5845,86 @@
 
       const buyBtn = document.createElement("button");
       buyBtn.className = "ball-shop-buy";
-      buyBtn.textContent = `购买 (${ball.price}行动点)`;
+      buyBtn.textContent = `购买 (${ball.price}洛克贝)`;
       buyBtn.dataset.ballId = ball.id;
-      buyBtn.disabled = profile.actionPoints < ball.price;
+      buyBtn.disabled = profile.rockbell < ball.price;
 
       card.append(icon, name, desc, owned, buyBtn);
       grid.appendChild(card);
     });
 
-    els.shopContent.appendChild(grid);
+    box.appendChild(grid);
+  }
+
+  // ============================================
+  // 商店弹窗：咕噜球 / 时装
+  // ============================================
+  function renderStore(tab) {
+    currentStoreTab = tab === "fashion" ? "fashion" : "balls";
+    const tabBalls = document.getElementById("storeTabBalls");
+    const tabFashion = document.getElementById("storeTabFashion");
+    if (tabBalls) tabBalls.classList.toggle("active", currentStoreTab === "balls");
+    if (tabFashion) tabFashion.classList.toggle("active", currentStoreTab === "fashion");
+
+    const body = document.getElementById("storeModalBody");
+    if (!body) return;
+    body.replaceChildren();
+    const profile = getActiveProfile();
+    if (!profile) return;
+    if (currentStoreTab === "fashion") {
+      renderFashionStore(profile, body);
+    } else {
+      renderBallShop(profile, body);
+    }
+  }
+
+  // 时装商店（暂时只放展示位，暂不开放购买）
+  function renderFashionStore(profile, container) {
+    if (!container) return;
+    const header = document.createElement("div");
+    header.className = "shop-header";
+    header.innerHTML = `<h3>时装</h3><p>当前洛克贝: <strong>${profile.rockbell}</strong></p>`;
+    container.appendChild(header);
+
+    const grid = document.createElement("div");
+    grid.className = "fashion-shop-grid";
+    const placeholder = ["草帽", "围巾", "披风", "眼镜"];
+    placeholder.forEach((name) => {
+      const card = document.createElement("div");
+      card.className = "fashion-shop-card is-locked";
+      const icon = document.createElement("div");
+      icon.className = "fashion-shop-icon";
+      icon.textContent = "👕";
+      const label = document.createElement("div");
+      label.className = "fashion-shop-name";
+      label.textContent = name;
+      const tag = document.createElement("div");
+      tag.className = "fashion-shop-tag";
+      tag.textContent = "暂未开放";
+      card.append(icon, label, tag);
+      grid.appendChild(card);
+    });
+    container.appendChild(grid);
+
+    const note = document.createElement("p");
+    note.className = "shop-note";
+    note.textContent = "时装系统正在筹备，上线后可以直接用洛克贝购买和穿戴。";
+    container.appendChild(note);
   }
 
   function buyBall(ballId) {
     const profile = getActiveProfile();
     const ball = BALL_TYPES.find(b => b.id === ballId);
     if (!profile || !ball) return;
-    if (profile.actionPoints < ball.price) {
-      showResult("行动点不足！", true);
+    if (profile.rockbell < ball.price) {
+      showResult("洛克贝不足！", true);
       return;
     }
-    profile.actionPoints -= ball.price;
+    profile.rockbell -= ball.price;
     if (!profile.balls) profile.balls = {};
     profile.balls[ballId] = (profile.balls[ballId] || 0) + 1;
     saveState("购买成功");
-    renderShop("balls");
+    renderStore("balls");
   }
 
   // ============================================
@@ -5836,23 +5949,19 @@
     }
   }
 
-  // 重写renderShop支持咕噜球标签
+  // 重写renderShop：市场只保留 逛市场 / 我要卖 / 我的上架 三页签，咕噜球已迁到独立商店
   const _originalRenderShop = renderShop;
   renderShop = async function(tab) {
-    currentShopTab = tab;
-    if (els.shopTabMarket) els.shopTabMarket.classList.toggle("active", tab === "market");
-    if (els.shopTabSell) els.shopTabSell.classList.toggle("active", tab === "sell");
-    if (els.shopTabMine) els.shopTabMine.classList.toggle("active", tab === "mine");
-    if (els.shopTabBalls) els.shopTabBalls.classList.toggle("active", tab === "balls");
+    const nextTab = tab === "balls" ? "market" : tab;
+    currentShopTab = nextTab;
+    if (els.shopTabMarket) els.shopTabMarket.classList.toggle("active", nextTab === "market");
+    if (els.shopTabSell) els.shopTabSell.classList.toggle("active", nextTab === "sell");
+    if (els.shopTabMine) els.shopTabMine.classList.toggle("active", nextTab === "mine");
 
     const profile = getActiveProfile();
     if (!profile) return;
 
-    if (tab === "balls") {
-      renderBallShop(profile);
-    } else {
-      await _originalRenderShop(tab);
-    }
+    await _originalRenderShop(nextTab);
   };
 
   // 重写handleShopAction支持购买咕噜球
@@ -6007,7 +6116,7 @@
     if (context.encounterWild && !hasAnyBall(profile)) {
       showToast(
         "⚾ 没有咕噜球！",
-        "遇到野生宠物了，但你没有咕噜球。可以在捕捉窗口临时购买（贵5行动点），或去商店购买。",
+        "遇到野生宠物了，但你没有咕噜球。可以在捕捉窗口临时购买（贵5洛克贝），或去商店购买。",
         "warning",
         5000
       );
@@ -6062,15 +6171,15 @@
     if (!hasAnyBall(profile)) {
       const hint = document.createElement("div");
       hint.className = "temp-buy-hint";
-      hint.textContent = "你没有咕噜球！可以临时购买（比商店贵5行动点）";
+      hint.textContent = "你没有咕噜球！可以临时购买（比商店贵5洛克贝）";
 
       const tempBtn = document.createElement("button");
       tempBtn.className = "temp-buy-ball";
-      tempBtn.textContent = `临时购买普通咕噜球（${BALL_TYPES[0].price + 5}行动点）`;
-      tempBtn.disabled = profile.actionPoints < BALL_TYPES[0].price + 5;
+      tempBtn.textContent = `临时购买普通咕噜球（${BALL_TYPES[0].price + 5}洛克贝）`;
+      tempBtn.disabled = profile.rockbell < BALL_TYPES[0].price + 5;
       tempBtn.addEventListener("click", () => {
-        if (profile.actionPoints < BALL_TYPES[0].price + 5) return;
-        profile.actionPoints -= (BALL_TYPES[0].price + 5);
+        if (profile.rockbell < BALL_TYPES[0].price + 5) return;
+        profile.rockbell -= (BALL_TYPES[0].price + 5);
         if (!profile.balls) profile.balls = {};
         profile.balls[BALL_TYPES[0].id] = (profile.balls[BALL_TYPES[0].id] || 0) + 1;
         saveState("临时购买成功");
