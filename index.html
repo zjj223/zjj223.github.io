@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>卡罗西亚大陆</title>
-    <link rel="stylesheet" href="./styles.css?v=20261115z4" />
+    <link rel="stylesheet" href="./styles.css?v=20261115z5" />
   </head>
   <body>
     <!-- 老师登录界面 -->
@@ -351,7 +351,16 @@
           </form>
 
           <div id="teacherControls" class="teacher-controls" hidden>
-            <label class="field">
+            <div class="teacher-roster-head">
+              <h3>全班学生</h3>
+              <input id="teacherRosterSearch" type="text" placeholder="搜索名字" autocomplete="off" />
+            </div>
+            <div id="teacherRoster" class="teacher-roster"></div>
+            <div id="teacherDetail" class="teacher-detail">
+              <p class="teacher-detail-empty">点上面的名字，查看这个孩子的存档，并增减道具</p>
+            </div>
+
+            <label class="field teacher-select-hidden">
               <span>学生角色</span>
               <select id="teacherSelect"></select>
             </label>
@@ -663,8 +672,8 @@
       </div>
     </div>
 
-    <script src="./data/petConfig.js?v=20261115z4"></script>
-    <script src="./app.js?v=20261115z4"></script>
+    <script src="./data/petConfig.js?v=20261115z5"></script>
+    <script src="./app.js?v=20261115z5"></script>
 
   <!-- 新手引导系统 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
