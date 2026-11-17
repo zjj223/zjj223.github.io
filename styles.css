@@ -6620,3 +6620,210 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+/* ---------------- V13 三栏细节修正 ---------------- */
+/* 旧规则给选中卡片挂了紫色外发光（#667eea 系），用 !important 换成金色 */
+#petColList .pet-team-item.active {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 2px rgba(242, 178, 62, 0.4), 0 3px 0 #d8c8ab !important;
+  background: #fffdf3 !important;
+}
+
+/* 中栏"下一阶段"提示框：由浅绿改米黄，与整体暖色统一 */
+.pet-col-detail .pet-evolve-line,
+.pet-col-detail .evolve-hint {
+  border: 1px solid #e2c88f;
+  border-radius: var(--r-sm);
+  background: #fff7e0;
+  color: #6b5230;
+}
+
+/* 宠物大图相框 */
+.pet-col-detail .hatch-visual {
+  border: 2px solid #e2c88f;
+  border-radius: var(--r-md);
+  background: radial-gradient(circle at 50% 45%, #fffdf3 0%, #fdf2d8 70%);
+  box-shadow: 0 3px 0 #e2c88f;
+}
+
+/* ---------------- V14 场景顶条重排（两行） ---------------- */
+/* 原顶条把「返回 + 场景名 + 道具栏」挤在一行，道具栏被压成竖条、文字重叠。
+   改为：第一行「返回大世界 + 场景名」，第二行整行留给道具。 */
+#sceneView .scene-topbar {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 6px 12px !important;
+  padding: 8px 14px !important;
+  border-radius: var(--r-md) !important;
+  border: var(--stroke) !important;
+  background: linear-gradient(180deg, #fff8e6, #fdf1d8) !important;
+  box-shadow: var(--shadow-hard) !important;
+  row-gap: 8px !important;
+}
+
+#sceneView .scene-topbar .back-button {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+
+#sceneView #sceneInnerTitle {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+}
+
+/* 道具栏独占一行，内部横向排列，禁止挤压 */
+#sceneView #sceneInventory {
+  flex: 1 0 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  overflow: hidden !important;
+}
+
+#sceneView #sceneInventory > div {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  flex-wrap: nowrap !important;
+}
+
+#sceneView #sceneInventory .inventory-item-grid {
+  display: flex !important;
+  gap: 6px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-end !important;
+  overflow: hidden !important;
+}
+
+#sceneView #sceneInventory .inventory-item {
+  flex: 0 1 76px !important;
+  min-width: 52px !important;
+  max-width: 76px !important;
+  text-align: center !important;
+  padding: 4px 5px !important;
+  border-radius: var(--r-sm) !important;
+  border: 1.5px solid #dcc9a4 !important;
+  background: #fffdf5 !important;
+  box-sizing: border-box !important;
+}
+
+#sceneView #sceneInventory .inventory-item.locked {
+  opacity: 0.55 !important;
+}
+
+#sceneView #sceneInventory .inventory-item-name {
+  display: block !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  color: #6b5230 !important;
+}
+
+#sceneView #sceneInventory .inventory-item-icon {
+  width: 22px !important;
+  height: 22px !important;
+  margin: 0 auto 2px !important;
+  line-height: 22px !important;
+  font-size: 16px !important;
+}
+
+/* 道具标题不换行、不被压 */
+#sceneView #sceneInventory h4,
+#sceneView #sceneInventory h5,
+#sceneView #sceneInventory .inventory-heading {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: #8a7452 !important;
+}
+
+/* ---------------- V15 场景容器铺满 + 提示条归位 ---------------- */
+/* 顶条只有 573px，两侧露出深绿底：panel 是内容宽，露出的背景是 game-area 旧深绿 */
+#sceneView {
+  background: transparent !important;
+}
+
+#sceneView .scene-inner-panel {
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+}
+
+#sceneView .scene-topbar {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 8px 0 0 !important;
+}
+
+/* 让场景舞台整块铺满，去掉左右深绿边 */
+#sceneView .scene-atmosphere {
+  width: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* 提示条（"角色已创建…"之类）原来压在道具栏上，挪到画面底部居中 */
+#sceneView #sceneResult {
+  position: absolute !important;
+  top: auto !important;
+  bottom: 86px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: min(620px, 84%) !important;
+  margin: 0 !important;
+  z-index: 8 !important;
+  border: 2px solid #dcc9a4 !important;
+  border-radius: var(--r-md) !important;
+  background: rgba(253, 246, 227, 0.96) !important;
+  box-shadow: 0 4px 0 #cdbb9c !important;
+  color: #4a3b28 !important;
+  font-size: 13px !important;
+}
+
+/* ---------------- V16 全局提示条避让 + 道具名不换行 ---------------- */
+/* .global-result 固定定位于 top:60，在大世界顶部居中没毛病，
+   但进了场景视图会正好压住顶条第二行的道具栏 —— 用 :has() 只在场景视图里挪到底部。 */
+.game-main:has(#sceneView:not([hidden])) .global-result,
+.game-main:has(#sceneView:not([hidden])) #resultMessage {
+  top: auto !important;
+  bottom: 132px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 30 !important;
+  max-width: min(620px, 84%) !important;
+}
+
+/* 道具名不再竖排 */
+#sceneView #sceneInventory .inventory-item-name {
+  width: 100% !important;
+  max-width: 100% !important;
+  writing-mode: horizontal-tb !important;
+  letter-spacing: 0 !important;
+}
+
+#sceneView #sceneInventory .inventory-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+}
