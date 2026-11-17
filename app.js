@@ -1593,6 +1593,13 @@
     els.resetGuide?.addEventListener("click", handleResetGuide);
     setupRoleModal();
     setupPetTabs();
+
+    // 场景道具抽屉：点顶栏胶囊开合
+    const bagBtn = document.getElementById("sceneBagBtn");
+    bagBtn?.addEventListener("click", () => {
+      const inv = document.getElementById("sceneInventory");
+      if (inv) inv.classList.toggle("open");
+    });
   }
 
   function loadState() {
@@ -3486,8 +3493,16 @@
     // 场景道具收集情况（显示在场景下面）
     if (els.sceneInventory) {
       els.sceneInventory.replaceChildren();
+      els.sceneInventory.classList.remove("open");
       const items = SCENE_ITEMS[scene.id] || [];
       const collected = items.filter((item) => (profile.inventory[item.id] || 0) >= 1).length;
+
+      // 顶栏道具胶囊的计数（抽屉收起时唯一的入口）
+      const bagBtnEl = document.getElementById("sceneBagBtn");
+      if (bagBtnEl) {
+        bagBtnEl.textContent = `🎒 道具 ${collected}/${items.length}`;
+      }
+
       const bondDone = profile.pet && Array.isArray(profile.pet.bondScenes) && profile.pet.bondScenes.includes(scene.id);
 
       const invPanel = document.createElement("div");
@@ -4820,13 +4835,21 @@
         body.querySelectorAll("[data-pet-tab]").forEach((other) => {
           other.classList.toggle("active", other === btn);
         });
-        const infoView = document.getElementById("petInfoView");
-        const itemsView = document.getElementById("petItemsView");
-        if (infoView) infoView.hidden = petModalTab !== "info";
-        if (itemsView) itemsView.hidden = petModalTab !== "items";
+        applyPetTab();
         if (petModalTab === "items") renderPetItemsView();
       });
     });
+    applyPetTab();
+  }
+
+  // 页签只切换右栏内容：属性面板 / 宠物道具。中栏大图始终在
+  function applyPetTab() {
+    const ability = document.getElementById("petColAbility");
+    const itemsView = document.getElementById("petItemsView");
+    if (!ability) return;
+    const mode = petModalTab === "items" ? "items" : "info";
+    ability.dataset.mode = mode;
+    if (itemsView) itemsView.hidden = mode !== "items";
   }
 
   function setupRoleModal() {
@@ -5000,10 +5023,16 @@
     els.petTeamList.replaceChildren();
 
     if (!profile.pets || profile.pets.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "pet-team-empty";
-      empty.textContent = "暂无宠物，先孵化或捕捉一只吧！";
-      els.petTeamList.appendChild(empty);
+      for (let slot = 0; slot < MAX_PETS; slot += 1) {
+        const emptyCard = document.createElement("div");
+        emptyCard.className = "pet-team-item is-empty";
+        emptyCard.title = `空位（宠物栏上限 ${MAX_PETS} 只）`;
+        const emptyLabel = document.createElement("div");
+        emptyLabel.className = "pet-team-empty-label";
+        emptyLabel.textContent = "空位";
+        emptyCard.appendChild(emptyLabel);
+        els.petTeamList.appendChild(emptyCard);
+      }
       return;
     }
 
@@ -5110,6 +5139,19 @@
       actions.append(btnRow, btnRow2);
       actionBar.appendChild(actions);
     });
+
+    // 补足 6 个槽位：没宠物的位置显示空槽，让"最多 6 只"的容量一眼可见
+    const emptySlots = MAX_PETS - profile.pets.length;
+    for (let slot = 0; slot < emptySlots; slot += 1) {
+      const emptyCard = document.createElement("div");
+      emptyCard.className = "pet-team-item is-empty";
+      emptyCard.title = `空位（宠物栏上限 ${MAX_PETS} 只）`;
+      const emptyLabel = document.createElement("div");
+      emptyLabel.className = "pet-team-empty-label";
+      emptyLabel.textContent = "空位";
+      emptyCard.appendChild(emptyLabel);
+      els.petTeamList.appendChild(emptyCard);
+    }
   }
 
   // 查找可以提升亲密度的场景
