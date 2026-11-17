@@ -1591,6 +1591,8 @@
     // 老师后台新事件
     els.publishRankReward?.addEventListener("click", publishRankReward);
     els.resetGuide?.addEventListener("click", handleResetGuide);
+    setupRoleModal();
+    setupPetTabs();
   }
 
   function loadState() {
@@ -4616,6 +4618,239 @@
 
   function getActiveProfile() {
     return state.profiles.find((profile) => profile.id === state.selectedId) || null;
+  }
+
+  // ===== 角色弹窗：左立绘 + 右页签（信息 / 道具 / 衣服） =====
+  let roleModalTab = "info";
+
+  function roleTitleOf(profile) {
+    const inv = (profile && profile.inventory) || {};
+    const owned = Object.keys(inv).filter((key) => Number(inv[key]) > 0).length;
+    if (owned >= 20) return "道具收集家";
+    if (owned >= 10) return "草原探索者";
+    if (owned >= 3) return "初出茅庐";
+    return "新手上路";
+  }
+
+  function petCountOf(profile) {
+    if (!profile) return 0;
+    if (Array.isArray(profile.pets) && profile.pets.length) return profile.pets.length;
+    return profile.pet ? 1 : 0;
+  }
+
+  function buildRoleInfo(profile) {
+    const wrap = document.createElement("div");
+    wrap.className = "role-info-grid";
+    const powerEl = document.getElementById("powerValue");
+    const rows = [
+      ["姓名", profile.name || "—"],
+      ["账号", profile.name || "—"],
+      ["密码", profile.pass || "—"],
+      ["称号", roleTitleOf(profile)],
+      ["等级", "Lv." + (profile.level || 1)],
+      ["行动点", String(profile.actionPoints ?? 0)],
+      ["宠物数", petCountOf(profile) + " 只"],
+      ["战斗力", powerEl ? powerEl.textContent : "—"],
+    ];
+    rows.forEach((row) => {
+      const cell = document.createElement("div");
+      cell.className = "role-info-item";
+      const key = document.createElement("span");
+      key.className = "role-info-key";
+      key.textContent = row[0];
+      const value = document.createElement("strong");
+      value.className = "role-info-value";
+      value.textContent = row[1];
+      cell.append(key, value);
+      wrap.appendChild(cell);
+    });
+    return wrap;
+  }
+
+  function buildRoleItems(profile) {
+    const wrap = document.createElement("div");
+    wrap.className = "role-items-wrap";
+    const inv = profile.inventory || {};
+    SCENES.forEach((scene) => {
+      const items = SCENE_ITEMS[scene.id] || [];
+      if (!items.length) return;
+      const owned = items.filter((item) => Number(inv[item.id]) > 0).length;
+      const section = document.createElement("div");
+      section.className = "role-item-section";
+      const head = document.createElement("h4");
+      head.textContent = scene.name + "　" + owned + "/" + items.length;
+      section.appendChild(head);
+      const grid = document.createElement("div");
+      grid.className = "role-item-grid";
+      items.forEach((item) => {
+        const count = Number(inv[item.id]) || 0;
+        const cell = document.createElement("div");
+        cell.className = "role-item-cell" + (count > 0 ? " owned" : " locked");
+        const icon = document.createElement("span");
+        icon.className = "role-item-icon";
+        icon.innerHTML = count > 0 ? item.icon || "❔" : "·";
+        const name = document.createElement("span");
+        name.className = "role-item-name";
+        name.textContent = item.name;
+        const num = document.createElement("span");
+        num.className = "role-item-count";
+        num.textContent = count > 0 ? "×" + count : "未获得";
+        cell.append(icon, name, num);
+        grid.appendChild(cell);
+      });
+      section.appendChild(grid);
+      wrap.appendChild(section);
+    });
+    if (!wrap.children.length) {
+      const empty = document.createElement("p");
+      empty.className = "role-empty";
+      empty.textContent = "还没有可收集的道具。";
+      wrap.appendChild(empty);
+    }
+    return wrap;
+  }
+
+  function buildRoleClothes() {
+    const wrap = document.createElement("div");
+    wrap.className = "role-clothes";
+    const box = document.createElement("div");
+    box.className = "role-clothes-box";
+    box.innerHTML =
+      '<span class="role-clothes-emoji">👕</span>' +
+      '<p class="role-clothes-title">衣柜还没开张</p>' +
+      '<p class="role-clothes-sub">换装功能后续开放，先把各场景的道具收集齐吧。</p>';
+    wrap.appendChild(box);
+    return wrap;
+  }
+
+  function renderRoleModal() {
+    const profile = getActiveProfile();
+    const area = document.getElementById("rolePanelArea");
+    const img = document.getElementById("rolePortraitImg");
+    const nameEl = document.getElementById("rolePortraitName");
+    if (!area) return;
+    if (!profile) {
+      area.replaceChildren();
+      const empty = document.createElement("p");
+      empty.className = "role-empty";
+      empty.textContent = "还没有角色，先新建一个吧。";
+      area.appendChild(empty);
+      return;
+    }
+    if (img) {
+      img.src =
+        profile.gender === "female"
+          ? "./assets/boxworld/trainer-girl-sprite.png"
+          : "./assets/boxworld/trainer-boy-sprite.png";
+      img.alt = profile.name || "训练师";
+    }
+    if (nameEl) nameEl.textContent = profile.name || "训练师";
+    area.replaceChildren();
+    if (roleModalTab === "items") {
+      area.appendChild(buildRoleItems(profile));
+    } else if (roleModalTab === "clothes") {
+      area.appendChild(buildRoleClothes());
+    } else {
+      area.appendChild(buildRoleInfo(profile));
+    }
+  }
+
+  // ===== 宠物弹窗页签：宠物信息 / 宠物道具 =====
+  let petModalTab = "info";
+
+  function makePetCard(title, bodyText) {
+    const card = document.createElement("div");
+    card.className = "pet-item-card";
+    const head = document.createElement("h4");
+    head.textContent = title;
+    const body = document.createElement("p");
+    body.textContent = bodyText;
+    card.append(head, body);
+    return card;
+  }
+
+  function renderPetItemsView() {
+    const box = document.getElementById("petItemsView");
+    if (!box) return;
+    box.replaceChildren();
+    const profile = getActiveProfile();
+    if (!profile || !profile.pet) {
+      const empty = document.createElement("p");
+      empty.className = "role-empty";
+      empty.textContent = "还没有宠物，先去孵一个蛋吧。";
+      box.appendChild(empty);
+      return;
+    }
+    const pet = profile.pet;
+    const bondScenes = Array.isArray(pet.bondScenes) ? pet.bondScenes : [];
+    const sceneNames = bondScenes.map((id) => {
+      const scene = getScene(id);
+      return scene ? scene.name : id;
+    });
+    let evoText = "已到最终形态";
+    try {
+      const match = findPetMatch(pet);
+      const stages = (match && match.template && match.template.stages) || [];
+      const index = match && typeof match.stageIndex === "number" ? match.stageIndex : 0;
+      const next = stages[index + 1];
+      if (next) {
+        evoText = "下一阶段：" + (next.name || "进化形态") + "，到达对应等级后自动进化";
+      }
+    } catch (err) {
+      evoText = "—";
+    }
+    box.append(
+      makePetCard("🐾 " + (pet.name || "宠物"), "当前等级 Lv." + (pet.level || 1) + "，详细属性看「宠物信息」页"),
+      makePetCard(
+        "💕 亲密度提升记录（" + bondScenes.length + " 个场景）",
+        sceneNames.length ? sceneNames.join("、") : "还没有在任何场景提升过亲密度"
+      ),
+      makePetCard("✨ 进化", evoText),
+      makePetCard("🎒 宠物道具", "宠物专属道具还没上线，后续会支持进化材料与亲密道具")
+    );
+  }
+
+  function setupPetTabs() {
+    const body = document.getElementById("petModalBody");
+    if (!body || body.dataset.tabsBound === "1") return;
+    body.dataset.tabsBound = "1";
+    body.querySelectorAll("[data-pet-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        petModalTab = btn.dataset.petTab || "info";
+        body.querySelectorAll("[data-pet-tab]").forEach((other) => {
+          other.classList.toggle("active", other === btn);
+        });
+        const infoView = document.getElementById("petInfoView");
+        const itemsView = document.getElementById("petItemsView");
+        if (infoView) infoView.hidden = petModalTab !== "info";
+        if (itemsView) itemsView.hidden = petModalTab !== "items";
+        if (petModalTab === "items") renderPetItemsView();
+      });
+    });
+  }
+
+  function setupRoleModal() {
+    const modal = document.getElementById("roleModal");
+    if (!modal || modal.dataset.bound === "1") return;
+    modal.dataset.bound = "1";
+    const close = document.getElementById("roleModalClose");
+    if (close) close.addEventListener("click", () => { modal.hidden = true; });
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) modal.hidden = true;
+    });
+    modal.querySelectorAll("[data-role-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        roleModalTab = btn.dataset.roleTab || "info";
+        modal.querySelectorAll("[data-role-tab]").forEach((other) => {
+          other.classList.toggle("active", other === btn);
+        });
+        renderRoleModal();
+      });
+    });
+    document.getElementById("dockRole")?.addEventListener("click", () => {
+      modal.hidden = false;
+      renderRoleModal();
+    });
   }
 
   function getScene(id) {
