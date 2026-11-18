@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>卡罗西亚大陆</title>
-    <link rel="stylesheet" href="./styles.css?v=20261115z8" />
+    <link rel="stylesheet" href="./styles.css?v=20261115z9" />
   </head>
   <body>
     <!-- 老师登录界面 -->
@@ -672,28 +672,46 @@
       </div>
     </div>
 
-    <script src="./data/petConfig.js?v=20261115z8"></script>
-    <script src="./app.js?v=20261115z8"></script>
+    <script src="./data/petConfig.js?v=20261115z9"></script>
+    <script src="./app.js?v=20261115z9"></script>
 
-  <!-- 新手引导系统 -->
+  <!-- 新手引导：手指引导 + 功能卡 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
-    <div class="guide-mask"></div>
-    <div class="guide-modal">
-      <div class="guide-header">
+    <div class="guide-block" data-gb="top"></div>
+    <div class="guide-block" data-gb="bottom"></div>
+    <div class="guide-block" data-gb="left"></div>
+    <div class="guide-block" data-gb="right"></div>
+    <div class="guide-ring" id="guideRing" hidden></div>
+
+    <div class="guide-tip" id="guideTip" hidden>
+      <div class="guide-tip-head">
         <span class="guide-step" id="guideStep">1 / 7</span>
-        <button id="guideSkip" class="guide-skip" type="button">跳过引导</button>
+        <button id="guideSkip" class="guide-skip" type="button">跳过</button>
       </div>
-      <div class="guide-content">
-        <h2 class="guide-title" id="guideTitle">欢迎来到卡罗西亚大陆！</h2>
-        <p class="guide-desc" id="guideDesc"></p>
-        <div class="guide-highlight" id="guideHighlight"></div>
-      </div>
-      <div class="guide-footer">
-        <button id="guidePrev" class="guide-btn secondary" type="button">上一步</button>
+      <h3 class="guide-tip-title" id="guideTitle"></h3>
+      <p class="guide-tip-desc" id="guideDesc"></p>
+      <div class="guide-tip-actions">
         <button id="guideNext" class="guide-btn primary" type="button">下一步</button>
       </div>
     </div>
+
+    <div class="guide-cards-wrap" id="guideCards" hidden>
+      <div class="guide-cards-head">
+        <span>认识一下这些功能</span>
+        <button id="guideCardsSkip" class="guide-skip" type="button">跳过</button>
+      </div>
+      <div class="guide-cards" id="guideCardList"></div>
+      <div class="guide-cards-foot">
+        <span id="guideCardIndex">1 / 5</span>
+        <div class="guide-cards-btns">
+          <button id="guideCardPrev" class="guide-btn secondary" type="button">上一张</button>
+          <button id="guideCardNext" class="guide-btn primary" type="button">下一张</button>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <button id="guideHelpBtn" class="guide-help-btn" type="button" aria-label="查看玩法说明" hidden>?</button>
   
   <!-- 智能提示容器 -->
   <div id="toastContainer" class="toast-container"></div>
