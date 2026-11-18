@@ -1648,10 +1648,18 @@
     });
     // 排行榜视图切换
     els.navRank?.addEventListener("click", () => switchView("rank"));
-    // 引导系统事件
-    els.guidePrev?.addEventListener("click", prevGuideStep);
-    els.guideNext?.addEventListener("click", nextGuideStep);
-    els.guideSkip?.addEventListener("click", skipGuide);
+    // 引导系统事件（新版：手指引导 + 功能卡）
+    els.guideSkip?.addEventListener("click", skipGuideV2);
+    els.guideNext?.addEventListener("click", () => handleGuideNextClick());
+    const guideCardsSkipBtn = document.getElementById("guideCardsSkip");
+    guideCardsSkipBtn?.addEventListener("click", skipGuideV2);
+    document.getElementById("guideCardPrev")?.addEventListener("click", () => changeGuideCard(-1));
+    document.getElementById("guideCardNext")?.addEventListener("click", () => changeGuideCard(1));
+    document.getElementById("guideHelpBtn")?.addEventListener("click", () => {
+      const profile = getActiveProfile();
+      if (!profile) return;
+      openGuideV2(1, 0, true);
+    });
     // 老师后台新事件
     els.publishRankReward?.addEventListener("click", publishRankReward);
     els.resetGuide?.addEventListener("click", handleResetGuide);
@@ -1791,6 +1799,11 @@
       balls: normalizeInventory(profile?.balls),
       // 新手引导是否完成
       guideCompleted: Boolean(profile?.guideCompleted),
+      // 新引导进度：0 未开始 / 1 手指引导 / 2 功能卡 / 3 已完成
+      guideStage: typeof profile?.guideStage === "number"
+        ? clampInteger(profile.guideStage, 0, 3)
+        : (profile?.guideCompleted ? 3 : 0),
+      guideStepIndex: clampInteger(profile?.guideStepIndex, 0, 6),
     };
   }
 
@@ -2287,8 +2300,10 @@
       const outcome = rollSceneDrop(scene, spot?.exp);
 
       // 判定是否遇敌
+      // 新手引导那一次探索不遇敌：先让孩子熟悉「探索→拿经验」这个循环，别一上手就碰上输掉战斗的弹窗
+      const guideSoftExplore = profile.guideStage === 1 && guideV2StepIndex === 4 && !guideV2ReviewMode;
       const wildConfig = WILD_PETS[scene.id];
-      const encounter = wildConfig && profile.pet && Math.random() < wildConfig.encounterRate;
+      const encounter = !guideSoftExplore && wildConfig && profile.pet && Math.random() < wildConfig.encounterRate;
       let battleWin = true;
       let lostItem = null;
 
@@ -5977,57 +5992,317 @@
   }
 
   // ============================================
-  // 新手引导系统
+  // 新手引导系统（手指引导 + 功能卡）
   // ============================================
-  function startGuide() {
-    currentGuideStep = guideStartIndex;
-    renderGuideStep();
-    if (els.guideOverlay) els.guideOverlay.hidden = false;
+  const GUIDE_STEPS_V2 = Object.freeze([
+    { key: "pet", target: "#dockPet", mode: "click", title: "先领一只宠物", desc: "点下面的「宠物」按钮，把宠物栏打开。" },
+    { key: "hatch", target: "#hatchButton", mode: "click", title: "免费孵化第一只", desc: "点「孵化」。这一步免费，点完你就有一只自己的宠物了。" },
+    { key: "bell", target: "#dockBar", mode: "next", title: "洛克贝就是钱", desc: "打一场战斗得 1 个洛克贝。攒够 10 个，就能买一颗咕噜球去抓野生宠物。" },
+    { key: "grass", target: '.map-pin[data-scene-id="grassland"]', mode: "click", title: "从这里开始", desc: "点「轻风草原」。这是新手村，经验最适合你现在的等级。" },
+    { key: "spot", target: ".stage-spot", mode: "click", title: "点一下试试", desc: "点随便一个探索点。会给经验、可能掉道具，也可能遇到野生宠物打一场。" },
+    { key: "reward", target: null, mode: "next", title: "经验和洛克贝到手", desc: "看到下面那行字没有？经验涨了。打过战斗的探索还会多 1 个洛克贝，打输了也有。" },
+    { key: "store", target: "#dockTimer", mode: "click", title: "攒够了就买球", desc: "点下面的「商店」。六种球每颗都是 10 洛克贝，有球才能在大世界抓宠物。" },
+  ]);
+
+  const GUIDE_CARDS_V2 = Object.freeze([
+    { icon: "🧭", title: "探索不要钱", sub: "想点几次点几次。集齐一个场景的 4 件道具，亲密度升一级。" },
+    { icon: "⚔️", title: "每场战斗 +1 洛克贝", sub: "不分场景、不分输赢。输了也有，不用怕打不过。" },
+    { icon: "🪢", title: "战斗胜利后可能能抓宠物", sub: "弹出捕捉窗口就扔咕噜球，球越好成功率越高。" },
+    { icon: "🏪", title: "商店：六种球，每颗 10 洛克贝", sub: "普通球 5% 成功率，国王球 50%，越贵越稳。" },
+    { icon: "🛒", title: "市场：和同学互相买卖", sub: "挂 10 洛克贝，成交后卖家承担 1/5 手续费，实收 8。" },
+  ]);
+
+  let guideV2StepIndex = 0;
+  let guideV2CardIndex = 0;
+  let guideV2WaitTimer = null;
+  let guideV2DocHandler = null;
+  let guideV2ReviewMode = false;
+  let guideV2BootTimer = null;
+
+  function guideOverlayEl() { return document.getElementById("guideOverlay"); }
+  function guideTipEl() { return document.getElementById("guideTip"); }
+  function guideRingEl() { return document.getElementById("guideRing"); }
+  function guideCardsEl() { return document.getElementById("guideCards"); }
+
+  function clearGuideBlocks() {
+    ["top", "bottom", "left", "right"].forEach((k) => {
+      const b = document.querySelector(`.guide-block[data-gb="${k}"]`);
+      if (b) { b.style.cssText = ""; b.hidden = true; }
+    });
   }
 
-  function renderGuideStep() {
-    const step = GUIDE_STEPS[currentGuideStep];
-    if (!step) return;
-    if (els.guideStep) els.guideStep.textContent = `${currentGuideStep + 1} / ${GUIDE_STEPS.length}`;
-    if (els.guideTitle) els.guideTitle.textContent = step.title;
-    if (els.guideDesc) els.guideDesc.textContent = step.desc;
-    if (els.guideHighlight) els.guideHighlight.textContent = step.highlight;
-    if (els.guidePrev) els.guidePrev.disabled = currentGuideStep === 0;
-    if (els.guideNext) els.guideNext.textContent = currentGuideStep === GUIDE_STEPS.length - 1 ? "完成" : "下一步";
+  function hideGuideAll() {
+    const ov = guideOverlayEl();
+    if (ov) ov.hidden = true;
+    clearGuideBlocks();
+    const ring = guideRingEl();
+    if (ring) { ring.hidden = true; ring.style.cssText = ""; }
+    const tip = guideTipEl();
+    if (tip) tip.hidden = true;
+    const cards = guideCardsEl();
+    if (cards) cards.hidden = true;
+    if (guideV2WaitTimer) { clearTimeout(guideV2WaitTimer); guideV2WaitTimer = null; }
+    if (guideV2DocHandler) { document.removeEventListener("click", guideV2DocHandler, true); guideV2DocHandler = null; }
   }
 
-  function nextGuideStep() {
-    if (currentGuideStep < GUIDE_STEPS.length - 1) {
-      currentGuideStep++;
-      renderGuideStep();
+  function openGuideV2(stage, stepIndex, review) {
+    hideGuideAll();
+    guideV2ReviewMode = Boolean(review);
+    guideV2StepIndex = Math.max(0, Math.min(stepIndex || 0, GUIDE_STEPS_V2.length - 1));
+    const profile = getActiveProfile();
+    if (profile && !review) {
+      profile.guideStage = stage;
+      profile.guideStepIndex = guideV2StepIndex;
+      profile.guideCompleted = false;
+    }
+    const ov = guideOverlayEl();
+    if (ov) ov.hidden = false;
+    if (stage === 2) {
+      renderGuideCards();
     } else {
-      skipGuide();
+      waitGuideTarget();
     }
   }
 
-  function prevGuideStep() {
-    if (currentGuideStep > 0) {
-      currentGuideStep--;
-      renderGuideStep();
+  function waitGuideTarget() {
+    const step = GUIDE_STEPS_V2[guideV2StepIndex];
+    if (!step) { enterGuideCards(); return; }
+    if (!step.target) { showGuideStepV2(null); return; }
+    let tries = 0;
+    const attempt = () => {
+      const el = document.querySelector(step.target);
+      if (el) { showGuideStepV2(el); return; }
+      tries += 1;
+      if (tries >= 12) { showGuideStepV2(null); return; }
+      guideV2WaitTimer = setTimeout(attempt, 120);
+    };
+    attempt();
+  }
+
+  function showGuideStepV2(targetEl) {
+    const step = GUIDE_STEPS_V2[guideV2StepIndex];
+    const tip = guideTipEl();
+    const ring = guideRingEl();
+    const cards = guideCardsEl();
+    if (cards) cards.hidden = true;
+    if (tip) tip.hidden = false;
+
+    const stepLabel = document.getElementById("guideStep");
+    if (stepLabel) stepLabel.textContent = `${guideV2StepIndex + 1} / ${GUIDE_STEPS_V2.length}`;
+    const titleEl = document.getElementById("guideTitle");
+    const descEl = document.getElementById("guideDesc");
+    if (titleEl) titleEl.textContent = step.title;
+    if (descEl) descEl.textContent = step.desc;
+
+    const nextBtn = els.guideNext;
+    if (nextBtn) {
+      nextBtn.hidden = step.mode === "click";
+      nextBtn.textContent = "知道了";
+    }
+
+    if (targetEl) {
+      const rect = targetEl.getBoundingClientRect();
+      const pad = 6;
+      const r = {
+        top: Math.max(0, rect.top - pad),
+        left: Math.max(0, rect.left - pad),
+        right: Math.min(window.innerWidth, rect.right + pad),
+        bottom: Math.min(window.innerHeight, rect.bottom + pad),
+      };
+      layoutGuideBlocks(r);
+      if (ring) {
+        ring.hidden = false;
+        ring.style.top = r.top + "px";
+        ring.style.left = r.left + "px";
+        ring.style.width = Math.max(0, r.right - r.left) + "px";
+        ring.style.height = Math.max(0, r.bottom - r.top) + "px";
+      }
+      positionGuideTip(r);
+    } else {
+      clearGuideBlocks();
+      const b = document.querySelector('.guide-block[data-gb="top"]');
+      if (b) {
+        b.hidden = false;
+        b.style.top = "0";
+        b.style.left = "0";
+        b.style.right = "0";
+        b.style.bottom = "0";
+        b.style.width = "auto";
+        b.style.height = "100%";
+      }
+      if (ring) ring.hidden = true;
+      if (tip) {
+        tip.style.left = "50%";
+        tip.style.top = "50%";
+        tip.style.transform = "translate(-50%,-50%)";
+      }
+      if (nextBtn) nextBtn.hidden = false;
+    }
+
+    if (step.mode === "click" && targetEl) {
+      if (guideV2DocHandler) document.removeEventListener("click", guideV2DocHandler, true);
+      guideV2DocHandler = function (e) {
+        if (targetEl.contains(e.target)) {
+          document.removeEventListener("click", guideV2DocHandler, true);
+          guideV2DocHandler = null;
+          setTimeout(() => advanceGuideV2(), 260);
+        }
+      };
+      document.addEventListener("click", guideV2DocHandler, true);
     }
   }
 
-  function skipGuide() {
-    if (els.guideOverlay) els.guideOverlay.hidden = true;
+  function layoutGuideBlocks(r) {
+    const set = (key, style) => {
+      const b = document.querySelector(`.guide-block[data-gb="${key}"]`);
+      if (!b) return;
+      b.hidden = false;
+      b.style.top = (style.top || 0) + "px";
+      b.style.left = (style.left || 0) + "px";
+      b.style.right = style.right === undefined ? "auto" : style.right + "px";
+      b.style.bottom = style.bottom === undefined ? "auto" : style.bottom + "px";
+      b.style.width = style.width === undefined ? "auto" : style.width + "px";
+      b.style.height = style.height === undefined ? "auto" : style.height + "px";
+    };
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    set("top", { top: 0, left: 0, right: 0, height: r.top });
+    set("bottom", { top: r.bottom, left: 0, right: 0, height: Math.max(0, vh - r.bottom) });
+    set("left", { top: r.top, left: 0, width: r.left, height: Math.max(0, r.bottom - r.top) });
+    set("right", { top: r.top, left: r.right, width: Math.max(0, vw - r.right), height: Math.max(0, r.bottom - r.top) });
+  }
+
+  function positionGuideTip(r) {
+    const tip = guideTipEl();
+    if (!tip) return;
+    tip.style.transform = "none";
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const tipW = Math.min(296, vw - 32);
+    let left = r.left + (r.right - r.left) / 2 - tipW / 2;
+    left = Math.max(12, Math.min(left, vw - tipW - 12));
+    tip.style.left = left + "px";
+    tip.style.width = tipW + "px";
+    tip.style.top = "0px";
+    const h = tip.offsetHeight || 180;
+    let top;
+    if (r.top - h - 20 >= 8) {
+      top = r.top - h - 20;
+    } else {
+      top = Math.min(vh - h - 12, r.bottom + 16);
+    }
+    tip.style.top = Math.max(8, top) + "px";
+  }
+
+  function advanceGuideV2() {
+    if (guideV2StepIndex < GUIDE_STEPS_V2.length - 1) {
+      guideV2StepIndex += 1;
+      const nextStep = GUIDE_STEPS_V2[guideV2StepIndex];
+      // 第 3 步讲底栏洛克贝，先把宠物窗关掉，否则高亮框会被弹窗盖住
+      if (nextStep && nextStep.key === "bell") {
+        const petClose = document.getElementById("petModalClose");
+        if (petClose) petClose.click();
+      }
+      const profile = getActiveProfile();
+      if (profile && !guideV2ReviewMode) {
+        profile.guideStepIndex = guideV2StepIndex;
+        profile.guideStage = 1;
+        saveState("引导进度已保存");
+      }
+      waitGuideTarget();
+    } else {
+      enterGuideCards();
+    }
+  }
+
+  function enterGuideCards() {
+    const profile = getActiveProfile();
+    if (profile && !guideV2ReviewMode) {
+      profile.guideStage = 2;
+      profile.guideStepIndex = GUIDE_STEPS_V2.length - 1;
+      saveState("引导进入功能卡");
+    }
+    guideV2CardIndex = 0;
+    renderGuideCards();
+  }
+
+  function renderGuideCards() {
+    hideGuideAll();
+    const ov = guideOverlayEl();
+    if (ov) ov.hidden = false;
+    // 功能卡阶段：铺满一层压暗，避免后面的弹窗透出来抢注意力
+    const block = document.querySelector('.guide-block[data-gb="top"]');
+    if (block) {
+      block.hidden = false;
+      block.style.cssText = "top:0;left:0;right:0;bottom:0;width:auto;height:auto;";
+    }
+    const cards = guideCardsEl();
+    if (cards) cards.hidden = false;
+    const list = document.getElementById("guideCardList");
+    if (!list) return;
+    list.replaceChildren();
+    GUIDE_CARDS_V2.forEach((c) => {
+      const div = document.createElement("div");
+      div.className = "guide-card";
+      div.innerHTML = `<div class="guide-card-icon">${c.icon}</div><div><div class="guide-card-title">${c.title}</div><div class="guide-card-sub">${c.sub}</div></div>`;
+      list.appendChild(div);
+    });
+    updateGuideCardView();
+  }
+
+  function updateGuideCardView() {
+    const items = document.querySelectorAll("#guideCardList .guide-card");
+    items.forEach((el, i) => { el.style.display = i === guideV2CardIndex ? "" : "none"; });
+    const idx = document.getElementById("guideCardIndex");
+    if (idx) idx.textContent = `${guideV2CardIndex + 1} / ${GUIDE_CARDS_V2.length}`;
+    const prev = document.getElementById("guideCardPrev");
+    if (prev) prev.disabled = guideV2CardIndex === 0;
+    const next = document.getElementById("guideCardNext");
+    if (next) next.textContent = guideV2CardIndex === GUIDE_CARDS_V2.length - 1 ? "开始冒险" : "下一张";
+  }
+
+  function changeGuideCard(delta) {
+    const target = guideV2CardIndex + delta;
+    if (target < 0) return;
+    if (target >= GUIDE_CARDS_V2.length) { finishGuideV2(); return; }
+    guideV2CardIndex = target;
+    updateGuideCardView();
+  }
+
+  function handleGuideNextClick() {
+    const step = GUIDE_STEPS_V2[guideV2StepIndex];
+    if (step && step.mode === "click") return;
+    advanceGuideV2();
+  }
+
+  function finishGuideV2() {
+    hideGuideAll();
     const profile = getActiveProfile();
     if (profile) {
+      profile.guideStage = 3;
       profile.guideCompleted = true;
-      saveState("引导已跳过");
+      saveState("引导已完成");
     }
+    const helpBtn = document.getElementById("guideHelpBtn");
+    if (helpBtn) helpBtn.hidden = false;
+    if (typeof showToast === "function") {
+      showToast("🎉 新手引导完成", "以后忘了怎么玩，点右下角「?」重看一遍", "success");
+    }
+  }
+
+  function skipGuideV2() {
+    finishGuideV2();
   }
 
   function handleResetGuide() {
     const profile = getActiveProfile();
     if (!profile) return;
     profile.guideCompleted = false;
+    profile.guideStage = 0;
+    profile.guideStepIndex = 0;
     saveState("引导已重置");
     if (els.teacherMessage) els.teacherMessage.textContent = "已重置该学生的引导状态";
-    startGuide();
+    openGuideV2(1, 0, false);
   }
 
   // ============================================
@@ -6226,12 +6501,27 @@
     if (profile) {
       renderPetTeam(profile);
       syncActivePet(profile);
-      // 检查是否需要显示引导
-      if (!profile.guideCompleted && els.guideOverlay && els.guideOverlay.hidden) {
+      // 检查是否需要启动新手引导（新版：手指引导 + 功能卡）
+      const guideOverlay = document.getElementById("guideOverlay");
+      const helpBtn = document.getElementById("guideHelpBtn");
+      if (helpBtn) helpBtn.hidden = !profile.guideCompleted;
+      if (!profile.guideCompleted && guideOverlay && guideOverlay.hidden && !guideV2BootTimer) {
         // 延迟显示，让页面先渲染
-        setTimeout(() => {
-          if (!profile.guideCompleted) startGuide();
-        }, 500);
+        guideV2BootTimer = setTimeout(() => {
+          guideV2BootTimer = null;
+          const p = getActiveProfile();
+          if (!p || p.guideCompleted) return;
+          const ov = document.getElementById("guideOverlay");
+          if (ov && !ov.hidden) return;
+          const stage = p.guideStage || 0;
+          if (stage === 2) {
+            renderGuideCards();
+            const ov2 = document.getElementById("guideOverlay");
+            if (ov2) ov2.hidden = false;
+          } else {
+            openGuideV2(1, p.guideStepIndex || 0, false);
+          }
+        }, 600);
       }
     }
   };
