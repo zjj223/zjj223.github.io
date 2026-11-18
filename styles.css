@@ -3148,159 +3148,229 @@ button:focus-visible {
   white-space: pre-line;
 }
 
-/* ===== 新手引导系统 ===== */
+/* ===== 新手引导系统（手指引导 + 功能卡） ===== */
 .guide-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   z-index: 10000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.guide-mask {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+.guide-block {
+  position: fixed;
+  background: rgba(24, 20, 12, 0.62);
+  transition: all 0.18s ease;
 }
 
-.guide-modal {
-  position: relative;
-  background: white;
-  border-radius: 20px;
-  padding: 30px;
-  max-width: 500px;
-  width: 90%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: guideSlideIn 0.3s ease;
+.guide-ring {
+  position: fixed;
+  border-radius: 14px;
+  pointer-events: none;
+  z-index: 10002;
+  animation: guideRingPulse 1.8s ease-in-out infinite;
 }
 
-@keyframes guideSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.95);
+@keyframes guideRingPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px #f0b429, 0 0 0 6px rgba(240, 180, 41, 0.28), 0 0 26px rgba(240, 180, 41, 0.55);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+  50% {
+    box-shadow: 0 0 0 3px #ffd35c, 0 0 0 9px rgba(255, 211, 92, 0.35), 0 0 34px rgba(255, 211, 92, 0.7);
   }
 }
 
-.guide-header {
+.guide-tip {
+  position: fixed;
+  z-index: 10003;
+  width: 296px;
+  max-width: calc(100vw - 32px);
+  background: linear-gradient(150deg, #fffdf6, #fff3d6);
+  border: 1px solid #ecd9a8;
+  border-radius: 16px;
+  padding: 16px 18px 14px;
+  box-shadow: 0 18px 44px rgba(60, 40, 10, 0.28);
+}
+
+.guide-tip-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
 
 .guide-step {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
+  background: #f0b429;
+  color: #4a3208;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .guide-skip {
   background: none;
   border: none;
-  color: #999;
-  font-size: 14px;
+  color: #a08a63;
+  font-size: 13px;
   cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 6px;
-  transition: all 0.2s;
+  padding: 4px 8px;
+  border-radius: 8px;
 }
 
 .guide-skip:hover {
-  color: #666;
-  background: #f5f5f5;
+  color: #6b4a12;
+  background: rgba(107, 74, 18, 0.08);
 }
 
-.guide-content {
-  margin-bottom: 25px;
+.guide-tip-title {
+  margin: 0 0 6px;
+  font-size: 18px;
+  color: #3f2c0d;
+  font-weight: 800;
 }
 
-.guide-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.guide-desc {
-  font-size: 15px;
-  line-height: 1.8;
-  color: #555;
-  margin-bottom: 15px;
-}
-
-.guide-highlight {
-  background: #f0f4ff;
-  border-left: 4px solid #667eea;
-  padding: 12px 16px;
-  border-radius: 8px;
+.guide-tip-desc {
+  margin: 0;
   font-size: 14px;
-  color: #4a5568;
+  line-height: 1.75;
+  color: #6b5a3a;
 }
 
-.guide-highlight:empty {
-  display: none;
-}
-
-.guide-footer {
+.guide-tip-actions {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 
 .guide-btn {
-  flex: 1;
-  padding: 12px 20px;
   border: none;
   border-radius: 10px;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  padding: 9px 20px;
+  transition: all 0.18s;
 }
 
 .guide-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, #f7c948, #e0a020);
+  color: #4a3208;
 }
 
 .guide-btn.primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(224, 160, 32, 0.35);
 }
 
 .guide-btn.secondary {
-  background: #f0f0f0;
-  color: #666;
-}
-
-.guide-btn.secondary:hover {
-  background: #e0e0e0;
+  background: #efe6d3;
+  color: #8a7350;
 }
 
 .guide-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
   transform: none !important;
 }
+
+.guide-cards-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10003;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  background: linear-gradient(160deg, #fffdf6, #fff4dc);
+  border: 1px solid #ecd9a8;
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 24px 60px rgba(60, 40, 10, 0.32);
+}
+
+.guide-cards-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #8a7350;
+  margin-bottom: 10px;
+}
+
+.guide-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guide-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: #fffaf0;
+  border: 1px solid #f0e2c2;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.guide-card-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.guide-card-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #3f2c0d;
+  margin-bottom: 2px;
+}
+
+.guide-card-sub {
+  font-size: 12.5px;
+  color: #8a7350;
+  line-height: 1.6;
+}
+
+.guide-cards-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #8a7350;
+}
+
+.guide-cards-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.guide-help-btn {
+  position: fixed;
+  right: 16px;
+  bottom: 96px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid #ecd9a8;
+  background: #fff6e2;
+  color: #a07b28;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  z-index: 9000;
+  box-shadow: 0 4px 12px rgba(60, 40, 10, 0.16);
+}
+
+.guide-help-btn:hover {
+  background: #ffeec6;
+}
+
+@media (max-width: 520px) {
+  .guide-cards-wrap {
+    width: calc(100vw - 24px);
+  }
+}
+
 
 /* ===== 咕噜球商店美化 ===== */
 .ball-shop-grid {
