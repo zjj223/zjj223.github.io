@@ -3,7 +3,6 @@
 
   const STORAGE_KEY = "carlosia_phase1_save_v1";
   const TEACHER_KEY = "teacher2026";
-  const ACTION_COST = 1;
   const MAX_PETS = 6;
   const HATCH_EXP_REQUIREMENT = 120;
   const PET_BASE_HP_MAX = 80;
@@ -266,7 +265,7 @@
     },
     {
       title: "大世界探索",
-      desc: "点击场景进入探索，每次探索消耗1洛克贝。探索可以获得经验值和场景专属道具，还有可能遇到野生宠物进行战斗。集齐一个场景的4个道具可以提升1级亲密度。",
+      desc: "点击场景进入探索，探索不花洛克贝，想点几次点几次。探索可以获得经验值和场景专属道具，还有可能遇到野生宠物进行战斗。每场战斗都会得到 1 个洛克贝。集齐一个场景的4个道具可以提升1级亲密度。",
       highlight: "亲密度越高，解锁的场景越多"
     },
     {
@@ -275,8 +274,8 @@
       highlight: "记得先去商店购买咕噜球"
     },
     {
-      title: "商店系统",
-      desc: "在商店可以用经验值购买场景道具，也可以上架自己的道具卖给其他同学。还有专门的咕噜球商店，用洛克贝购买各种咕噜球。",
+      title: "商店与市场",
+      desc: "商店用洛克贝买咕噜球，6 种球每颗 10 洛克贝。市场可以和同学互相买卖场景道具，成交后卖家承担 1/5 手续费（向上取整），到账是扣完手续费的部分。",
       highlight: "用洛克贝交易，统一定价"
     },
     {
@@ -2709,21 +2708,21 @@
     render();
   }
 
-  // 随机新宠物：消耗 1 洛克贝，新宠物初始状态，经验归 0，亲密度归零，道具保留
+  // 随机新宠物：消耗 50 洛克贝，新宠物初始状态，经验归 0，亲密度归零，道具保留
   function handleRandomPet() {
     const profile = getActiveProfile();
     if (!profile?.pet) {
       return;
     }
-    if (profile.rockbell < ACTION_COST) {
-      setResult(`洛克贝不足，随机新宠物需要 ${ACTION_COST} 洛克贝。`, true);
+    if (profile.rockbell < PET_REFRESH_COST) {
+      setResult(`洛克贝不足，随机新宠物需要 ${PET_REFRESH_COST} 洛克贝。`, true);
       render();
       return;
     }
 
     const oldPetName = profile.pet.name;
     const confirmed = window.confirm(
-      `确定消耗 ${ACTION_COST} 洛克贝重新随机宠物吗？\n\n` +
+      `确定消耗 ${PET_REFRESH_COST} 洛克贝重新随机宠物吗？\n\n` +
       `· 新宠物为初始状态（Lv.1，阶段 1）\n` +
       `· 角色经验将归 0（当前 ${profile.exp}）\n` +
       `· 宠物亲密度将归零（当前 Lv.${profile.pet.bond || 0}）\n` +
@@ -2735,7 +2734,7 @@
     }
 
     // 扣洛克贝
-    profile.rockbell -= ACTION_COST;
+    profile.rockbell -= PET_REFRESH_COST;
 
     // 随机新宠物（初始状态）
     const petTemplate = randomItem(PET_POOL);
@@ -2762,7 +2761,7 @@
     // 道具背包保留（inventory 不做任何修改）
 
     // 亲密度改为手动提升，移除自动触发逻辑
-    let randomMsg = `已重新随机宠物：${oldPetName} → ${profile.pet.name}（${profile.pet.style}）。洛克贝 -${ACTION_COST}，经验归 0，亲密度归零，道具保留。集齐场景道具后可在宠物栏手动提升亲密度。`;
+    let randomMsg = `已重新随机宠物：${oldPetName} → ${profile.pet.name}（${profile.pet.style}）。洛克贝 -${PET_REFRESH_COST}，经验归 0，亲密度归零，道具保留。集齐场景道具后可在宠物栏手动提升亲密度。`;
     setResult(randomMsg, false);
     saveState("随机新宠物已存档");
     render();
@@ -3902,7 +3901,7 @@
 
       const price = document.createElement("div");
       price.className = "shop-item-price";
-      price.textContent = `${listing.price} 经验`;
+      price.textContent = `${listing.price} 洛克贝`;
 
       card.append(icon, info, price);
 
