@@ -3153,12 +3153,14 @@ button:focus-visible {
   position: fixed;
   inset: 0;
   z-index: 10000;
+  pointer-events: none;
 }
 
 .guide-block {
   position: fixed;
   background: rgba(24, 20, 12, 0.62);
   transition: all 0.18s ease;
+  pointer-events: none;
 }
 
 .guide-ring {
@@ -3181,6 +3183,7 @@ button:focus-visible {
 .guide-tip {
   position: fixed;
   z-index: 10003;
+  pointer-events: auto;
   width: 296px;
   max-width: calc(100vw - 32px);
   background: linear-gradient(150deg, #fffdf6, #fff3d6);
@@ -3278,6 +3281,7 @@ button:focus-visible {
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 10003;
+  pointer-events: auto;
   width: 420px;
   max-width: calc(100vw - 32px);
   background: linear-gradient(160deg, #fffdf6, #fff4dc);
