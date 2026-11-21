@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   color-scheme: light;
   --bg: #f6f3ec;
   --surface: #fffdfa;
@@ -9071,4 +9071,58 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
   border-radius: 6px;
   white-space: nowrap;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+/* 点赞奖励提示：中间弹一下「恭喜获得」，1 秒后自己淡出 */
+.coin-gain {
+  position: fixed;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%) scale(0.88);
+  z-index: 10050;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 30px 16px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fffaf0, #ffe9bd);
+  border: 2px solid rgba(201, 141, 44, 0.85);
+  box-shadow: 0 12px 30px rgba(46, 32, 18, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+  opacity: 0;
+  animation: coinGainIn 0.24s ease-out forwards;
+}
+
+.coin-gain-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #8a5a1a;
+  letter-spacing: 0.5px;
+}
+
+.coin-gain-amount {
+  font-size: 28px;
+  font-weight: 900;
+  color: #d97706;
+  line-height: 1.15;
+  text-shadow: 0 1px 0 #fff;
+}
+
+.coin-gain-total {
+  font-size: 12px;
+  color: #9a7a4a;
+}
+
+.coin-gain.is-out {
+  animation: coinGainOut 0.3s ease-in forwards;
+}
+
+@keyframes coinGainIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.88); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes coinGainOut {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to   { opacity: 0; transform: translate(-50%, -62%) scale(0.96); }
 }
