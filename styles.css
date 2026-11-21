@@ -8928,3 +8928,31 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
 #roleLikedValue {
   color: #d17b00;
 }
+/* 榜单右侧点赞区收窄一点，别把战力数字挤歪 */
+#rankModal .rank-value, #rankView .rank-value { margin-right: 4px; }
+#rankModal .rank-actions, #rankView .rank-actions { min-width: 58px; flex-shrink: 0; }
+/* 排行榜点赞说明条 */
+.rank-like-tip {
+  font-size: 0.72rem;
+  color: #8a7355;
+  background: #fff8e8;
+  border: 1px dashed #f0d0a0;
+  border-radius: 8px;
+  padding: 5px 8px;
+  margin: 0 0 6px;
+  line-height: 1.35;
+}
+.rank-like-btn { padding: 3px 10px; }
+#rankModal .rank-item, #rankView .rank-item { padding-right: 10px; }
+#rankModal .rank-actions, #rankView .rank-actions { gap: 3px; }
+/* 被赞数 + 点赞按钮改成同一行，省高度不挤 */
+#rankModal .rank-actions, #rankView .rank-actions {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+/* 副标题别换行，挤了就用省略号 */
+#rankModal .rank-sub, #rankView .rank-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.7rem; }
+#rankModal .rank-info, #rankView .rank-info { min-width: 0; flex: 1 1 auto; }
+#rankModal .rank-value, #rankView .rank-value { white-space: nowrap; flex-shrink: 0; }
