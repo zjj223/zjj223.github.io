@@ -8876,3 +8876,55 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
   background: linear-gradient(135deg, #ff9800, #ffb74d) !important;
   border-color: #ff9800 !important;
 }
+/* ===== 排行榜点赞区 ===== */
+.rank-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex: 0 0 auto;
+  margin-left: 8px;
+}
+
+.rank-liked {
+  font-size: 0.72rem;
+  color: #8a6a3a;
+  white-space: nowrap;
+}
+
+.rank-like-btn {
+  border: 1px solid #ffb74d;
+  background: #fff8e8;
+  color: #b26a00;
+  border-radius: 8px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.rank-like-btn:hover:not(:disabled) {
+  background: #ffe9c2;
+}
+
+.rank-like-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#rankModal .rank-value,
+#rankView .rank-value {
+  font-size: 0.88rem;
+}
+
+#rankModal .rank-item,
+#rankView .rank-item {
+  gap: 6px;
+}
+
+/* 角色面板"被赞"这一格稍微醒目一点 */
+#roleLikedValue {
+  color: #d17b00;
+}
