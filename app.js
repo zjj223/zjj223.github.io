@@ -1191,11 +1191,512 @@
     }
   }
 
+  // ===== 多人可见（Phase 0）：同场景互相看见，位置不落库，断网自动退回单人模式 =====
+  const PEERS_ENABLED = true;
+  const ROOM_PREFIX = "carlosia:room:";
+  const PEER_SEND_MIN_INTERVAL = 800;
+  const PEER_STALE_MS = 12000;
+  const PEER_MAX = 20;
+  const PEER_HEARTBEAT_MS = 5000;
+
+  const peerState = {
+    client: null,
+    channel: null,
+    roomId: null,
+    selfKey: null,
+    sessionTag: null,
+    peers: new Map(),
+    lastSendAt: 0,
+    heartbeatTimer: null,
+    runtimeOff: false,
+    retried: false,
+    warned: false,
+  };
+
+  function isStudentSession() {
+    const grid = document.querySelector(".app-grid");
+    return Boolean(grid && grid.classList.contains("is-student"));
+  }
+
+  function peerProfile() {
+    const p = getActiveProfile();
+    return p && p.name ? p : null;
+  }
+
+  // 当前可见舞台（场景舞台 / 大地图），用来做坐标换算
+  function peerStage() {
+    if (currentView === "scene") {
+      const cont = document.querySelector(".scene-stage");
+      const img = cont ? cont.querySelector(".scene-stage-bg") : null;
+      return cont && img ? { cont, img, mode: "scene" } : null;
+    }
+    const cont = document.querySelector(".continent");
+    const img = cont ? cont.querySelector(".continent-bg") : null;
+    return cont && img ? { cont, img, mode: "map" } : null;
+  }
+
+  // 本地容器百分比 -> 底图归一化坐标（object-fit: cover 的换算）
+  function localPctToImage(stage, xPct, yPct) {
+    const cw = stage.cont.clientWidth;
+    const ch = stage.cont.clientHeight;
+    if (!cw || !ch) return null;
+    const iw = stage.img.naturalWidth;
+    const ih = stage.img.naturalHeight;
+    if (!iw || !ih) return [xPct / 100, yPct / 100];
+    const scale = Math.max(cw / iw, ch / ih);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    const offX = (cw - dw) / 2;
+    const offY = (ch - dh) / 2;
+    const nx = ((xPct / 100) * cw - offX) / dw;
+    const ny = ((yPct / 100) * ch - offY) / dh;
+    return [Math.min(1, Math.max(0, nx)), Math.min(1, Math.max(0, ny))];
+  }
+
+  // 底图归一化坐标 -> 本地容器百分比
+  function imageToLocalPct(stage, nx, ny) {
+    const cw = stage.cont.clientWidth;
+    const ch = stage.cont.clientHeight;
+    if (!cw || !ch) return null;
+    const iw = stage.img.naturalWidth;
+    const ih = stage.img.naturalHeight;
+    if (!iw || !ih) return [nx * 100, ny * 100];
+    const scale = Math.max(cw / iw, ch / ih);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    const offX = (cw - dw) / 2;
+    const offY = (ch - dh) / 2;
+    return [((offX + nx * dw) / cw) * 100, ((offY + ny * dh) / ch) * 100];
+  }
+
+  function peerPayload() {
+    const p = peerProfile();
+    if (!p) return null;
+    const stage = peerStage();
+    let nx = 0.5;
+    let ny = 0.7;
+    if (stage) {
+      const cur = currentView === "scene"
+        ? { x: scenePlayerPos.x, y: scenePlayerPos.y }
+        : { x: mapPlayerPos.x, y: mapPlayerPos.y };
+      const img = localPctToImage(stage, cur.x, cur.y);
+      if (img) {
+        nx = img[0];
+        ny = img[1];
+      }
+    }
+    return {
+      v: 1,
+      k: peerState.selfKey || "",
+      name: p.name,
+      gender: p.gender || "male",
+      outfit: p.outfit || "starter",
+      pet: (p.pet && p.pet.image) || null,
+      x: Number(nx.toFixed(4)),
+      y: Number(ny.toFixed(4)),
+      t: Date.now(),
+    };
+  }
+
+  function ensureRealtime() {
+    if (peerState.runtimeOff || !PEERS_ENABLED || !CLOUD_ENABLED) return null;
+    if (peerState.client) return peerState.client;
+    if (typeof supabase === "undefined" || !supabase || typeof supabase.createClient !== "function") {
+      if (!peerState.warned) {
+        peerState.warned = true;
+        console.info("[多人可见] 实时库未加载，已退回单机模式");
+      }
+      return null;
+    }
+    try {
+      peerState.client = supabase.createClient(CLOUD_CONFIG.url, CLOUD_CONFIG.key, {
+        auth: { persistSession: false, autoRefreshToken: false },
+        realtime: { params: { eventsPerSecond: 10 } },
+      });
+    } catch (err) {
+      peerState.runtimeOff = true;
+      console.info("[多人可见] 实时客户端创建失败，已退回单机模式", err);
+      return null;
+    }
+    return peerState.client;
+  }
+
+  function disablePeers(reason) {
+    if (peerState.runtimeOff) return;
+    peerState.runtimeOff = true;
+    console.info(`[多人可见] 已关闭（${reason}），单人玩法不受影响`);
+    leaveRoom();
+  }
+
+  function joinRoom(roomId, force) {
+    if (!roomId || peerState.runtimeOff || !PEERS_ENABLED) return;
+    if (!force && peerState.roomId === roomId && peerState.channel) return;
+    if (!isStudentSession()) return;
+    const p = peerProfile();
+    if (!p) return;
+    leaveRoom();
+    const client = ensureRealtime();
+    if (!client) return;
+    if (!peerState.sessionTag) {
+      peerState.sessionTag = String(Math.floor(1000 + Math.random() * 9000));
+    }
+    // presence key 只用 ASCII，避免中文/特殊字符在部分网络设备上出问题；显示名仍从 meta.name 取
+    peerState.selfKey = `p${peerState.sessionTag}${Math.floor(Math.random() * 90 + 10)}`;
+    peerState.roomId = roomId;
+    const ch = client.channel(`${ROOM_PREFIX}${roomId}`, {
+      config: { presence: { key: peerState.selfKey } },
+    });
+    peerState.channel = ch;
+
+    ch.on("broadcast", { event: "move" }, (msg) => onPeerMove(msg && msg.payload))
+      .on("broadcast", { event: "here" }, (msg) => onPeerMove(msg && msg.payload))
+      .on("presence", { event: "sync" }, () => onPeerPresenceSync(ch))
+      .on("presence", { event: "join" }, () => onPeerPresenceSync(ch))
+      .on("presence", { event: "update" }, () => onPeerPresenceSync(ch))
+      .on("presence", { event: "leave" }, (ev) => {
+        if (ev && ev.key) removePeer(ev.key);
+      });
+
+    let subscribed = false;
+    ch.subscribe((status) => {
+      if (peerState.channel !== ch) return;
+      if (status === "SUBSCRIBED") {
+        subscribed = true;
+        peerState.failCount = 0;
+        trackSelf();
+        sendPeerPos(true);
+        startPeerHeartbeat();
+        return;
+      }
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        // 校园网抖动很常见：先退避重连，连续失败 3 次才退回单机
+        peerState.failCount = (peerState.failCount || 0) + 1;
+        if (peerState.failCount > 3) {
+          disablePeers("实时通道断开");
+          return;
+        }
+        setTimeout(() => {
+          if (peerState.roomId === roomId && peerState.channel === ch) joinRoom(roomId, true);
+        }, 2500 * peerState.failCount);
+      }
+    });
+
+    // 10 秒连不上：先重连，连续失败 3 次才静默退回单机
+    setTimeout(() => {
+      if (subscribed || peerState.channel !== ch) return;
+      peerState.failCount = (peerState.failCount || 0) + 1;
+      if (peerState.failCount > 3) {
+        disablePeers("连接超时");
+      } else {
+        joinRoom(roomId, true);
+      }
+    }, 10000);
+  }
+
+  function leaveRoom() {
+    const ch = peerState.channel;
+    peerState.channel = null;
+    peerState.roomId = null;
+    stopPeerHeartbeat();
+    if (ch) {
+      try {
+        ch.unsubscribe();
+      } catch (err) {
+        /* 忽略 */
+      }
+      try {
+        if (peerState.client && peerState.client.removeChannel) peerState.client.removeChannel(ch);
+      } catch (err) {
+        /* 忽略 */
+      }
+    }
+    Array.from(peerState.peers.keys()).forEach((key) => {
+      const peer = peerState.peers.get(key);
+      if (peer && peer.el && peer.el.parentNode) peer.el.parentNode.removeChild(peer.el);
+    });
+    peerState.peers.clear();
+    document.querySelectorAll(".peer-layer").forEach((l) => l.replaceChildren());
+  }
+
+  function trackSelf() {
+    const ch = peerState.channel;
+    const payload = peerPayload();
+    if (!ch || !payload) return;
+    try {
+      ch.track({
+        name: payload.name,
+        gender: payload.gender,
+        outfit: payload.outfit,
+        pet: payload.pet,
+        x: payload.x,
+        y: payload.y,
+        joinedAt: Date.now(),
+      });
+    } catch (err) {
+      /* 忽略 */
+    }
+  }
+
+  function sendPeerPos(force) {
+    if (peerState.runtimeOff || !peerState.channel || !peerState.roomId) return;
+    if (document.hidden && !force) return;
+    const now = Date.now();
+    if (!force && now - peerState.lastSendAt < PEER_SEND_MIN_INTERVAL) return;
+    const targetRoom = currentView === "scene"
+      ? selectedSceneId
+      : currentView === "world"
+        ? "world"
+        : null;
+    if (!targetRoom || targetRoom !== peerState.roomId) return;
+    const payload = peerPayload();
+    if (!payload) return;
+    peerState.lastSendAt = now;
+    try {
+      peerState.channel.send({ type: "broadcast", event: "move", payload });
+    } catch (err) {
+      /* 忽略 */
+    }
+  }
+
+  function startPeerHeartbeat() {
+    stopPeerHeartbeat();
+    peerState.heartbeatTimer = setInterval(() => {
+      if (document.hidden || !peerState.channel) return;
+      const now = Date.now();
+      Array.from(peerState.peers.keys()).forEach((key) => {
+        const peer = peerState.peers.get(key);
+        if (peer && now - (peer.lastSeen || 0) > PEER_STALE_MS) {
+          removePeer(key);
+        }
+      });
+      trackSelf();
+      sendPeerPos(true);
+    }, PEER_HEARTBEAT_MS);
+  }
+
+  function stopPeerHeartbeat() {
+    if (peerState.heartbeatTimer) {
+      clearInterval(peerState.heartbeatTimer);
+      peerState.heartbeatTimer = null;
+    }
+  }
+
+  function onPeerMove(payload) {
+    if (!payload || payload.v !== 1) return;
+    if (!payload.k || payload.k === peerState.selfKey) return;
+    if (typeof payload.x !== "number" || typeof payload.y !== "number") return;
+    if (!peerState.peers.has(payload.k) && peerState.peers.size >= PEER_MAX) return;
+    const peer = peerState.peers.get(payload.k) || { key: payload.k, name: "同学", el: null };
+    if (payload.name) peer.name = payload.name;
+    if (payload.gender) peer.gender = payload.gender;
+    if (payload.outfit) peer.outfit = payload.outfit;
+    peer.pet = payload.pet || null;
+    peer.nx = payload.x;
+    peer.ny = payload.y;
+    peer.lastSeen = Date.now();
+    peerState.peers.set(payload.k, peer);
+    renderPeer(peer);
+  }
+
+  function onPeerPresenceSync(ch) {
+    if (!ch || ch !== peerState.channel) return;
+    let presence = {};
+    try {
+      presence = ch.presenceState() || {};
+    } catch (err) {
+      presence = {};
+    }
+    Object.keys(presence).forEach((key) => {
+      if (key === peerState.selfKey) return;
+      const metas = presence[key] || [];
+      const meta = metas[0];
+      if (!meta) return;
+      if (!peerState.peers.has(key) && peerState.peers.size >= PEER_MAX) return;
+      const existed = peerState.peers.has(key);
+      const peer = peerState.peers.get(key) || { key, name: "同学", el: null };
+      if (meta.name) peer.name = meta.name;
+      if (meta.gender) peer.gender = meta.gender;
+      if (meta.outfit) peer.outfit = meta.outfit;
+      if (meta.pet !== undefined) peer.pet = meta.pet || null;
+      if (typeof meta.x === "number") peer.nx = meta.x;
+      if (typeof meta.y === "number") peer.ny = meta.y;
+      if (!existed) peer.lastSeen = Date.now();
+      peerState.peers.set(key, peer);
+      renderPeer(peer);
+    });
+  }
+
+  function ensurePeerLayer(stage) {
+    if (!stage || !stage.cont) return null;
+    let layer = stage.cont.querySelector(".peer-layer");
+    if (!layer) {
+      layer = document.createElement("div");
+      layer.className = "peer-layer";
+    }
+    // 必须追加在舞台最后，否则会被探索点层盖住
+    if (layer !== stage.cont.lastElementChild) stage.cont.appendChild(layer);
+    return layer;
+  }
+
+  function buildPeerEl(peer, mode) {
+    const el = document.createElement("div");
+    el.className = `peer-avatar${mode === "map" ? " is-map" : ""}`;
+    el.dataset.peerKey = peer.key;
+
+    const sprite = document.createElement("img");
+    sprite.className = "peer-sprite";
+    sprite.alt = "";
+    sprite.src = outfitSrc({ gender: peer.gender || "male", outfit: peer.outfit || "starter" }, peer.outfit);
+
+    const nameEl = document.createElement("span");
+    nameEl.className = "peer-name";
+    nameEl.textContent = String(peer.name || "同学").split("#")[0];
+
+    el.appendChild(sprite);
+    if (peer.pet) {
+      const petEl = document.createElement("img");
+      petEl.className = "peer-pet";
+      petEl.src = peer.pet;
+      petEl.alt = "";
+      el.appendChild(petEl);
+    }
+    el.appendChild(nameEl);
+    return el;
+  }
+
+  function renderPeer(peer) {
+    const stage = peerStage();
+    if (!stage) return;
+    const layer = ensurePeerLayer(stage);
+    if (!layer) return;
+    if (typeof peer.nx !== "number" || typeof peer.ny !== "number") return;
+    let el = peer.el;
+    if (!el || !el.isConnected || el.parentNode !== layer) {
+      el = buildPeerEl(peer, stage.mode);
+      peer.el = el;
+      layer.appendChild(el);
+      el.dataset.hasPos = "0";
+    }
+    // 名字 / 服装 / 宠物随时更新（换装换宠只改节点，不重建整个图层）
+    const nameNode = el.querySelector(".peer-name");
+    if (nameNode) {
+      const shownName = String(peer.name || "同学").split("#")[0];
+      if (nameNode.textContent !== shownName) nameNode.textContent = shownName;
+    }
+    const spriteNode = el.querySelector(".peer-sprite");
+    if (spriteNode) {
+      const wanted = outfitSrc({ gender: peer.gender || "male", outfit: peer.outfit || "starter" }, peer.outfit);
+      if (spriteNode.getAttribute("src") !== wanted) spriteNode.src = wanted;
+    }
+    const petNode = el.querySelector(".peer-pet");
+    if (peer.pet && !petNode) {
+      const petImg = document.createElement("img");
+      petImg.className = "peer-pet";
+      petImg.src = peer.pet;
+      petImg.alt = "";
+      el.insertBefore(petImg, nameNode);
+    } else if (!peer.pet && petNode) {
+      petNode.remove();
+    } else if (petNode && peer.pet && petNode.getAttribute("src") !== peer.pet) {
+      petNode.src = peer.pet;
+    }    const local = imageToLocalPct(stage, peer.nx, peer.ny);
+    if (!local) return;
+    const prevX = parseFloat(el.style.left || "0");
+    const prevY = parseFloat(el.style.top || "0");
+    const far = el.dataset.hasPos === "1" && (Math.abs(prevX - local[0]) > 15 || Math.abs(prevY - local[1]) > 15);
+    if (far) el.classList.add("is-teleport");
+    el.style.left = `${local[0]}%`;
+    el.style.top = `${local[1]}%`;
+    el.style.zIndex = String(100 + Math.round(local[1]));
+    el.dataset.hasPos = "1";
+    if (far) {
+      setTimeout(() => {
+        el.classList.remove("is-teleport");
+      }, 80);
+    }
+  }
+
+  function removePeer(key) {
+    const peer = peerState.peers.get(key);
+    peerState.peers.delete(key);
+    if (!peer) return;
+    let el = peer.el;
+    if (!el) {
+      const layer = document.querySelector(".peer-layer");
+      if (layer) {
+      Array.from(layer.querySelectorAll(".peer-avatar")).some((node) => {
+          if (node.dataset.peerKey === key) {
+            el = node;
+            return true;
+          }
+          return false;
+        });
+      }
+    }
+    if (el && el.parentNode) {
+      el.classList.add("is-leaving");
+      setTimeout(() => {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }, 220);
+    }
+  }
+
+  // 舞台重建（每次 render 都会 replaceChildren）后重新铺一遍同伴
+  function syncPeerLayer() {
+    const stage = peerStage();
+    if (!stage) return;
+    const layer = ensurePeerLayer(stage);
+    if (!layer) return;
+    layer.replaceChildren();
+    peerState.peers.forEach((peer) => {
+      peer.el = null;
+      renderPeer(peer);
+    });
+  }
+
+  function syncPeersWithView() {
+    if (!PEERS_ENABLED || peerState.runtimeOff) return;
+    if (!isStudentSession()) {
+      leaveRoom();
+      return;
+    }
+    const target = currentView === "scene"
+      ? selectedSceneId
+      : currentView === "world"
+        ? "world"
+        : null;
+    if (!target) {
+      leaveRoom();
+      return;
+    }
+    if (peerState.roomId !== target || !peerState.channel) {
+      joinRoom(target);
+    }
+  }  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) return;
+    const target = currentView === "scene"
+      ? selectedSceneId
+      : currentView === "world"
+        ? "world"
+        : null;
+    if (!target || !isStudentSession()) return;
+    if (peerState.runtimeOff || !peerState.channel) {
+      peerState.runtimeOff = false;
+      peerState.failCount = 0;
+      joinRoom(target, true);
+      return;
+    }
+    peerState.lastSendAt = 0;
+    trackSelf();
+    sendPeerPos(true);
+  });
+
   // ===== 洛克王国式全屏大世界：功能坞 + 角色走动 =====
   let zoneLayoutReady = false;
   const mapPlayerPos = { x: 50, y: 84 };
 
   function positionMapPlayer() {
+    sendPeerPos();
     const el = document.getElementById("mapPlayer");
     if (!el) return;
     el.style.left = `${mapPlayerPos.x}%`;
@@ -1217,6 +1718,7 @@
   const scenePlayerPos = { x: 50, y: 72 };
 
   function positionScenePlayer() {
+    sendPeerPos();
     const el = document.querySelector(".scene-stage .stage-player");
     if (!el) return;
     el.style.left = `${scenePlayerPos.x}%`;
@@ -1246,6 +1748,7 @@
     if (sceneWalkTimer) {
       clearInterval(sceneWalkTimer);
       sceneWalkTimer = null;
+      sendPeerPos(true);
     }
   }
 
@@ -3745,6 +4248,7 @@
     } else if (currentView === "rank") {
       renderRankView();
     }
+    syncPeersWithView();
   }
 
   function renderProfileList() {
@@ -4168,6 +4672,7 @@
       cont.appendChild(petEl);
     }
 
+    syncPeerLayer();
     // 点地图空白处，角色走过去
     cont.addEventListener("click", (e) => {
       if (e.target.closest(".map-pin")) return;
@@ -4259,6 +4764,7 @@
 
     stageEl.appendChild(els.sceneSpotList);
     els.sceneAtmosphere.appendChild(stageEl);
+    syncPeerLayer();
 
     // 场景道具收集情况（显示在场景下面）
     if (els.sceneInventory) {
