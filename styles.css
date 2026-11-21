@@ -8832,3 +8832,47 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
   padding: 6px 10px; font-size: 13px; color: #7a6a50;
   background: #f3ede0; border: 2px solid #e0d8c6; border-radius: 8px; cursor: pointer;
 }
+/* ===== 排行榜四个榜单 tab 适配（战力 / 经验 / 财富 / 时装） ===== */
+.rank-tabs {
+  flex-wrap: wrap;
+}
+
+.rank-tab {
+  flex: 1 1 calc(25% - 8px);
+  min-width: 64px;
+  padding: 7px 4px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.rank-value {
+  font-variant-numeric: tabular-nums;
+}
+/* 四个榜单 tab 统一配色，避免继承到白字白底看不见 */
+.rank-tabs .rank-tab {
+  color: #4a3a22;
+  background: #fffdf7;
+  border-color: #e8dcc6;
+}
+
+.rank-tabs .rank-tab.active {
+  color: #ffffff;
+  background: linear-gradient(135deg, #ff9800, #ffb74d);
+  border-color: #ff9800;
+  font-weight: 600;
+}
+/* 榜单 tab 最终配色（用 :not(.active) + !important 兜住，避免别处的规则把非激活态染成白字白底） */
+#rankModal .rank-tab:not(.active),
+#rankView .rank-tab:not(.active) {
+  color: #4a3a22 !important;
+  background: #fffdf7 !important;
+  background-image: none !important;
+  border-color: #e8dcc6 !important;
+}
+
+#rankModal .rank-tab.active,
+#rankView .rank-tab.active {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #ff9800, #ffb74d) !important;
+  border-color: #ff9800 !important;
+}
