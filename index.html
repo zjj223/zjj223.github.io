@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>卡罗西亚大陆</title>
-    <link rel="stylesheet" href="./styles.css?v=20261121z18" />
+    <link rel="stylesheet" href="./styles.css?v=20261121z20" />
   </head>
   <body>
     <!-- 老师登录界面 -->
@@ -320,8 +320,14 @@
             <div id="rankView" class="view-container" hidden>
               <section class="panel rank-panel" aria-labelledby="rankTitle">
                 <div class="panel-heading">
-                  <h2 id="rankTitle">战力排行榜</h2>
-                  <span class="panel-hint">按三种宠物战力总和排名</span>
+                  <h2 id="rankTitle">排行榜</h2>
+                  <span id="rankHint" class="panel-hint">按宠物战力总和排名</span>
+                </div>
+                <div class="rank-tabs">
+                  <button id="rankViewTabPower" class="rank-tab active" type="button">战力榜</button>
+                  <button id="rankViewTabExp" class="rank-tab" type="button">经验榜</button>
+                  <button id="rankViewTabWealth" class="rank-tab" type="button">财富榜</button>
+                  <button id="rankViewTabOutfit" class="rank-tab" type="button">时装榜</button>
                 </div>
                 <div id="rankContent" class="rank-content"></div>
               </section>
@@ -557,6 +563,8 @@
         <div class="rank-tabs">
           <button id="rankTabPower" class="rank-tab active" type="button">战力榜</button>
           <button id="rankTabExp" class="rank-tab" type="button">经验榜</button>
+          <button id="rankTabWealth" class="rank-tab" type="button">财富榜</button>
+          <button id="rankTabOutfit" class="rank-tab" type="button">时装榜</button>
         </div>
         <div id="rankList" class="rank-list"></div>
       </div>
@@ -672,8 +680,8 @@
       </div>
     </div>
 
-    <script src="./data/petConfig.js?v=20261121z18"></script>
-    <script src="./app.js?v=20261121z18"></script>
+    <script src="./data/petConfig.js?v=20261121z20"></script>
+    <script src="./app.js?v=20261121z20"></script>
 
   <!-- 新手引导：手指引导 + 功能卡 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
