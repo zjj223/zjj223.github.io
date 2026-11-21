@@ -4624,8 +4624,9 @@
     log.push(`野生的 ${wildPet.name}（Lv.${wildPet.level}）出现了！`);
 
     let playerFirst = playerSpd >= wildPet.speed;
+    // 30 回合上限：同级对打能正常分出胜负（20 回合太短，同级也会因为打不完判负）
     let round = 0;
-    while (playerHp > 0 && wildHp > 0 && round < 20) {
+    while (playerHp > 0 && wildHp > 0 && round < 30) {
       round += 1;
       if (playerFirst) {
         const dmg = Math.max(1, playerAtk - Math.floor(wildPet.defense * 0.5) + randomInt(-2, 2));
