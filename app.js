@@ -248,7 +248,139 @@
     { id: "ball6", name: "国王咕噜球", price: 120, catchRate: 0.50, color: "#ef5350", desc: "捕捉率50%" },
   ]);
 
-  // 计时器配置（2分钟）
+  // ===== 时装 / 形象 =====
+  // 每个场景对应一套形象，男女各一版。整套换图（不是换部件）
+  const OUTFIT_PRICE = 10000;      // 洛克贝兑换价
+  const OUTFIT_ITEM_NEED = 100;    // 或用该场景道具凑够 100 个
+  const OUTFITS = Object.freeze([
+    {
+      id: "starter", name: "新手装", tag: "初始形象",
+      sceneId: null, sceneName: "新手",
+      boy: "./assets/boxworld/trainer-boy-sprite.png",
+      girl: "./assets/boxworld/trainer-girl-sprite.png",
+      color: "#7c9fd4", free: true,
+      intro: "出生自带的探险服，免费永久拥有。",
+    },
+    {
+      id: "grass", name: "草原旅人", tag: "轻风草原",
+      sceneId: "grassland", sceneName: "轻风草原",
+      boy: "./assets/outfits/boy-grass.png",
+      girl: "./assets/outfits/girl-grass.png",
+      color: "#8bc34a",
+      intro: "草帽配四叶草徽章，风吹过草地的味道。",
+    },
+    {
+      id: "lava", name: "熔岩战甲", tag: "维苏威火山",
+      sceneId: "volcano", sceneName: "维苏威火山",
+      boy: "./assets/outfits/boy-lava.png",
+      girl: "./assets/outfits/girl-lava.png",
+      color: "#e64a19",
+      intro: "熔岩纹护甲配火焰披风，火山里最能打的一身。",
+    },
+    {
+      id: "sea", name: "人鱼之歌", tag: "人鱼湾",
+      sceneId: "mermaid-bay", sceneName: "人鱼湾",
+      boy: "./assets/outfits/boy-sea.png",
+      girl: "./assets/outfits/girl-sea.png",
+      color: "#29b6f6",
+      intro: "贝壳胸扣和浪花披风，走起来像踩着水。",
+    },
+    {
+      id: "academy", name: "皇家学者", tag: "皇家研究院",
+      sceneId: "academy", sceneName: "皇家研究院",
+      boy: "./assets/outfits/boy-academy.png",
+      girl: "./assets/outfits/girl-academy.png",
+      color: "#3949ab",
+      intro: "学士帽配金边长袍，一看就是读过很多书。",
+    },
+    {
+      id: "snow", name: "冰原守护", tag: "雪人谷",
+      sceneId: "snow-valley", sceneName: "雪人谷",
+      boy: "./assets/outfits/boy-snow.png",
+      girl: "./assets/outfits/girl-snow.png",
+      color: "#4fc3f7",
+      intro: "毛领大衣和冰晶护肩，站在雪里也不冷。",
+    },
+    {
+      id: "thunder", name: "雷霆机甲", tag: "雷鹗峡谷",
+      sceneId: "thunder-valley", sceneName: "雷鹗峡谷",
+      boy: "./assets/outfits/boy-thunder.png",
+      girl: "./assets/outfits/girl-thunder.png",
+      color: "#ffee58",
+      intro: "身上带电路光条，走到哪都噼里啪啦。",
+    },
+    {
+      id: "shadow", name: "幽影猎手", tag: "幽暗森林",
+      sceneId: "shadow-forest", sceneName: "幽暗森林",
+      boy: "./assets/outfits/boy-shadow.png",
+      girl: "./assets/outfits/girl-shadow.png",
+      color: "#7c4dff",
+      intro: "兜帽面罩加破边斗篷，安静得没有脚步声。",
+    },
+    {
+      id: "swamp", name: "沼泽巫医", tag: "幽影沼泽",
+      sceneId: "dark-swamp", sceneName: "幽影沼泽",
+      boy: "./assets/outfits/boy-swamp.png",
+      girl: "./assets/outfits/girl-swamp.png",
+      color: "#7cb342",
+      intro: "尖帽挂着小骨头，腰上一排药瓶。",
+    },
+    {
+      id: "dragon", name: "龙鳞勇者", tag: "龙之秘境",
+      sceneId: "dragon-realm", sceneName: "龙之秘境",
+      boy: "./assets/outfits/boy-dragon.png",
+      girl: "./assets/outfits/girl-dragon.png",
+      color: "#ff7043",
+      intro: "一整身龙鳞甲，背后是能看见骨架的龙翼。",
+    },
+    {
+      id: "starlight", name: "星辉礼服", tag: "天空之城",
+      sceneId: "sky-city", sceneName: "天空之城",
+      boy: "./assets/outfits/boy-starlight.png",
+      girl: "./assets/outfits/girl-starlight.png",
+      color: "#ffd54f",
+      intro: "星空披风配金边礼服，天空之城的庆典装。",
+    },
+  ]);
+
+  function findOutfit(outfitId) {
+    return OUTFITS.find((o) => o.id === outfitId) || OUTFITS[0];
+  }
+
+  // 当前穿着的立绘路径（性别决定取哪一版）
+  function outfitSrc(profile, outfitId) {
+    const outfit = findOutfit(outfitId || (profile && profile.outfit) || "starter");
+    return profile && profile.gender === "female" ? outfit.girl : outfit.boy;
+  }
+
+  function ownedOutfits(profile) {
+    if (!profile) return ["starter"];
+    if (!Array.isArray(profile.outfits) || !profile.outfits.length) return ["starter"];
+    return profile.outfits.includes("starter") ? profile.outfits : ["starter", ...profile.outfits];
+  }
+
+  // 该场景 4 种道具一共攒了多少个
+  function sceneItemTotal(profile, sceneId) {
+    const items = SCENE_ITEMS[sceneId] || [];
+    return items.reduce((sum, item) => sum + (Number(profile.inventory?.[item.id]) || 0), 0);
+  }
+
+  // 扣掉该场景 100 个道具（按道具顺序依次扣）
+  function consumeSceneItems(profile, sceneId, need) {
+    const items = SCENE_ITEMS[sceneId] || [];
+    let remain = need;
+    for (const item of items) {
+      if (remain <= 0) break;
+      const have = Number(profile.inventory?.[item.id]) || 0;
+      if (have <= 0) continue;
+      const take = Math.min(have, remain);
+      profile.inventory[item.id] = have - take;
+      if (profile.inventory[item.id] <= 0) delete profile.inventory[item.id];
+      remain -= take;
+    }
+    return remain <= 0;
+  }
+
   const TIMER_DURATION = 60; // 默认1分钟
 
   // 新手引导步骤
@@ -1273,6 +1405,8 @@
       balls: {},
       bondScenes: [],
       guideCompleted: false,
+      outfits: ["starter"],
+      outfit: "starter",
       compensationEligible: false,
       compensationClaimed: false,
       createdAt: now,
@@ -1804,6 +1938,13 @@
         ? clampInteger(profile.guideStage, 0, 3)
         : (profile?.guideCompleted ? 3 : 0),
       guideStepIndex: clampInteger(profile?.guideStepIndex, 0, 6),
+      // 时装：已拥有的套装 id 列表 + 当前穿着
+      outfits: Array.isArray(profile?.outfits)
+        ? Array.from(new Set(profile.outfits.filter((id) => typeof id === "string")))
+        : ["starter"],
+      outfit: typeof profile?.outfit === "string" && findOutfit(profile.outfit).id === profile.outfit
+        ? profile.outfit
+        : "starter",
     };
   }
 
@@ -1819,10 +1960,7 @@
     const avatar = document.createElement("img");
     avatar.className = "dock-profile-avatar";
     avatar.alt = "";
-    avatar.src =
-      profile.gender === "female"
-        ? "assets/boxworld/trainer-girl-sprite.png"
-        : "assets/boxworld/trainer-boy-sprite.png";
+    avatar.src = outfitSrc(profile);
     avatar.onerror = function () { avatar.style.visibility = "hidden"; };
     box.appendChild(avatar);
 
@@ -2194,6 +2332,8 @@
       balls: {},
       bondScenes: [],
       guideCompleted: false,
+      outfits: ["starter"],
+      outfit: "starter",
       compensationEligible: false,
       compensationClaimed: false,
       createdAt: now,
@@ -3662,9 +3802,8 @@
     const playerEl = document.createElement("div");
     playerEl.className = "map-player";
     playerEl.id = "mapPlayer";
-    const spriteName =
-      profile && profile.gender === "female" ? "trainer-girl-sprite.png" : "trainer-boy-sprite.png";
-    playerEl.innerHTML = `<img alt="" src="./assets/boxworld/${spriteName}">`;
+    const spriteSrc = outfitSrc(profile);
+    playerEl.innerHTML = `<img alt="" src="${spriteSrc}">`;
     playerEl.style.left = `${mapPlayerPos.x}%`;
     playerEl.style.top = `${mapPlayerPos.y}%`;
     cont.appendChild(playerEl);
@@ -3728,7 +3867,7 @@
     trainerEl.style.left = `${scenePlayerPos.x}%`;
     trainerEl.style.top = `${scenePlayerPos.y}%`;
     const trainerImg = document.createElement("img");
-    trainerImg.src = "assets/boxworld/trainer-boy-sprite.png";
+    trainerImg.src = outfitSrc(profile);
     trainerImg.alt = "";
     trainerEl.appendChild(trainerImg);
     stageEl.appendChild(trainerEl);
@@ -5061,16 +5200,71 @@
   }
 
   function buildRoleClothes() {
+    const profile = getActiveProfile();
     const wrap = document.createElement("div");
     wrap.className = "role-clothes";
-    const box = document.createElement("div");
-    box.className = "role-clothes-box";
-    box.innerHTML =
-      '<span class="role-clothes-emoji">👕</span>' +
-      '<p class="role-clothes-title">衣柜还没开张</p>' +
-      '<p class="role-clothes-sub">换装功能后续开放，先把各场景的道具收集齐吧。</p>';
-    wrap.appendChild(box);
+    if (!profile) return wrap;
+
+    const owned = ownedOutfits(profile);
+    const wearing = profile.outfit || "starter";
+    const head = document.createElement("div");
+    head.className = "role-clothes-head";
+    head.innerHTML = `<strong>我的衣柜</strong><span>共 ${OUTFITS.length} 套 · 已拥有 ${owned.length} 套</span>`;
+    wrap.appendChild(head);
+
+    const grid = document.createElement("div");
+    grid.className = "outfit-grid";
+    OUTFITS.forEach((outfit) => {
+      const hasIt = owned.includes(outfit.id);
+      const isOn = wearing === outfit.id;
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "outfit-card" + (isOn ? " is-wearing" : "") + (hasIt ? "" : " is-locked");
+      card.dataset.outfitId = outfit.id;
+
+      const thumb = document.createElement("img");
+      thumb.className = "outfit-thumb";
+      thumb.src = outfitSrc(profile, outfit.id);
+      thumb.alt = outfit.name;
+      thumb.style.setProperty("--outfit-color", outfit.color);
+
+      const name = document.createElement("span");
+      name.className = "outfit-name";
+      name.textContent = outfit.name;
+
+      const tag = document.createElement("span");
+      tag.className = "outfit-tag";
+      tag.textContent = isOn ? "穿着中" : hasIt ? outfit.tag : "未拥有";
+
+      card.append(thumb, name, tag);
+      card.addEventListener("click", () => handleOutfitCardClick(outfit));
+      grid.appendChild(card);
+    });
+    wrap.appendChild(grid);
+
+    const note = document.createElement("p");
+    note.className = "role-clothes-note";
+    note.textContent = "点已拥有的衣服直接换；没有的衣服去商店的「时装」页，用 10000 洛克贝或该场景 100 个道具解锁。";
+    wrap.appendChild(note);
     return wrap;
+  }
+
+  function handleOutfitCardClick(outfit) {
+    const profile = getActiveProfile();
+    if (!profile || !outfit) return;
+    if (!ownedOutfits(profile).includes(outfit.id)) {
+      const roleModal = document.getElementById("roleModal");
+      const storeModal = document.getElementById("storeModal");
+      if (roleModal) roleModal.hidden = true;
+      renderStore("fashion");
+      if (storeModal) storeModal.hidden = false;
+      return;
+    }
+    if ((profile.outfit || "starter") === outfit.id) return;
+    profile.outfit = outfit.id;
+    saveState("已换装");
+    renderRoleModal();
+    render();
   }
 
   function renderRoleModal() {
@@ -5088,13 +5282,13 @@
       return;
     }
     if (img) {
-      img.src =
-        profile.gender === "female"
-          ? "./assets/boxworld/trainer-girl-sprite.png"
-          : "./assets/boxworld/trainer-boy-sprite.png";
+      img.src = outfitSrc(profile);
       img.alt = profile.name || "训练师";
     }
     if (nameEl) nameEl.textContent = profile.name || "训练师";
+    // 衣服页需要更多横向空间，立绘栏自动收窄
+    const layout = document.querySelector("#roleModal .role-layout");
+    if (layout) layout.classList.toggle("is-clothes", roleModalTab === "clothes");
     area.replaceChildren();
     if (roleModalTab === "items") {
       area.appendChild(buildRoleItems(profile));
@@ -6378,38 +6572,134 @@
     }
   }
 
-  // 时装商店（暂时只放展示位，暂不开放购买）
+  // 时装商店：每个场景一套形象，两种解锁方式
   function renderFashionStore(profile, container) {
     if (!container) return;
+    const owned = ownedOutfits(profile);
     const header = document.createElement("div");
     header.className = "shop-header";
-    header.innerHTML = `<h3>时装</h3><p>当前洛克贝: <strong>${profile.rockbell}</strong></p>`;
+    header.innerHTML = `<h3>时装</h3><p>每个场景一套形象，男女各一版。两选一解锁：${OUTFIT_PRICE} 洛克贝，或该场景道具攒够 ${OUTFIT_ITEM_NEED} 个。</p><p>当前洛克贝: <strong>${profile.rockbell}</strong></p>`;
     container.appendChild(header);
 
     const grid = document.createElement("div");
     grid.className = "fashion-shop-grid";
-    const placeholder = ["草帽", "围巾", "披风", "眼镜"];
-    placeholder.forEach((name) => {
+    OUTFITS.forEach((outfit) => {
+      const hasIt = owned.includes(outfit.id);
       const card = document.createElement("div");
-      card.className = "fashion-shop-card is-locked";
+      card.className = "fashion-shop-card" + (hasIt ? " is-owned" : "");
+      card.style.setProperty("--outfit-color", outfit.color);
+
       const icon = document.createElement("div");
       icon.className = "fashion-shop-icon";
-      icon.textContent = "👕";
+      const img = document.createElement("img");
+      img.src = outfitSrc(profile, outfit.id);
+      img.alt = outfit.name;
+      icon.appendChild(img);
+
       const label = document.createElement("div");
       label.className = "fashion-shop-name";
-      label.textContent = name;
+      label.textContent = outfit.name;
+
       const tag = document.createElement("div");
       tag.className = "fashion-shop-tag";
-      tag.textContent = "暂未开放";
+      tag.textContent = outfit.tag;
+
       card.append(icon, label, tag);
+
+      const intro = document.createElement("p");
+      intro.className = "fashion-shop-intro";
+      intro.textContent = outfit.intro;
+      card.appendChild(intro);
+
+      if (!hasIt) {
+        const btns = document.createElement("div");
+        btns.className = "fashion-shop-btns";
+
+        const bellBtn = document.createElement("button");
+        bellBtn.type = "button";
+        bellBtn.className = "fashion-buy-bell";
+        bellBtn.textContent = `${OUTFIT_PRICE} 洛克贝`;
+        bellBtn.disabled = Number(profile.rockbell) < OUTFIT_PRICE;
+        bellBtn.addEventListener("click", () => unlockOutfitByRockbell(outfit));
+
+        const itemBtn = document.createElement("button");
+        itemBtn.type = "button";
+        itemBtn.className = "fashion-buy-item";
+        const have = outfit.sceneId ? sceneItemTotal(profile, outfit.sceneId) : 0;
+        itemBtn.textContent = outfit.sceneId
+          ? `道具 ${Math.min(have, OUTFIT_ITEM_NEED)}/${OUTFIT_ITEM_NEED}`
+          : `道具 0/${OUTFIT_ITEM_NEED}`;
+        itemBtn.disabled = !outfit.sceneId || have < OUTFIT_ITEM_NEED;
+        itemBtn.addEventListener("click", () => unlockOutfitByItems(outfit));
+
+        btns.append(bellBtn, itemBtn);
+        card.appendChild(btns);
+      } else {
+        const wearing = (profile.outfit || "starter") === outfit.id;
+        const wearBtn = document.createElement("button");
+        wearBtn.type = "button";
+        wearBtn.className = "fashion-wear-btn" + (wearing ? " is-on" : "");
+        wearBtn.textContent = wearing ? "正在穿着" : "穿上";
+        wearBtn.disabled = wearing;
+        wearBtn.addEventListener("click", () => wearOutfitFromStore(outfit.id));
+        card.appendChild(wearBtn);
+      }
+
       grid.appendChild(card);
     });
     container.appendChild(grid);
+  }
 
-    const note = document.createElement("p");
-    note.className = "shop-note";
-    note.textContent = "时装系统正在筹备，上线后可以直接用洛克贝购买和穿戴。";
-    container.appendChild(note);
+  function unlockOutfit(outfit) {
+    const profile = getActiveProfile();
+    if (!profile || !outfit) return;
+    const owned = ownedOutfits(profile);
+    if (owned.includes(outfit.id)) return;
+    profile.outfits = [...owned, outfit.id];
+    profile.outfit = outfit.id;
+    saveState("已解锁并换上");
+    renderStore("fashion");
+    render();
+    const body = document.getElementById("storeModalBody");
+    if (body) {
+      const tip = document.createElement("p");
+      tip.className = "shop-note";
+      tip.textContent = `已解锁「${outfit.name}」并直接穿上。`;
+      body.insertBefore(tip, body.firstChild ? body.firstChild.nextSibling : null);
+    }
+  }
+
+  function unlockOutfitByRockbell(outfit) {
+    const profile = getActiveProfile();
+    if (!profile || !outfit) return;
+    if (Number(profile.rockbell) < OUTFIT_PRICE) {
+      alert(`洛克贝不够，还差 ${OUTFIT_PRICE - Number(profile.rockbell)} 个。`);
+      return;
+    }
+    profile.rockbell -= OUTFIT_PRICE;
+    unlockOutfit(outfit);
+  }
+
+  function unlockOutfitByItems(outfit) {
+    const profile = getActiveProfile();
+    if (!profile || !outfit || !outfit.sceneId) return;
+    const have = sceneItemTotal(profile, outfit.sceneId);
+    if (have < OUTFIT_ITEM_NEED) {
+      alert(`「${outfit.sceneName}」的道具还差 ${OUTFIT_ITEM_NEED - have} 个。`);
+      return;
+    }
+    consumeSceneItems(profile, outfit.sceneId, OUTFIT_ITEM_NEED);
+    unlockOutfit(outfit);
+  }
+
+  function wearOutfitFromStore(outfitId) {
+    const profile = getActiveProfile();
+    if (!profile) return;
+    if (!ownedOutfits(profile).includes(outfitId)) return;
+    profile.outfit = outfitId;
+    saveState("已换装");
+    renderStore("fashion");
+    render();
   }
 
   function buyBall(ballId) {
