@@ -9003,3 +9003,72 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
   gap: 6px !important;
   width: 100% !important;
 }
+/* ===== 多人可见 · 同伴图层 ===== */
+.peer-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.peer-avatar {
+  position: absolute;
+  height: 20%;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  transition: left 0.3s linear, top 0.3s linear;
+  will-change: left, top;
+}
+
+.peer-avatar.is-map {
+  height: 78px;
+  width: 46px;
+}
+
+.peer-avatar.is-teleport {
+  transition: none;
+}
+
+.peer-avatar.is-leaving {
+  opacity: 0.4;
+  transition: opacity 0.2s linear;
+}
+
+.peer-avatar .peer-sprite {
+  height: 100%;
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 5px 7px rgba(0, 0, 0, 0.32));
+}
+
+.peer-avatar.is-map .peer-sprite {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.peer-avatar .peer-pet {
+  position: absolute;
+  height: 34%;
+  left: -30%;
+  top: 60%;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.28));
+}
+
+.peer-name {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  margin-bottom: 2px;
+  padding: 1px 7px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #fff7e2;
+  background: rgba(46, 32, 18, 0.82);
+  border: 1px solid rgba(255, 232, 190, 0.55);
+  border-radius: 6px;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
