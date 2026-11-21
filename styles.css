@@ -8812,3 +8812,23 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
 .teacher-item-row {
   min-width: 0;
 }
+/* ---- 市场：卖家自己定价 ---- */
+.sell-card { cursor: pointer; }
+.sell-card.is-editing { cursor: default; }
+.sell-price-form { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 4px 2px; }
+.sell-price-title { font-size: 13px; color: #3f2f1c; }
+.sell-price-tip { font-size: 11px; color: #8a7452; }
+.sell-price-row { display: flex; gap: 6px; align-items: center; }
+.sell-price-input {
+  width: 92px; padding: 6px 8px; font-size: 15px; color: #3f2f1c;
+  border: 2px solid #e6d9bd; border-radius: 8px; background: #fff;
+}
+.sell-price-ok {
+  padding: 6px 12px; font-size: 13px; font-weight: 800; color: #fff;
+  background: #f0a832; border: none; border-radius: 8px;
+  box-shadow: 0 3px 0 #cf8a1c; cursor: pointer;
+}
+.sell-price-cancel {
+  padding: 6px 10px; font-size: 13px; color: #7a6a50;
+  background: #f3ede0; border: 2px solid #e0d8c6; border-radius: 8px; cursor: pointer;
+}
