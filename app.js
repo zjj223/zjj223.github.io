@@ -1017,18 +1017,7 @@
       els.loginView.classList.remove("hidden");
     }
     // 本地双击打开（老师备课）默认进老师入口；线上默认学生登录
-    if (location.protocol === "file:") {
-      const loginModeButtons = document.querySelectorAll("[data-login-mode]");
-      loginModeButtons.forEach((btn) => {
-        btn.classList.toggle("is-active", btn.dataset.loginMode === "teacher");
-      });
-      if (els.loginForm) {
-        els.loginForm.hidden = false;
-      }
-      if (els.studentLoginForm) {
-        els.studentLoginForm.hidden = true;
-      }
-    }
+    setLoginMode(location.protocol === "file:" ? "teacher" : "student");
   }
 
   // 老师登录：进后台，并把云端全班数据拉下来（拉不到就继续用本地）
@@ -1064,6 +1053,8 @@
       }
     }
     els.loginView.classList.add("hidden");
+    const backHomeBtn = document.getElementById("btnBackHome");
+    if (backHomeBtn) backHomeBtn.hidden = true;
     // 老师模式：只显示后台名单，不显示地图与其它面板
     document.body.classList.add("is-teacher-mode");
     // 老师端：恢复三栏桌面布局
@@ -1153,34 +1144,8 @@
       } catch (err) {
         console.warn("写本地缓存失败", err);
       }
-      els.loginView.classList.add("hidden");
-      // 学生端切换为桌面宽屏：单列外壳 + 内部"宠物侧栏 / 主区"
-      const studentGrid = document.querySelector(".app-grid");
-      if (studentGrid) {
-        studentGrid.classList.add("is-student");
-      }
-      setSaveStatus("云端存档已加载");
-      // 学生端只有一个角色，隐藏"角色存档/新建角色"面板
-      const studentPanel = document.querySelector(".profile-panel");
-      if (studentPanel) {
-        studentPanel.hidden = true;
-      }
-      // 学生端不显示课堂计时器（这是老师控场的工具）
-      const studentTimer = document.querySelector(".timer-panel");
-      if (studentTimer) {
-        studentTimer.style.display = "none";
-        if (timerInterval) {
-          clearInterval(timerInterval);
-          timerInterval = null;
-        }
-      }
-      // 学生端不显示老师后台
-      const studentTeacherBox = document.querySelector(".teacher-panel");
-      if (studentTeacherBox) {
-        studentTeacherBox.style.display = "none";
-      }
-      setupZoneLayout();
-      render();
+      // 登录成功后先停在「开始游戏 / 学习台」选择页，点开始游戏才真正进游戏
+      showStudentLanding(profile.name);
     } catch (err) {
       console.error("学生登录失败", err);
       showStudentError("连不上云端，检查网络后再试");
@@ -2453,33 +2418,139 @@
     els.sceneInventory = document.getElementById("sceneInventory");
   }
 
+  // ===== 登录外壳：学生 / 家长 / 老师三个入口，学生多一层「开始游戏 / 学习台」选择页 =====
+  function setLoginMode(mode) {
+    document.querySelectorAll("[data-login-mode]").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.dataset.loginMode === mode);
+    });
+    const studentForm = document.getElementById("studentLoginForm");
+    const parentForm = document.getElementById("parentLoginForm");
+    const teacherForm = document.getElementById("loginForm");
+    const landing = document.getElementById("studentLanding");
+    // 三个表单同一时间只放一个，切换时落地页和所有提示一起复位
+    if (studentForm) studentForm.hidden = mode !== "student";
+    if (parentForm) parentForm.hidden = mode !== "parent";
+    if (teacherForm) teacherForm.hidden = mode !== "teacher";
+    if (landing) landing.hidden = true;
+    ["studentLoginError", "loginError", "parentNotice", "landingNotice"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
+  }
+
+  // 学生登录成功：不直接进游戏，先给一个选择页
+  function showStudentLanding(name) {
+    const landing = document.getElementById("studentLanding");
+    const tabs = document.querySelector(".login-tabs");
+    if (!landing) return;
+    if (tabs) tabs.hidden = true;
+    ["studentLoginForm", "parentLoginForm", "loginForm", "studentLoginError", "parentNotice", "landingNotice"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
+    document.getElementById("landingHello").textContent = `你好，${name}`;
+    landing.hidden = false;
+    els.loginView.classList.remove("hidden");
+  }
+
+  function showLandingNotice(text) {
+    const el = document.getElementById("landingNotice");
+    if (!el) return;
+    el.textContent = text;
+    el.hidden = false;
+    clearTimeout(showLandingNotice._t);
+    showLandingNotice._t = setTimeout(() => {
+      el.hidden = true;
+    }, 3000);
+  }
+
+  // 真正进游戏：原先写在学生登录成功那一段，原样搬出来，点「开始游戏」才执行
+  function enterGame() {
+    els.loginView.classList.add("hidden");
+    const backHomeBtn = document.getElementById("btnBackHome");
+    if (backHomeBtn) backHomeBtn.hidden = false;
+    // 学生端切换为桌面宽屏：单列外壳 + 内部"宠物侧栏 / 主区"
+    const studentGrid = document.querySelector(".app-grid");
+    if (studentGrid) {
+      studentGrid.classList.add("is-student");
+    }
+    setSaveStatus("云端存档已加载");
+    // 学生端只有一个角色，隐藏"角色存档/新建角色"面板
+    const studentPanel = document.querySelector(".profile-panel");
+    if (studentPanel) {
+      studentPanel.hidden = true;
+    }
+    // 学生端不显示课堂计时器（这是老师控场的工具）
+    const studentTimer = document.querySelector(".timer-panel");
+    if (studentTimer) {
+      studentTimer.style.display = "none";
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+    // 学生端不显示老师后台
+    const studentTeacherBox = document.querySelector(".teacher-panel");
+    if (studentTeacherBox) {
+      studentTeacherBox.style.display = "none";
+    }
+    setupZoneLayout();
+    render();
+  }
+
+  // 游戏顶栏「🏠 学习台」：只是把全屏选择页盖回去，不重新鉴权、不重读云端、不动 state
+  function reopenHome() {
+    const tabs = document.querySelector(".login-tabs");
+    if (tabs) tabs.hidden = true;
+    ["studentLoginForm", "studentLoginError", "parentNotice", "landingNotice", "parentLoginForm", "loginForm"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
+    const landing = document.getElementById("studentLanding");
+    if (landing) landing.hidden = false;
+    els.loginView.classList.remove("hidden");
+  }
+
+  // 家长端这一版只是界面占位：不查云端、不发请求、不碰存档
+  function handleParentLogin(event) {
+    event.preventDefault();
+    const child = (document.getElementById("parentChildName").value || "").trim();
+    const code = (document.getElementById("parentBindCode").value || "").trim();
+    const notice = document.getElementById("parentNotice");
+    if (!notice) return;
+    notice.textContent = !child || !code ? "请先填写孩子名字和绑定码" : "家长端暂未开放";
+    notice.hidden = false;
+  }
+
+  // 切换账号：重载回登录页，顺手把本地缓存落一次，避免刚打的几秒进度丢在内存里
+  function switchAccount() {
+    try {
+      localStorage.setItem(activeStorageKey, JSON.stringify(state));
+    } catch (err) {
+      /* 忽略 */
+    }
+    location.reload();
+  }
+
   function bindEvents() {
     els.loginForm.addEventListener("submit", handleLogin);
     if (els.studentLoginForm) {
       els.studentLoginForm.addEventListener("submit", handleStudentLogin);
     }
-    // 学生 / 老师两个入口来回切
-    const loginModeButtons = document.querySelectorAll("[data-login-mode]");
-    loginModeButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const mode = btn.dataset.loginMode;
-        loginModeButtons.forEach((other) => {
-          other.classList.toggle("is-active", other === btn);
-        });
-        if (els.studentLoginForm) {
-          els.studentLoginForm.hidden = mode !== "student";
-        }
-        if (els.studentLoginError) {
-          els.studentLoginError.hidden = true;
-        }
-        if (els.loginForm) {
-          els.loginForm.hidden = mode !== "teacher";
-        }
-        if (els.loginError) {
-          els.loginError.hidden = true;
-        }
-      });
+    // 学生 / 家长 / 老师三个入口来回切，统一走 setLoginMode，保证只露一个表单
+    document.querySelectorAll("[data-login-mode]").forEach((btn) => {
+      btn.addEventListener("click", () => setLoginMode(btn.dataset.loginMode));
     });
+    const parentForm = document.getElementById("parentLoginForm");
+    if (parentForm) parentForm.addEventListener("submit", handleParentLogin);
+    const startGameBtn = document.getElementById("btnStartGame");
+    if (startGameBtn) startGameBtn.addEventListener("click", enterGame);
+    const studyRoomBtn = document.getElementById("btnStudyRoom");
+    if (studyRoomBtn) studyRoomBtn.addEventListener("click", () => showLandingNotice("学生端暂未开放"));
+    const switchAccountBtn = document.getElementById("btnSwitchAccount");
+    if (switchAccountBtn) switchAccountBtn.addEventListener("click", switchAccount);
+    const backHomeBtn = document.getElementById("btnBackHome");
+    if (backHomeBtn) backHomeBtn.addEventListener("click", reopenHome);
     els.rankClose?.addEventListener("click", () => { els.rankModal.hidden = true; });
     els.rankTabPower?.addEventListener("click", () => showRank("power"));
    els.rankTabWealth?.addEventListener("click", () => showRank("wealth"));
