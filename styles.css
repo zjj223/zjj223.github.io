@@ -7056,6 +7056,129 @@ body {
   text-overflow: ellipsis;
 }
 
+/* ---- 角色页两个"一次性"操作：性别互换 / 改密码 ---- */
+.role-info-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.role-actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.role-actions.is-editing {
+  flex-direction: column;
+}
+
+.role-actions.is-editing .role-action-btn {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.role-pass-area {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+}
+
+.role-pass-area .role-action-btn {
+  width: 100%;
+}
+
+.role-actions.is-editing .role-pass-area {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.role-action-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #4a3a22;
+  background: #fdf3d6;
+  border: 2px solid #e9d7ac;
+  border-radius: 10px;
+  box-shadow: 0 3px 0 #e2cf9f;
+  cursor: pointer;
+  text-align: center;
+}
+
+.role-action-btn:hover:not(:disabled) {
+  background: #fbeabb;
+}
+
+.role-action-btn:disabled,
+.role-action-btn.is-used {
+  color: #9c8a6c;
+  background: #f3ede0;
+  border-color: #e0d8c6;
+  box-shadow: none;
+  cursor: default;
+}
+
+.role-pass-editor {
+  margin: 0;
+}
+
+.role-pass-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: #fffdf5;
+  border: 2px solid #e9d7ac;
+  border-radius: 10px;
+}
+
+.role-pass-tip {
+  font-size: 12px;
+  color: #8a7452;
+}
+
+.role-pass-line {
+  display: flex;
+  gap: 6px;
+}
+
+.role-pass-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  font-size: 15px;
+  color: #3f2f1c;
+  background: #fff;
+  border: 2px solid #e6d9bd;
+  border-radius: 8px;
+}
+
+.role-pass-ok {
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  background: #f0a832;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 3px 0 #cf8a1c;
+  cursor: pointer;
+}
+
+.role-pass-cancel {
+  padding: 7px 10px;
+  font-size: 13px;
+  color: #7a6a50;
+  background: #f3ede0;
+  border: 2px solid #e0d8c6;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 /* ---- 道具页 ---- */
 .role-items-wrap {
   display: flex;
