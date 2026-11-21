@@ -2202,6 +2202,21 @@
     return total;
   }
 
+  // 点赞拿到洛克贝时，中间弹一下"恭喜获得"，1 秒后自己淡出
+  function showCoinGain(amount, total) {
+    document.querySelectorAll(".coin-gain").forEach(function (n) { n.remove(); });
+    const box = document.createElement("div");
+    box.className = "coin-gain";
+    box.innerHTML =
+      '<div class="coin-gain-title">🎉 恭喜获得</div>' +
+      '<div class="coin-gain-amount">+' + amount + ' 洛克贝</div>' +
+      '<div class="coin-gain-total">当前 ' + total + ' 个</div>';
+    document.body.appendChild(box);
+    setTimeout(function () {
+      box.classList.add("is-out");
+      setTimeout(function () { box.remove(); }, 300);
+    }, 1000);
+  }
   // 点赞：给被赞的同学 +1 赞，给点赞的人 +5 洛克贝，每人每榜每天最多 3 次
   async function likeRankEntry(targetName, type, btn) {
     const me = getActiveProfile();
@@ -2227,6 +2242,7 @@
     me.likesSent[targetName] = (Number(me.likesSent[targetName]) || 0) + 1;
     me.rockbell = (Number(me.rockbell) || 0) + LIKE_REWARD;
     saveState(`给 ${targetName} 点了赞`);
+    showCoinGain(LIKE_REWARD, me.rockbell);
 
     setResult(`👍 给 ${targetName} 点赞成功，你获得 ${LIKE_REWARD} 洛克贝。`, false);
 
