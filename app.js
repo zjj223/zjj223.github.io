@@ -5522,7 +5522,6 @@
     const powerEl = document.getElementById("powerValue");
     const rows = [
       ["姓名", profile.name || "—"],
-      ["账号", profile.name || "—"],
       ["密码", profile.pass || "—"],
       ["称号", roleTitleOf(profile)],
       ["等级", "Lv." + (profile.level || 1)],
@@ -5563,7 +5562,7 @@
     swapBtn.className = "role-action-btn" + (profile.genderSwapUsed ? " is-used" : "");
     swapBtn.textContent = profile.genderSwapUsed
       ? "性别已换过"
-      : "🔄 换成" + (profile.gender === "female" ? "男生" : "女生") + "形象";
+      : "换" + (profile.gender === "female" ? "男生" : "女生");
     swapBtn.disabled = Boolean(profile.genderSwapUsed);
     swapBtn.addEventListener("click", () => {
       const p = getActiveProfile();
@@ -5589,7 +5588,7 @@
     passBtn.type = "button";
     passBtn.id = "rolePassBtn";
     passBtn.className = "role-action-btn" + (profile.passChangeUsed ? " is-used" : "");
-    passBtn.textContent = profile.passChangeUsed ? "密码已改过" : "🔑 修改登录密码";
+    passBtn.textContent = profile.passChangeUsed ? "密码已改过" : "改密码";
     passBtn.disabled = Boolean(profile.passChangeUsed);
 
     const editor = document.createElement("div");
