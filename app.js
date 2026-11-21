@@ -1666,6 +1666,7 @@
       if (el) el.classList.toggle("active", k === key);
     });
     els.rankModal.hidden = false;
+    if (els.rankList) els.rankList.scrollTop = 0; // 每次都从第一名看起
     // 有缓存就先秒出，避免每切一个榜都闪一下"读取中"
     if (rankCache) {
       renderRankList(els.rankList, buildRankRows(rankCache, key), key);
