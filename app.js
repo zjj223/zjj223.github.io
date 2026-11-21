@@ -1193,10 +1193,18 @@
   // ===== 多人可见（Phase 0）：同场景互相看见，位置不落库，断网自动退回单人模式 =====
   const PEERS_ENABLED = true;
   const ROOM_PREFIX = "carlosia:room:";
+  // 场景里一个班分散在多个场景，单场景人多也就 15 人，800ms 够顺滑；
+  // 大世界是全班共用的一个频道，50 人同时走动时 800ms 会把额度打满，放宽到 2 秒。
   const PEER_SEND_MIN_INTERVAL = 800;
+  const PEER_WORLD_SEND_MIN_INTERVAL = 2000;
   const PEER_STALE_MS = 12000;
   const PEER_MAX = 20;
+  // 大世界是全班一个房间：只显示 20 人会让后进班的同学"看不见同学"，
+  // 而多渲染几十个小人几乎不花钱（46×78 的 DOM 节点 + 2 秒一次位移），所以大世界放到 50。
+  const PEER_WORLD_MAX = 50;
   const PEER_HEARTBEAT_MS = 5000;
+  // 同伴头顶不显示真名，避免全班互相看到姓名；改成 赵*杰 这种掩码
+  const PEER_MASK_NAME = true;
 
   const peerState = {
     client: null,
@@ -1268,6 +1276,19 @@
     return [((offX + nx * dw) / cw) * 100, ((offY + ny * dh) / ch) * 100];
   }
 
+  // 显示用名字：赵俊杰 -> 赵*杰，欧阳娜娜 -> 欧**娜，单字 -> 赵*
+  function maskPeerName(raw) {
+    const chars = Array.from(String(raw == null ? "" : raw).trim());
+    if (!chars.length) return "同学";
+    if (chars.length <= 2) return chars[0] + "*";
+    return chars[0] + "*".repeat(chars.length - 2) + chars[chars.length - 1];
+  }
+
+  function peerDisplayName(profile) {
+    const raw = profile && profile.name ? profile.name : "";
+    return PEER_MASK_NAME ? maskPeerName(raw) : raw || "同学";
+  }
+
   function peerPayload() {
     const p = peerProfile();
     if (!p) return null;
@@ -1287,7 +1308,7 @@
     return {
       v: 1,
       k: peerState.selfKey || "",
-      name: p.name,
+      name: peerDisplayName(p),
       gender: p.gender || "male",
       outfit: p.outfit || "starter",
       pet: (p.pet && p.pet.image) || null,
@@ -1440,7 +1461,9 @@
     if (peerState.runtimeOff || !peerState.channel || !peerState.roomId) return;
     if (document.hidden && !force) return;
     const now = Date.now();
-    if (!force && now - peerState.lastSendAt < PEER_SEND_MIN_INTERVAL) return;
+    const minInterval =
+      currentView === "world" ? PEER_WORLD_SEND_MIN_INTERVAL : PEER_SEND_MIN_INTERVAL;
+    if (!force && now - peerState.lastSendAt < minInterval) return;
     const targetRoom = currentView === "scene"
       ? selectedSceneId
       : currentView === "world"
@@ -1468,8 +1491,9 @@
           removePeer(key);
         }
       });
-      trackSelf();
-      sendPeerPos(true);
+      // 走动时位置广播本身就证明"我还在"；只有停步超过一个心跳周期才补发一次。
+      // 以前每 5 秒无条件 track + 发位置，会让每个客户端多出一倍的固定消息量。
+      if (now - peerState.lastSendAt >= PEER_HEARTBEAT_MS) sendPeerPos(true);
     }, PEER_HEARTBEAT_MS);
   }
 
@@ -1484,7 +1508,8 @@
     if (!payload || payload.v !== 1) return;
     if (!payload.k || payload.k === peerState.selfKey) return;
     if (typeof payload.x !== "number" || typeof payload.y !== "number") return;
-    if (!peerState.peers.has(payload.k) && peerState.peers.size >= PEER_MAX) return;
+    const peerCap = peerState.roomId === "world" ? PEER_WORLD_MAX : PEER_MAX;
+    if (!peerState.peers.has(payload.k) && peerState.peers.size >= peerCap) return;
     const peer = peerState.peers.get(payload.k) || { key: payload.k, name: "同学", el: null };
     if (payload.name) peer.name = payload.name;
     if (payload.gender) peer.gender = payload.gender;
