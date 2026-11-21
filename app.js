@@ -47,7 +47,8 @@
     const opts = options || {};
     // 加超时：网络卡住时不要让孩子一直看到"上架中…"这种 loading
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const timer = controller ? setTimeout(() => controller.abort(), 8000) : null;
+    const timeoutMs = Number(opts.timeout) || 8000;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
     try {
       const res = await fetch(`${CLOUD_CONFIG.url}/rest/v1/${path}`, {
         method: opts.method || "GET",
@@ -80,7 +81,7 @@
   }
 
   function cloudGetAllStudents() {
-    return cloudRequest(`${CLOUD_TABLE}?select=name,pass,save,updated_at&order=updated_at.desc`);
+    return cloudRequest(`${CLOUD_TABLE}?select=name,pass,save,updated_at&order=updated_at.desc`, { timeout: 25000 });
   }
 
   function cloudUpsertStudent(name, pass, save) {
@@ -1459,22 +1460,52 @@
       passChangeUsed: false,
       // 老师用第二密码进入过几次（1 次 = 扣 2 洛克贝，10 次封顶 1024）
       secondPassUses: 0,
+      // 点赞：今天每个榜点过几次 / 我赞过谁几次 / 收到过多少赞
+      likesGiven: null,
+      likesSent: {},
+      likedCount: 0,
       compensationEligible: false,
       compensationClaimed: false,
       createdAt: now,
     };
   }
 
-  // ===== 排行榜：战力 / 经验 / 财富 / 时装 =====
+  // ===== 排行榜：战力 / 财富 / 时装 + 点赞 =====
   const RANK_META = {
-    power: { title: "战力榜", hint: "按宠物战力总和排名" },
-    exp: { title: "经验榜", hint: "按累计经验排名" },
-    wealth: { title: "财富榜", hint: "按洛克贝余额排名" },
-    outfit: { title: "时装榜", hint: "按已拥有的时装套数排名" },
+    power: { title: "战力榜", hint: "按宠物战力总和排名，点赞每次 +5 洛克贝" },
+    wealth: { title: "财富榜", hint: "按洛克贝余额排名，点赞每次 +5 洛克贝" },
+    outfit: { title: "时装榜", hint: "按已拥有的时装套数排名，点赞每次 +5 洛克贝" },
   };
+  const LIKE_PER_DAY = 3; // 每人每天每个榜单 3 次
+  const LIKE_REWARD = 5; // 每次点赞给点赞的人 +5 洛克贝
+
+  function dayKeyOf(date) {
+    const d = date || new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  // 今日点赞额度：{ day, power, wealth, outfit }，跨天自动重置
+  function getLikeQuota(profile) {
+    const day = dayKeyOf();
+    const q = profile.likesGiven;
+    if (!q || q.day !== day) {
+      profile.likesGiven = { day, power: 0, wealth: 0, outfit: 0 };
+    }
+    return profile.likesGiven;
+  }
+
+  function likeLeftOf(profile, type) {
+    if (!profile) return 0;
+    const day = dayKeyOf();
+    const q = profile.likesGiven;
+    if (!q || q.day !== day) return LIKE_PER_DAY;
+    return Math.max(0, LIKE_PER_DAY - (q[type] || 0));
+  }
 
   let rankCache = null;
   let rankCacheAt = 0;
+  let rankLoadError = false;
   let rankRenderToken = 0;
   // 演练账号（老师自己建的测试号）不参与全班榜单，免得挡住真学生
   const RANK_HIDDEN_PATTERN = /测试|引导|demo|test/i;
@@ -1483,22 +1514,33 @@
   async function loadRankProfiles(force) {
     const now = Date.now();
     if (!force && rankCache && now - rankCacheAt < 60000) return rankCache;
-    let list = state.profiles.slice();
+    let list = Array.isArray(state.profiles) ? state.profiles.slice() : [];
+    let fresh = !CLOUD_ENABLED; // 没开云端时本地数据就是唯一真相，可以缓存
+    rankLoadError = false;
+
     if (CLOUD_ENABLED) {
       try {
         const rows = await cloudGetAllStudents();
-        if (Array.isArray(rows) && rows.length) list = rows.map((row) => profileFromCloud(row));
+        if (Array.isArray(rows) && rows.length) {
+          list = rows.map((row) => profileFromCloud(row));
+          fresh = true;
+        }
       } catch (error) {
+        rankLoadError = true;
         console.warn("读取云端排行榜失败（先显示本地数据）", error);
       }
     }
-    rankCache = list.filter((p) => p && p.name && !RANK_HIDDEN_PATTERN.test(p.name));
-    rankCacheAt = now;
+    rankCache = list.filter((p) => p && p.name);
+    // 拉失败就不要缓存，不然这一分钟里每次切榜都只会看到"暂无数据"
+    rankCacheAt = fresh ? now : 0;
     return rankCache;
   }
 
   function buildRankRows(list, type) {
-    const rows = list.map((p) => {
+    const all = list || [];
+    // 演练账号不上榜，但他们点的赞照样算数
+    const visible = all.filter((p) => p && p.name && !RANK_HIDDEN_PATTERN.test(p.name));
+    const rows = visible.map((p) => {
       const pets = (Array.isArray(p.pets) ? p.pets : []).filter((pet) => pet && pet.level);
       const ownOutfits = Array.isArray(p.outfits) ? p.outfits.filter(Boolean) : [];
       return {
@@ -1506,15 +1548,15 @@
         petCount: pets.length,
         power: pets.reduce((sum, pet) => sum + getPetPower(pet), 0),
         maxLevel: pets.length ? Math.max(...pets.map((pet) => pet.level)) : 0,
-        exp: Math.max(0, Number(p.exp) || 0),
         rockbell: Math.max(0, Number(p.rockbell) || 0),
         // 人人都有新手装，老账号存档里没有 outfits 字段时按 1 套算
         outfits: ownOutfits.length || 1,
+        // 被赞次数：全班点赞记录汇总（含不上榜的演练账号）
+        likedCount: sumLikesFor(all, p.name),
       };
     });
     const sorters = {
       power: (a, b) => b.power - a.power,
-      exp: (a, b) => b.exp - a.exp,
       wealth: (a, b) => b.rockbell - a.rockbell,
       outfit: (a, b) => b.outfits - a.outfits,
     };
@@ -1524,19 +1566,17 @@
   function rankSubText(row, type) {
     if (type === "power")
       return row.petCount ? `${row.petCount}只宠物 · 最高Lv.${row.maxLevel}` : "还没有宠物";
-    if (type === "exp") return row.maxLevel ? `最高Lv.${row.maxLevel}` : "还没孵出宠物";
     if (type === "wealth") return "洛克贝余额";
     return "已解锁时装";
   }
 
   function rankValueText(row, type) {
     if (type === "power") return `战力 ${row.power}`;
-    if (type === "exp") return `经验 ${row.exp}`;
     if (type === "wealth") return `💰 ${row.rockbell}`;
     return `👗 ${row.outfits} 套`;
   }
 
-  function renderRankList(container, rows, type) {
+  function renderRankList(container, rows, type, readOnly = false) {
     if (!container) return;
     container.replaceChildren();
     const me = getActiveProfile();
@@ -1565,7 +1605,41 @@
       value.className = "rank-value";
       value.textContent = rankValueText(row, type);
 
-      item.append(num, info, value);
+      // 点赞区：被赞次数 + 点赞按钮（每次 +5 洛克贝，每人每榜每天 3 次）
+      const actions = document.createElement("div");
+      actions.className = "rank-actions";
+
+      const liked = document.createElement("span");
+      liked.className = "rank-liked";
+      liked.textContent = `👍 ${row.likedCount}`;
+
+      const likeBtn = document.createElement("button");
+      likeBtn.type = "button";
+      likeBtn.className = "rank-like-btn";
+      const isMe = me && me.name === row.name;
+      const left = likeLeftOf(me, type);
+
+      if (readOnly) {
+        // 老师端只看数据，不给点赞按钮，免得看着一堆"明天再来"以为坏了
+        actions.append(liked);
+        item.append(num, info, value, actions);
+        container.appendChild(item);
+        return;
+      }
+
+      if (isMe) {
+        likeBtn.disabled = true;
+        likeBtn.textContent = "自己";
+      } else if (left <= 0) {
+        likeBtn.disabled = true;
+        likeBtn.textContent = "明天再来";
+      } else {
+        likeBtn.textContent = "点赞 +5";
+      }
+      likeBtn.addEventListener("click", () => likeRankEntry(row.name, type, likeBtn));
+
+      actions.append(liked, likeBtn);
+      item.append(num, info, value, actions);
       container.appendChild(item);
     });
 
@@ -1574,7 +1648,9 @@
       empty.className = "rank-item";
       empty.style.justifyContent = "center";
       empty.style.color = "var(--muted)";
-      empty.textContent = "暂无排行数据";
+      empty.textContent = rankLoadError
+        ? "网络有点慢，没读到全班名单，过几秒重新打开排行榜试试。"
+        : "暂无排行数据";
       container.appendChild(empty);
     }
   }
@@ -1584,7 +1660,6 @@
     const token = ++rankRenderToken;
     [
       [els.rankTabPower, "power"],
-      [els.rankTabExp, "exp"],
       [els.rankTabWealth, "wealth"],
       [els.rankTabOutfit, "outfit"],
     ].forEach(([el, k]) => {
@@ -1602,6 +1677,72 @@
     const list = await loadRankProfiles();
     if (token !== rankRenderToken) return; // 期间又切了别的榜，让后来的那次渲染
     renderRankList(els.rankList, buildRankRows(list, key), key);
+  }
+
+  // 被赞次数 = 全班所有人"赞过这个人几次"加起来。
+  // 存在各自的 likesSent 里，互相不写对方的存档，避免两个人同时在线时把赞数覆盖掉
+  function sumLikesFor(profiles, name) {
+    if (!name) return 0;
+    let total = 0;
+    (profiles || []).forEach((p) => {
+      const sent = p && p.likesSent;
+      if (sent && typeof sent === "object") {
+        total += Math.max(0, Number(sent[name]) || 0);
+      }
+    });
+    return total;
+  }
+
+  // 点赞：给被赞的同学 +1 赞，给点赞的人 +5 洛克贝，每人每榜每天最多 3 次
+  async function likeRankEntry(targetName, type, btn) {
+    const me = getActiveProfile();
+    if (!me || !targetName) return;
+    if (me.name === targetName) {
+      setResult("不能给自己点赞。", true);
+      return;
+    }
+    const left = likeLeftOf(me, type);
+    if (left <= 0) {
+      setResult("这个榜今天已经点满 3 次了，明天再来吧。", true);
+      return;
+    }
+    if (btn && btn.disabled) return;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "点赞中…";
+    }
+
+    const quota = getLikeQuota(me);
+    quota[type] = (quota[type] || 0) + 1;
+    if (!me.likesSent || typeof me.likesSent !== "object") me.likesSent = {};
+    me.likesSent[targetName] = (Number(me.likesSent[targetName]) || 0) + 1;
+    me.rockbell = (Number(me.rockbell) || 0) + LIKE_REWARD;
+    saveState(`给 ${targetName} 点了赞`);
+
+    setResult(`👍 给 ${targetName} 点赞成功，你获得 ${LIKE_REWARD} 洛克贝。`, false);
+
+    const list = await loadRankProfiles(true); // 强制刷新，赞数要从云端最新算
+    // 自己刚点的这一下本地已经记上了，云端同步还没回来，先把本地这份合进去，避免点了没反应
+    const self = getActiveProfile();
+    const merged = list.map((p) =>
+      self && p && p.name === self.name ? Object.assign({}, p, { likesSent: self.likesSent }) : p,
+    );
+    rankCache = merged;
+    rankCacheAt = Date.now();
+    if (els.rankModal && !els.rankModal.hidden) {
+      renderRankList(els.rankList, buildRankRows(merged, type), type);
+    }
+    render();
+  }
+
+  // 角色面板用：把自己收到的赞刷新一下（别人点的赞存在别人的存档里）
+  async function refreshMyLikedCount(profile) {
+    if (!profile) return;
+    const list = await loadRankProfiles();
+    const total = sumLikesFor(list, profile.name);
+    profile.likedCount = total;
+    const el = document.getElementById("roleLikedValue");
+    if (el) el.textContent = `${total} 次`;
   }
 
   function cacheElements() {
@@ -1622,12 +1763,10 @@
     els.rankList = document.getElementById("rankList");
     els.rankClose = document.getElementById("rankClose");
     els.rankTabPower = document.getElementById("rankTabPower");
-    els.rankTabExp = document.getElementById("rankTabExp");
-    els.rankTabWealth = document.getElementById("rankTabWealth");
+   els.rankTabWealth = document.getElementById("rankTabWealth");
     els.rankTabOutfit = document.getElementById("rankTabOutfit");
     els.rankViewTabPower = document.getElementById("rankViewTabPower");
-    els.rankViewTabExp = document.getElementById("rankViewTabExp");
-    els.rankViewTabWealth = document.getElementById("rankViewTabWealth");
+   els.rankViewTabWealth = document.getElementById("rankViewTabWealth");
     els.rankViewTabOutfit = document.getElementById("rankViewTabOutfit");
     els.rankTitle = document.getElementById("rankTitle");
     els.rankHint = document.getElementById("rankHint");
@@ -1792,11 +1931,9 @@
         }
       });
     });
-    els.navRank?.addEventListener("click", () => showRank("power"));
     els.rankClose?.addEventListener("click", () => { els.rankModal.hidden = true; });
     els.rankTabPower?.addEventListener("click", () => showRank("power"));
-    els.rankTabExp?.addEventListener("click", () => showRank("exp"));
-    els.rankTabWealth?.addEventListener("click", () => showRank("wealth"));
+   els.rankTabWealth?.addEventListener("click", () => showRank("wealth"));
     els.rankTabOutfit?.addEventListener("click", () => showRank("outfit"));
     els.rankModal?.addEventListener("click", (e) => {
       if (e.target === els.rankModal) els.rankModal.hidden = true;
@@ -1932,8 +2069,7 @@
         renderRankView();
       });
     bindRankViewTab(els.rankViewTabPower, "power");
-    bindRankViewTab(els.rankViewTabExp, "exp");
-    bindRankViewTab(els.rankViewTabWealth, "wealth");
+   bindRankViewTab(els.rankViewTabWealth, "wealth");
     bindRankViewTab(els.rankViewTabOutfit, "outfit");
     // 引导系统事件（新版：手指引导 + 功能卡）
     els.guideSkip?.addEventListener("click", skipGuideV2);
@@ -2104,6 +2240,21 @@
       passChangeUsed: Boolean(profile?.passChangeUsed),
       // 老师用第二密码进入过几次（1 次 = 扣 2 洛克贝，10 次封顶 1024）
       secondPassUses: clampInteger(profile?.secondPassUses, 0, SECOND_PASS_MAX_USES),
+      // 点赞：今天每个榜已经点过几次（{ day, power, wealth, outfit }）
+      likesGiven:
+        profile?.likesGiven && typeof profile.likesGiven === "object"
+          ? {
+              day: String(profile.likesGiven.day || ""),
+              power: clampInteger(profile.likesGiven.power, 0, LIKE_PER_DAY),
+              wealth: clampInteger(profile.likesGiven.wealth, 0, LIKE_PER_DAY),
+              outfit: clampInteger(profile.likesGiven.outfit, 0, LIKE_PER_DAY),
+            }
+          : null,
+      // 我赞过谁几次：{ "同学名": 次数 }
+      likesSent:
+        profile?.likesSent && typeof profile.likesSent === "object" ? profile.likesSent : {},
+      // 收到的赞（展示用，打开面板时按全班记录重新算）
+      likedCount: Math.max(0, Number(profile?.likedCount) || 0),
     };
   }
 
@@ -2503,6 +2654,10 @@
       passChangeUsed: false,
       // 老师用第二密码进入过几次（1 次 = 扣 2 洛克贝，10 次封顶 1024）
       secondPassUses: 0,
+      // 点赞：今天每个榜点过几次 / 我赞过谁几次 / 收到过多少赞
+      likesGiven: null,
+      likesSent: {},
+      likedCount: 0,
       compensationEligible: false,
       compensationClaimed: false,
       createdAt: now,
@@ -5373,6 +5528,7 @@
       ["洛克贝", String(profile.rockbell ?? 0)],
       ["宠物数", petCountOf(profile) + " 只"],
       ["战斗力", powerEl ? powerEl.textContent : "—"],
+      ["被赞", (Number(profile.likedCount) || 0) + " 次"],
     ];
     rows.forEach((row) => {
       const cell = document.createElement("div");
@@ -5382,12 +5538,15 @@
       key.textContent = row[0];
       const value = document.createElement("strong");
       value.className = "role-info-value";
+      if (row[0] === "被赞") value.id = "roleLikedValue";
       value.textContent = row[1];
       cell.append(key, value);
       wrap.appendChild(cell);
     });
     box.appendChild(wrap);
     box.appendChild(buildRoleActions(profile));
+    // 被赞次数藏在别人的存档里，打开面板时异步算一遍
+    setTimeout(() => refreshMyLikedCount(profile), 0);
     return box;
   }
 
@@ -6428,7 +6587,6 @@
 
     [
       [els.rankViewTabPower, "power"],
-      [els.rankViewTabExp, "exp"],
       [els.rankViewTabWealth, "wealth"],
       [els.rankViewTabOutfit, "outfit"],
     ].forEach(([el, k]) => {
@@ -6439,14 +6597,14 @@
     if (els.rankHint) els.rankHint.textContent = meta.hint;
 
     if (rankCache) {
-      renderRankList(els.rankContent, buildRankRows(rankCache, rankViewType), rankViewType);
+      renderRankList(els.rankContent, buildRankRows(rankCache, rankViewType), rankViewType, true);
     } else {
       els.rankContent.replaceChildren();
     }
 
     const list = await loadRankProfiles();
     if (token !== rankRenderToken) return;
-    renderRankList(els.rankContent, buildRankRows(list, rankViewType), rankViewType);
+    renderRankList(els.rankContent, buildRankRows(list, rankViewType), rankViewType, true);
   }
 
   async function publishRankReward() {
