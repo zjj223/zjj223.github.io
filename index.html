@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>卡罗西亚大陆</title>
-    <link rel="stylesheet" href="./styles.css?v=20261121z51" />
+    <link rel="stylesheet" href="./styles.css?v=20261121z52" />
   </head>
   <body>
     <!-- 老师登录界面 -->
@@ -16,6 +16,7 @@
 
         <div class="login-tabs">
           <button type="button" class="login-tab is-active" data-login-mode="student">学生登录</button>
+          <button type="button" class="login-tab" data-login-mode="parent">家长登录</button>
           <button type="button" class="login-tab" data-login-mode="teacher">老师入口</button>
         </div>
 
@@ -41,6 +42,16 @@
         </form>
         <p id="studentLoginError" class="login-error" hidden>登录信息有误，请重试</p>
 
+        <div id="studentLanding" hidden>
+          <p class="landing-hello" id="landingHello">你好，同学</p>
+          <div class="landing-actions">
+            <button type="button" id="btnStartGame" class="login-button">开始游戏</button>
+            <button type="button" id="btnStudyRoom" class="login-button is-ghost">学习台</button>
+          </div>
+          <p class="login-hint" id="landingNotice" hidden></p>
+          <button type="button" id="btnSwitchAccount" class="login-link">切换账号</button>
+        </div>
+
         <form id="loginForm" class="login-form" hidden>
           <input
             id="teacherCode"
@@ -52,6 +63,13 @@
           <button type="submit" class="login-button">进入老师后台</button>
         </form>
         <p id="loginError" class="login-error" hidden>权限码错误，请重试</p>
+
+        <form id="parentLoginForm" class="login-form" hidden>
+          <input id="parentChildName" type="text" maxlength="12" placeholder="孩子的名字" autocomplete="off" />
+          <input id="parentBindCode" type="text" inputmode="numeric" maxlength="6" placeholder="6 位绑定码" autocomplete="off" />
+          <button type="submit" class="login-button">查看孩子学习情况</button>
+        </form>
+        <p id="parentNotice" class="login-hint" hidden></p>
       </div>
     </div>
 
@@ -61,7 +79,10 @@
           <p class="eyebrow">第一阶段课堂养成</p>
           <h1>卡罗西亚大陆</h1>
         </div>
-        <div id="saveStatus" class="save-status" aria-live="polite">正在读取存档</div>
+        <div class="topbar-actions">
+          <button type="button" id="btnBackHome" class="topbar-home" hidden>🏠 学习台</button>
+          <div id="saveStatus" class="save-status" aria-live="polite">正在读取存档</div>
+        </div>
       </header>
 
       <main class="app-grid">
@@ -679,9 +700,9 @@
       </div>
     </div>
 
-    <script src="./assets/vendor/supabase.js?v=20261121z51"></script>
-    <script src="./data/petConfig.js?v=20261121z51"></script>
-    <script src="./app.js?v=20261121z51"></script>
+    <script src="./assets/vendor/supabase.js?v=20261121z52"></script>
+    <script src="./data/petConfig.js?v=20261121z52"></script>
+    <script src="./app.js?v=20261121z52"></script>
 
   <!-- 新手引导：手指引导 + 功能卡 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
