@@ -1345,7 +1345,10 @@
         renderShop(currentShopTab);
         show("shopModal");
       });
-      document.getElementById("dockRank")?.addEventListener("click", () => showRank("power"));
+      document.getElementById("dockRank")?.addEventListener("click", () => {
+    rankModalReadOnly = false;
+    showRank("power");
+  });
       // 底栏「商店」：独立的咕噜球 / 时装商店（原「计时」入口）
       document.getElementById("dockTimer")?.addEventListener("click", () => {
         renderStore(currentStoreTab);
@@ -1506,6 +1509,7 @@
   let rankCache = null;
   let rankCacheAt = 0;
   let rankLoadError = false;
+  let rankModalReadOnly = false; // 老师看榜时只读，不显示点赞按钮
   let rankRenderToken = 0;
   // 演练账号（老师自己建的测试号）不参与全班榜单，免得挡住真学生
   const RANK_HIDDEN_PATTERN = /测试|引导|demo|test/i;
@@ -1666,10 +1670,11 @@
       if (el) el.classList.toggle("active", k === key);
     });
     els.rankModal.hidden = false;
+    els.rankModal.style.zIndex = "10001"; // 老师模式下登录层是 9999，弹窗要压在它上面
     if (els.rankList) els.rankList.scrollTop = 0; // 每次都从第一名看起
     // 有缓存就先秒出，避免每切一个榜都闪一下"读取中"
     if (rankCache) {
-      renderRankList(els.rankList, buildRankRows(rankCache, key), key);
+      renderRankList(els.rankList, buildRankRows(rankCache, key), key, rankModalReadOnly);
     } else if (els.rankList) {
       els.rankList.innerHTML =
         '<div class="rank-item" style="justify-content:center;color:var(--muted)">正在读取全班数据…</div>';
@@ -1677,7 +1682,7 @@
 
     const list = await loadRankProfiles();
     if (token !== rankRenderToken) return; // 期间又切了别的榜，让后来的那次渲染
-    renderRankList(els.rankList, buildRankRows(list, key), key);
+    renderRankList(els.rankList, buildRankRows(list, key), key, rankModalReadOnly);
   }
 
   // 被赞次数 = 全班所有人"赞过这个人几次"加起来。
@@ -2063,7 +2068,11 @@
       if (e.target === els.captureModal) closeCaptureModal();
     });
     // 排行榜视图切换
-    els.navRank?.addEventListener("click", () => switchView("rank"));
+    els.navRank?.addEventListener("click", () => {
+      // 老师模式下 game 视图是藏着的，改用弹窗展示榜单（只读，不能点赞）
+      rankModalReadOnly = true;
+      showRank(rankViewType || "power");
+    });
     const bindRankViewTab = (el, type) =>
       el?.addEventListener("click", () => {
         rankViewType = type;
@@ -7315,7 +7324,7 @@
     if (els.navRank) els.navRank.classList.toggle("active", view === "rank");
 
     if (view === "shop") renderShop(currentShopTab);
-    if (view === "rank") renderRankView();
+        if (view === "rank") renderRankView();
     render(); // 调用render渲染场景内部等内容
   };
 
