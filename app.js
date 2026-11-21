@@ -6429,6 +6429,12 @@
   function waitGuideTarget() {
     const step = GUIDE_STEPS_V2[guideV2StepIndex];
     if (!step) { enterGuideCards(); return; }
+    // 已经有宠物了：跳过"领宠物 / 孵化"这两步（老账号重看时按钮已经不在了）
+    const profile = getActiveProfile();
+    if (profile && profile.pet && (step.key === "pet" || step.key === "hatch")) {
+      advanceGuideV2();
+      return;
+    }
     if (!step.target) { showGuideStepV2(null); return; }
     let tries = 0;
     const attempt = () => {
@@ -6460,7 +6466,8 @@
 
     const nextBtn = els.guideNext;
     if (nextBtn) {
-      nextBtn.hidden = step.mode === "click";
+      // 找不到目标时（比如老账号孵化按钮已经没了）也给出"知道了"，避免卡死
+      nextBtn.hidden = step.mode === "click" && Boolean(targetEl);
       nextBtn.textContent = "知道了";
     }
 
@@ -6660,7 +6667,10 @@
 
   function handleGuideNextClick() {
     const step = GUIDE_STEPS_V2[guideV2StepIndex];
-    if (step && step.mode === "click") return;
+    const btn = els.guideNext;
+    // 按钮没显示（正常的"点击类"步骤）就别动；显示了就一律可以推进
+    if (btn && btn.hidden) return;
+    if (!btn && step && step.mode === "click") return;
     advanceGuideV2();
   }
 
