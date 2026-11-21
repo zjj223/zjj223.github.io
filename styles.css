@@ -8956,3 +8956,50 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
 #rankModal .rank-sub, #rankView .rank-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.7rem; }
 #rankModal .rank-info, #rankView .rank-info { min-width: 0; flex: 1 1 auto; }
 #rankModal .rank-value, #rankView .rank-value { white-space: nowrap; flex-shrink: 0; }
+/* 角色信息格：加了"被赞"这一行后格子更挤，字号收一点、允许换行，别再显示成"引…" */
+#roleModal .role-info-item { padding: 6px 7px !important; gap: 3px !important; }
+#roleModal .role-info-key { font-size: 11px !important; }
+#roleModal .role-info-value {
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  overflow-wrap: anywhere !important;
+  text-overflow: clip !important;
+}
+/* 信息格行高收一点，让"被赞"这一行不用滚动也能看到 */
+#roleModal .role-info-grid {
+  grid-auto-rows: minmax(56px, auto) !important;
+  gap: 8px !important;
+}
+/* 再收一点，让下面两个一次性按钮也露出来 */
+#roleModal .role-info-grid { grid-auto-rows: minmax(50px, auto) !important; gap: 7px !important; }
+#roleModal .role-info-pane { gap: 7px !important; }
+/* 信息格改三列，8 格刚好三行，下面两个按钮能完整露出来 */
+#roleModal .role-info-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(48px, auto) !important;
+  gap: 7px !important;
+}
+/* 三列太窄，回到两列；按钮文字缩短后一行就能放下 */
+#roleModal .role-info-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-auto-rows: minmax(50px, auto) !important;
+  gap: 7px !important;
+}
+#roleModal .role-actions button {
+  font-size: 12px !important;
+  padding: 6px 4px !important;
+  min-height: 34px !important;
+  white-space: nowrap !important;
+}
+/* 信息页不要再出横向滚动条 */
+#roleModal #rolePanelArea { overflow-x: hidden !important; }
+#roleModal .role-actions button { overflow: hidden; text-overflow: ellipsis; }
+/* 两个一次性按钮等宽两列，文字不会被切 */
+#roleModal .role-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+  width: 100% !important;
+}
