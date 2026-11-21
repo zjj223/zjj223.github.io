@@ -1966,7 +1966,7 @@
       guideStage: typeof profile?.guideStage === "number"
         ? clampInteger(profile.guideStage, 0, 3)
         : (profile?.guideCompleted ? 3 : 0),
-      guideStepIndex: clampInteger(profile?.guideStepIndex, 0, 6),
+      guideStepIndex: clampInteger(profile?.guideStepIndex, 0, 12),
       // 时装：已拥有的套装 id 列表 + 当前穿着
       outfits: Array.isArray(profile?.outfits)
         ? Array.from(new Set(profile.outfits.filter((id) => typeof id === "string")))
@@ -5183,6 +5183,7 @@
     // ① 性别互换：每人一次，整张立绘跟着换
     const swapBtn = document.createElement("button");
     swapBtn.type = "button";
+    swapBtn.id = "roleGenderSwapBtn";
     swapBtn.className = "role-action-btn" + (profile.genderSwapUsed ? " is-used" : "");
     swapBtn.textContent = profile.genderSwapUsed
       ? "性别已换过"
@@ -5210,6 +5211,7 @@
 
     const passBtn = document.createElement("button");
     passBtn.type = "button";
+    passBtn.id = "rolePassBtn";
     passBtn.className = "role-action-btn" + (profile.passChangeUsed ? " is-used" : "");
     passBtn.textContent = profile.passChangeUsed ? "密码已改过" : "🔑 修改登录密码";
     passBtn.disabled = Boolean(profile.passChangeUsed);
@@ -6348,11 +6350,17 @@
   const GUIDE_STEPS_V2 = Object.freeze([
     { key: "pet", target: "#dockPet", mode: "click", title: "先领一只宠物", desc: "点下面的「宠物」按钮，把宠物栏打开。" },
     { key: "hatch", target: "#hatchButton", mode: "click", title: "免费孵化第一只", desc: "点「孵化」。这一步免费，点完你就有一只自己的宠物了。" },
-    { key: "bell", target: "#dockBar", mode: "next", title: "洛克贝就是钱", desc: "打一场战斗得 1 个洛克贝。攒够 10 个，就能买一颗咕噜球去抓野生宠物。" },
-    { key: "grass", target: '.map-pin[data-scene-id="grassland"]', mode: "click", title: "从这里开始", desc: "点「轻风草原」。这是新手村，经验最适合你现在的等级。" },
+    { key: "bell", target: "#dockBar", mode: "next", close: ["petModal"], title: "洛克贝就是钱", desc: "打一场战斗得 1 个洛克贝。攒够 10 个，就能买一颗咕噜球去抓野生宠物。" },
+    { key: "grass", target: '.map-pin[data-scene-id="grassland"]', mode: "click", close: ["petModal", "storeModal", "roleModal", "rankModal"], title: "从这里开始", desc: "点「轻风草原」。这是新手村，经验最适合你现在的等级。" },
     { key: "spot", target: ".stage-spot", mode: "click", title: "点一下试试", desc: "点随便一个探索点。会给经验、可能掉道具，也可能遇到野生宠物打一场。" },
     { key: "reward", target: null, mode: "next", title: "经验和洛克贝到手", desc: "看到下面那行字没有？经验涨了。打过战斗的探索还会多 1 个洛克贝，打输了也有。" },
-    { key: "store", target: "#dockTimer", mode: "click", title: "攒够了就买球", desc: "点下面的「商店」。最便宜的球 5 个洛克贝，最贵的 120 个，越贵越容易抓到。有球才能在大世界抓宠物。" },
+    { key: "store", target: "#dockTimer", mode: "click", close: ["petModal", "roleModal", "rankModal", "marketModal"], title: "攒够了就买球", desc: "点下面的「商店」。最便宜的球 5 个洛克贝，最贵的 120 个，越贵越容易抓到。有球才能在大世界抓宠物。" },
+    { key: "fashion", target: "#storeTabFashion", mode: "click", title: "商店里还有衣服", desc: "再点右边的「时装」。这里有 10 套衣服，一个场景一套，男女各一个版本。" },
+    { key: "role", target: "#dockRole", mode: "click", close: ["storeModal", "petModal", "rankModal"], title: "看看你自己的资料", desc: "点最左边这个「角色」，能看你的名字、等级、洛克贝和现在的样子。" },
+    { key: "swap", target: "#roleGenderSwapBtn", mode: "click", fake: true, title: "这里能换一次性别", desc: "点一下这个按钮。换完以后整个形象都会变，男生的衣服变女生的，女生的变男生的。每人只能换一次。" },
+    { key: "pass", target: "#rolePassBtn", mode: "click", fake: true, title: "密码也能自己改一次", desc: "点一下这里，就能把密码改成你自己记得住的 4 位数字。也只能改一次，要想清楚。" },
+    { key: "clothes", target: '[data-role-tab="clothes"]', mode: "click", title: "再看看衣柜", desc: "点「衣服」，这里放着你所有的形象。" },
+    { key: "wear", target: ".outfit-card", mode: "click", title: "点一张就穿上了", desc: "点一张卡片，就换成那一套衣服。灰掉的是还没解锁的，要去商店用洛克贝或者道具换。" },
   ]);
 
   const GUIDE_CARDS_V2 = Object.freeze([
@@ -6361,6 +6369,9 @@
     { icon: "🪢", title: "战斗胜利后可能能抓宠物", sub: "弹出捕捉窗口就扔咕噜球，球越好成功率越高。" },
     { icon: "🏪", title: "商店：六种球，5 到 120 洛克贝", sub: "越贵越稳：普通球 5 洛克贝抓 5%，国王球 120 洛克贝抓 50%。" },
     { icon: "🛒", title: "市场：和同学互相买卖", sub: "挂 10 洛克贝，成交后卖家承担 1/5 手续费，实收 8。" },
+    { icon: "👕", title: "衣服：一个场景一套", sub: "10 套形象，男女各一版。10000 洛克贝，或者那个场景的道具攒够 100 个，就能换。" },
+    { icon: "🔄", title: "换性别：每人一次", sub: "在「角色」页点那个按钮，整套形象直接变。换过就不能再换了。" },
+    { icon: "🔑", title: "改密码：每人一次", sub: "密码记不住就改成 4 位数字，只能改一次。老师那边能看到你设成什么。" },
   ]);
 
   let guideV2StepIndex = 0;
@@ -6432,6 +6443,8 @@
 
   function showGuideStepV2(targetEl) {
     const step = GUIDE_STEPS_V2[guideV2StepIndex];
+    // 每次显示前先把会挡住目标的弹窗收起来
+    if (step.close && step.close.length) guideCloseModals(step.close);
     const tip = guideTipEl();
     const ring = guideRingEl();
     const cards = guideCardsEl();
@@ -6494,9 +6507,15 @@
       if (guideV2DocHandler) document.removeEventListener("click", guideV2DocHandler, true);
       guideV2DocHandler = function (e) {
         if (targetEl.contains(e.target)) {
+          // 演练步骤：拦住真动作，别让孩子在引导里把"一次性机会"用掉
+          if (step.fake) {
+            e.preventDefault();
+            e.stopPropagation();
+            showToast("这是演练", "刚才只是让你看看位置，真的要用的时候再点它就行。", "info", 3000);
+          }
           document.removeEventListener("click", guideV2DocHandler, true);
           guideV2DocHandler = null;
-          setTimeout(() => advanceGuideV2(), 260);
+          setTimeout(() => advanceGuideV2(), step.fake ? 320 : 260);
         }
       };
       document.addEventListener("click", guideV2DocHandler, true);
@@ -6545,14 +6564,33 @@
     tip.style.top = Math.max(8, top) + "px";
   }
 
+  // 引导换步骤时，把挡住目标的弹窗收起来，避免"高亮了却点不到"
+  function guideCloseModals(ids) {
+    (ids || []).forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.hidden = true;
+      el.classList.remove("is-open");
+    });
+  }
+
   function advanceGuideV2() {
     if (guideV2StepIndex < GUIDE_STEPS_V2.length - 1) {
       guideV2StepIndex += 1;
       const nextStep = GUIDE_STEPS_V2[guideV2StepIndex];
-      // 第 3 步讲底栏洛克贝，先把宠物窗关掉，否则高亮框会被弹窗盖住
-      if (nextStep && nextStep.key === "bell") {
-        const petClose = document.getElementById("petModalClose");
-        if (petClose) petClose.click();
+      // 下一步要露出底栏/地图，先把宠物、商店、角色这些弹窗收起来
+      if (nextStep && (nextStep.key === "bell" || nextStep.key === "grass" || nextStep.key === "store")) {
+        guideCloseModals(["petModal"]);
+      }
+      if (nextStep && nextStep.key === "grass") {
+        guideCloseModals(["storeModal", "roleModal", "rankModal", "petModal"]);
+      }
+      // 第 9 步要到底栏点「角色」，先把商店关掉，否则底栏被弹窗盖住点不到
+      if (nextStep && nextStep.key === "role") {
+        guideCloseModals(["storeModal"]);
+      }
+      if (nextStep && nextStep.key === "store") {
+        guideCloseModals(["roleModal", "rankModal", "marketModal", "petModal"]);
       }
       const profile = getActiveProfile();
       if (profile && !guideV2ReviewMode) {
@@ -6628,6 +6666,8 @@
 
   function finishGuideV2() {
     hideGuideAll();
+    // 引导收尾，把所有弹窗关掉，让孩子回到大世界
+    guideCloseModals(["roleModal", "petModal", "storeModal", "rankModal", "marketModal"]);
     const profile = getActiveProfile();
     if (profile) {
       profile.guideStage = 3;
