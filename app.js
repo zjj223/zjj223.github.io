@@ -45,22 +45,30 @@
 
   async function cloudRequest(path, options) {
     const opts = options || {};
-    const res = await fetch(`${CLOUD_CONFIG.url}/rest/v1/${path}`, {
-      method: opts.method || "GET",
-      headers: cloudHeaders(opts.headers),
-      body: opts.body,
-    });
-    const text = await res.text();
-    if (!res.ok) {
-      throw new Error(text || `HTTP ${res.status}`);
-    }
-    if (!text) {
-      return null;
-    }
+    // 加超时：网络卡住时不要让孩子一直看到"上架中…"这种 loading
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 8000) : null;
     try {
-      return JSON.parse(text);
-    } catch (e) {
-      return null;
+      const res = await fetch(`${CLOUD_CONFIG.url}/rest/v1/${path}`, {
+        method: opts.method || "GET",
+        headers: cloudHeaders(opts.headers),
+        body: opts.body,
+        signal: controller ? controller.signal : undefined,
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        throw new Error(text || `HTTP ${res.status}`);
+      }
+      if (!text) {
+        return null;
+      }
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        return null;
+      }
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   }
 
@@ -447,7 +455,7 @@
       tag: "新手村",
       bondRequired: 0,
       drops: { exp: [7, 112] },
-      feature: "适合新手的温和草原，经验 7-112。",
+      feature: "新手村，野生宠物 1-10 级。",
       artClass: "scene-grass",
     },
     {
@@ -457,7 +465,7 @@
       tag: "进阶",
       bondRequired: 1,
       drops: { exp: [75, 187] },
-      feature: "炽热的火山地带，经验 75-187。",
+      feature: "进阶地带，野生宠物 11-20 级。",
       artClass: "scene-fire",
     },
     {
@@ -467,7 +475,7 @@
       tag: "中级",
       bondRequired: 2,
       drops: { exp: [150, 262] },
-      feature: "神秘的海底世界，经验 150-262。",
+      feature: "海底秘境，野生宠物 21-30 级。",
       artClass: "scene-water",
     },
     {
@@ -477,7 +485,7 @@
       tag: "高级",
       bondRequired: 3,
       drops: { exp: [225, 337] },
-      feature: "知识与魔法的殿堂，经验 225-337。",
+      feature: "知识殿堂，野生宠物 31-40 级。",
       artClass: "scene-lab",
     },
     {
@@ -487,7 +495,7 @@
       tag: "专家",
       bondRequired: 4,
       drops: { exp: [300, 412] },
-      feature: "极寒的冰雪之地，经验 300-412。",
+      feature: "极寒雪域，野生宠物 41-50 级。",
       artClass: "scene-ice",
     },
     {
@@ -497,7 +505,7 @@
       tag: "大师",
       bondRequired: 5,
       drops: { exp: [375, 525] },
-      feature: "雷电交加的神秘峡谷，经验 375-525。",
+      feature: "雷电峡谷，野生宠物 51-60 级。",
       artClass: "scene-thunder",
     },
     {
@@ -507,7 +515,7 @@
       tag: "宗师",
       bondRequired: 6,
       drops: { exp: [450, 637] },
-      feature: "终年不见阳光的神秘森林，经验 450-637。",
+      feature: "幽暗森林，野生宠物 61-70 级。",
       artClass: "scene-shadow",
     },
     {
@@ -517,7 +525,7 @@
       tag: "噩梦",
       bondRequired: 7,
       drops: { exp: [525, 750] },
-      feature: "危机四伏的黑暗沼泽，经验 525-750。",
+      feature: "暗影沼泽，野生宠物 71-80 级。",
       artClass: "scene-swamp",
     },
     {
@@ -527,7 +535,7 @@
       tag: "传说",
       bondRequired: 8,
       drops: { exp: [600, 862] },
-      feature: "龙族栖息的神秘领域，经验 600-862。",
+      feature: "龙族领域，野生宠物 81-90 级。",
       artClass: "scene-dragon",
     },
     {
@@ -537,10 +545,25 @@
       tag: "神话",
       bondRequired: 9,
       drops: { exp: [675, 975] },
-      feature: "漂浮在云端的失落之城，经验 675-975。",
+      feature: "云端王城，野生宠物 91-100 级。",
       artClass: "scene-sky",
     },
   ]);
+
+  // 经验倍率：让每个场景"探索 100 次左右"刚好够升到该场景的满级
+  // （战斗不再给经验，所以只靠没遇敌的那几次探索来涨级）
+  const SCENE_EXP_MULT = Object.freeze({
+    grassland: 1,
+    volcano: 1.4,
+    "mermaid-bay": 1.4,
+    academy: 2.2,
+    "snow-valley": 2.15,
+    "thunder-valley": 2.1,
+    "shadow-forest": 2,
+    "dark-swamp": 1.95,
+    "dragon-realm": 1.95,
+    "sky-city": 2.6,
+  });
 
   // 场景专属道具：5 场景 × 4 道具 = 20 个
   // 探索时 18% 概率掉落，掉落时主打道具50%概率，其他三种平分50%
@@ -915,16 +938,16 @@
 
   // 每个场景的野生精灵（用于探索遇敌）
     const WILD_PETS = Object.freeze({
-    grassland: { petIds: ["magic-cat", "spring-rabbit", "yibei-fenfen", "sleepy-king", "bounce-seed", "gran-seed", "qili-grass", "small-bee"], levelRange: [2, 4], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.03 },
-    volcano: { petIds: ["fire-god", "fire-guardian", "fire-dragon", "fire-monkey"], levelRange: [5, 8], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.03 },
-    "mermaid-bay": { petIds: ["water-spirit", "water-shell", "small-lotus", "water-ball"], levelRange: [8, 13], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.03 },
-    academy: { petIds: ["dimo", "platinum-unicorn", "holy-sword-x", "pen-child", "small-cow"], levelRange: [15, 22], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.03 },
-    "snow-valley": { petIds: ["snow-shadow-doll", "sundae-sweet", "snow-doll", "snow-beast"], levelRange: [30, 40], encounterRate: 0.8, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.03 },
-    "thunder-valley": { petIds: ["kula", "electric-circle", "thunder-ball"], levelRange: [38, 48], encounterRate: 0.8, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.03 },
-    "shadow-forest": { petIds: ["bone-dragon", "flower-antelope", "small-mushroom", "grass-bug"], levelRange: [46, 56], encounterRate: 0.8, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.03 },
-    "dark-swamp": { petIds: ["demon-wolf", "dragon-breath-par", "wuda", "star-demon", "duoduo"], levelRange: [55, 68], encounterRate: 0.8, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.03 },
-    "dragon-realm": { petIds: ["wing-dragon", "tooth-dragon", "horn-dragon", "small-stone"], levelRange: [65, 80], encounterRate: 0.8, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.03 },
-    "sky-city": { petIds: ["royal-griffin", "holy-wing-king", "mini-liwu", "bean-dragon", "mecha-shell"], levelRange: [80, 90], encounterRate: 0.8, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.03 },
+    grassland: { petIds: ["magic-cat", "spring-rabbit", "yibei-fenfen", "sleepy-king", "bounce-seed", "gran-seed", "qili-grass", "small-bee"], levels: [[1, 2], [2, 5], [4, 7], [6, 9], [7, 10], [10, 10]], levelRange: [2, 4], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    volcano: { petIds: ["fire-god", "fire-guardian", "fire-dragon", "fire-monkey"], levels: [[11, 12], [12, 15], [14, 17], [16, 19], [17, 20], [20, 20]], levelRange: [5, 8], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "mermaid-bay": { petIds: ["water-spirit", "water-shell", "small-lotus", "water-ball"], levels: [[21, 22], [22, 25], [24, 27], [26, 29], [27, 30], [30, 30]], levelRange: [8, 13], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    academy: { petIds: ["dimo", "platinum-unicorn", "holy-sword-x", "pen-child", "small-cow"], levels: [[31, 32], [32, 35], [34, 37], [36, 39], [37, 40], [40, 40]], levelRange: [15, 22], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "snow-valley": { petIds: ["snow-shadow-doll", "sundae-sweet", "snow-doll", "snow-beast"], levels: [[41, 42], [42, 45], [44, 47], [46, 49], [47, 50], [50, 50]], levelRange: [30, 40], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "thunder-valley": { petIds: ["kula", "electric-circle", "thunder-ball"], levels: [[51, 52], [52, 55], [54, 57], [56, 59], [57, 60], [60, 60]], levelRange: [38, 48], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "shadow-forest": { petIds: ["bone-dragon", "flower-antelope", "small-mushroom", "grass-bug"], levels: [[61, 62], [62, 65], [64, 67], [66, 69], [67, 70], [70, 70]], levelRange: [46, 56], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "dark-swamp": { petIds: ["demon-wolf", "dragon-breath-par", "wuda", "star-demon", "duoduo"], levels: [[71, 72], [72, 75], [74, 77], [76, 79], [77, 80], [80, 80]], levelRange: [55, 68], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "dragon-realm": { petIds: ["wing-dragon", "tooth-dragon", "horn-dragon", "small-stone"], levels: [[81, 82], [82, 85], [84, 87], [86, 89], [87, 90], [90, 90]], levelRange: [65, 80], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "sky-city": { petIds: ["royal-griffin", "holy-wing-king", "mini-liwu", "bean-dragon", "mecha-shell"], levels: [[91, 92], [92, 95], [94, 97], [96, 99], [97, 100], [100, 100]], levelRange: [80, 90], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
   });
 
   const PET_DATABASE = Array.isArray(PET_DATA.petDatabase) ? PET_DATA.petDatabase : [];
@@ -2212,15 +2235,19 @@
   }
 
   // 上架道具（写入云端共享市场，全班可见）
-  async function listItem(itemId) {
+  // price 由学生自己在"我要卖"页面输入；不填或填错时回退到参考价
+  async function listItem(itemId, customPrice) {
     const profile = getActiveProfile();
     if (!profile) return { ok: false, msg: "请先选择角色。" };
     const count = profile.inventory[itemId] || 0;
     if (count < 1) return { ok: false, msg: "背包中没有该道具。" };
     const itemDef = getItemDef(itemId);
     if (!itemDef) return { ok: false, msg: "道具不存在。" };
-    // 最低挂牌 2 洛克贝：否则手续费会把卖家的钱吃光
-    const price = Math.max(2, getItemPrice(itemId));
+    const raw = Number(customPrice);
+    const price =
+      Number.isFinite(raw) && raw > 0
+        ? Math.min(99999, Math.max(2, Math.floor(raw)))
+        : Math.max(2, getItemPrice(itemId));
     const listing = {
       id: `list_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       sellerId: profile.id,
@@ -2485,11 +2512,15 @@
       const guideSoftExplore = profile.guideStage === 1 && guideV2StepIndex === 4 && !guideV2ReviewMode;
       const wildConfig = WILD_PETS[scene.id];
       const encounter = !guideSoftExplore && wildConfig && profile.pet && Math.random() < wildConfig.encounterRate;
+      // 遇敌了就不给经验，所以把经验补偿到"没遇敌"的那几次探索上，总量不变
+      const expComp = wildConfig && profile.pet ? 1 / (1 - (wildConfig.encounterRate || 0)) : 1;
+      const expMult = SCENE_EXP_MULT[scene.id] || 1;
       let battleWin = true;
       let lostItem = null;
+      let expGained = 0;
 
       if (encounter) {
-        const wildPet = generateWildPet(scene.id);
+        const wildPet = generateWildPet(scene.id, spotIndex);
         if (wildPet) {
           // 智能提示：遇到野生宠物
           checkSmartTips(profile, { encounterWild: true, battleStart: true });
@@ -2499,10 +2530,8 @@
           showBattleModal(profile.pet, wildPet, battle);
 
           if (battleWin) {
-            // 胜利：全额经验 + 额外奖励
-            profile.exp += outcome.exp;
-            const bonusExp = Math.floor(outcome.exp * 0.5);
-            profile.exp += bonusExp;
+            // 打赢了也不给经验，只留洛克贝和捕捉机会
+            expGained = 0;
             // 15%概率弹出捕捉窗口（等战斗演出播完再弹，避免两个弹窗叠加）
             if (Math.random() < 0.15 && profile.pets.length < 3) {
               setTimeout(() => {
@@ -2510,26 +2539,23 @@
               }, 3400);
             }
           } else {
-            // 失败：50%概率扣除一个道具，有道具则给50%经验，没道具给15%经验
+            // 打输了：不给经验，50% 概率被抢走一个道具
+            expGained = 0;
             const ownedItems = Object.entries(profile.inventory).filter(([, count]) => count > 0);
-            const willLoseItem = ownedItems.length > 0 && Math.random() < 0.5;
-            if (willLoseItem) {
+            if (ownedItems.length > 0 && Math.random() < 0.5) {
               const [lostId] = ownedItems[Math.floor(Math.random() * ownedItems.length)];
               profile.inventory[lostId] -= 1;
               const lostDef = getItemDef(lostId);
               lostItem = lostDef?.name || lostId;
-              profile.exp += Math.floor(outcome.exp * 0.5);
-            } else if (ownedItems.length > 0) {
-              profile.exp += Math.floor(outcome.exp * 0.5);
-            } else {
-              profile.exp += Math.floor(outcome.exp * 0.15);
             }
           }
         } else {
-          profile.exp += outcome.exp;
+          expGained = Math.round(outcome.exp * expComp * expMult);
+          profile.exp += expGained;
         }
       } else {
-        profile.exp += outcome.exp;
+        expGained = Math.round(outcome.exp * expComp * expMult);
+        profile.exp += expGained;
       }
 
       // 洛克贝产出：每打完一场战斗 +1（不分场景、不分胜负）
@@ -2538,10 +2564,16 @@
       }
 
       const eggGranted = grantEggIfEligible(profile);
-      const earnedExp = encounter && !battleWin
-        ? (lostItem ? Math.floor(outcome.exp * 0.5) : (Object.keys(profile.inventory).length > 0 ? Math.floor(outcome.exp * 0.5) : Math.floor(outcome.exp * 0.15)))
-        : outcome.exp;
-      const parts = [`${scene.name}·${spotName}：经验 +${earnedExp}。`];
+      const parts = [];
+      if (encounter) {
+        parts.push(
+          battleWin
+            ? `${scene.name}·${spotName}：打败了野生宠物，这场不给经验。`
+            : `${scene.name}·${spotName}：💔 打输了，这场不给经验。`
+        );
+      } else {
+        parts.push(`${scene.name}·${spotName}：经验 +${expGained}。`);
+      }
       if (encounter) parts.push("洛克贝 +1。");
       if (eggGranted) parts.push("首次达标，已自动发放【随机初始宠物蛋】。");
 
@@ -2560,8 +2592,6 @@
       // 战败：被抢走道具
       if (encounter && !battleWin && lostItem) {
         parts.push(`💔 被抢走了道具【${lostItem}】！`);
-      } else if (encounter && !battleWin && !lostItem) {
-        parts.push(`💔 战斗失败，本次经验收益降低。`);
       }
 
       // 亲密度改为手动提升（宠物栏中点击按钮），这里只检查是否集齐并提示
@@ -2593,7 +2623,7 @@
       }
 
       if (encounter && battleWin) {
-        parts.push(`战斗胜利！额外经验 +${Math.floor(outcome.exp * 0.5)}。`);
+        parts.push("战斗胜利！可以趁现在试着抓它。");
       }
 
       setSceneResult(parts.join(" "), false, false, droppedItem, false);
@@ -3831,8 +3861,15 @@
 
       const meta = document.createElement("span");
       meta.className = "map-meta";
+      const lvCfg = WILD_PETS[scene.id];
+      const lvText =
+        lvCfg && Array.isArray(lvCfg.levels) && lvCfg.levels.length
+          ? `${lvCfg.levels[0][0]}-${lvCfg.levels[lvCfg.levels.length - 1][1]}`
+          : null;
       meta.textContent = unlocked
-        ? `${scene.tag} · ${scene.drops.exp[0]}-${scene.drops.exp[1]}`
+        ? lvText
+          ? `${scene.tag} · 野生宠物 ${lvText} 级`
+          : `${scene.tag} · ${scene.drops.exp[0]}-${scene.drops.exp[1]}`
         : lockReason;
 
       button.append(dot, name, meta);
@@ -4141,18 +4178,15 @@
     }
     const hint = document.createElement("p");
     hint.className = "shop-hint";
-    hint.textContent = "统一定价，成交后系统向卖家收取 1/5 手续费（向上取整）。点击道具即可上架。";
+    hint.textContent = "自己定价：最低 2 洛克贝，最高 99999。成交后系统向卖家收 1/5 手续费（向上取整）。点道具填价格就能上架。";
     els.shopContent.appendChild(hint);
 
     const grid = document.createElement("div");
     grid.className = "shop-grid";
     ownedItems.forEach((item) => {
-      const price = getItemPrice(item.id);
-      const card = document.createElement("button");
-      card.type = "button";
+      const suggest = getItemPrice(item.id);
+      const card = document.createElement("div");
       card.className = "shop-item-card sell-card";
-      card.dataset.action = "list";
-      card.dataset.itemId = item.id;
 
       const icon = document.createElement("div");
       icon.className = "shop-item-icon";
@@ -4169,16 +4203,88 @@
 
       const priceEl = document.createElement("div");
       priceEl.className = "shop-item-price";
-      priceEl.textContent = `售价 ${price} 洛克贝`;
+      priceEl.textContent = "参考价 " + suggest + " 洛克贝";
 
       const listTag = document.createElement("span");
       listTag.className = "shop-list-tag";
-      listTag.textContent = "点击上架";
+      listTag.textContent = "点我定价";
 
       card.append(icon, info, priceEl, listTag);
+      card.addEventListener("click", () => openSellPriceEditor(card, item, suggest));
       grid.appendChild(card);
     });
     els.shopContent.appendChild(grid);
+  }
+
+  // 点道具卡片 → 就地变成"填价格"的小表单
+  function openSellPriceEditor(card, item, suggest) {
+    if (card.dataset.editing === "1") return;
+    card.dataset.editing = "1";
+    card.classList.add("is-editing");
+    card.replaceChildren();
+
+    const form = document.createElement("div");
+    form.className = "sell-price-form";
+
+    const title = document.createElement("strong");
+    title.className = "sell-price-title";
+    title.textContent = item.name + " ×" + item.count;
+
+    const tip = document.createElement("span");
+    tip.className = "sell-price-tip";
+    tip.textContent = "填你的价格（2 ~ 99999）";
+
+    const row = document.createElement("div");
+    row.className = "sell-price-row";
+
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "2";
+    input.max = "99999";
+    input.value = String(suggest);
+    input.className = "sell-price-input";
+
+    const ok = document.createElement("button");
+    ok.type = "button";
+    ok.className = "sell-price-ok";
+    ok.textContent = "上架";
+
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "sell-price-cancel";
+    cancel.textContent = "算了";
+
+    cancel.addEventListener("click", (e) => {
+      e.stopPropagation();
+      render();
+    });
+
+    ok.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const value = Number(input.value);
+      if (!Number.isFinite(value) || value < 2) {
+        setResult("价格最低 2 洛克贝，再改一下。", true);
+        return;
+      }
+      ok.disabled = true;
+      ok.textContent = "上架中…";
+      try {
+        const result = await listItem(item.id, Math.floor(value));
+        setResult(result.msg, !result.ok);
+      } catch (error) {
+        console.error("上架失败", error);
+        setResult("上架失败，请检查网络后重试。", true);
+      } finally {
+        ok.disabled = false;
+        ok.textContent = "上架";
+        render();
+      }
+    });
+
+    row.append(input, ok, cancel);
+    form.append(title, tip, row);
+    card.appendChild(form);
+    try { input.focus(); input.select(); } catch (err) {}
   }
 
   function renderMineTab(profile) {
@@ -4462,21 +4568,26 @@
   }
 
   // ===== 战斗系统 =====
-  function generateWildPet(sceneId) {
+  function generateWildPet(sceneId, spotIndex) {
     const config = WILD_PETS[sceneId];
     if (!config) return null;
     // 判断是否遇到异色稀有宠物（低概率）
     let petId;
     let isShiny = false;
-    if (config.shinyPetIds && config.shinyPetIds.length > 0 && Math.random() < (config.shinyRate || 0.03)) {
+    if (config.shinyPetIds && config.shinyPetIds.length > 0 && Math.random() < (config.shinyRate || 0.01)) {
       petId = config.shinyPetIds[Math.floor(Math.random() * config.shinyPetIds.length)];
       isShiny = true;
     } else {
+      // 该场景所有野生宠物等概率出现
       petId = config.petIds[Math.floor(Math.random() * config.petIds.length)];
     }
     const template = PET_DATABASE.find((p) => p.petId === petId);
     if (!template) return null;
-    const level = randomInt(config.levelRange[0], config.levelRange[1]);
+    // 等级：按探索点的位置取对应等级段，找不到就用场景总段
+    const idx = Number.isInteger(spotIndex) && spotIndex >= 0 ? spotIndex : -1;
+    const range =
+      (idx >= 0 && Array.isArray(config.levels) && config.levels[idx]) || config.levelRange;
+    const level = randomInt(range[0], range[1]);
     const stage = template.stages.find((s) => level >= s.needLevel) || template.stages[0];
     // 异色宠物基础资质更强（+30%血量，+5攻击，+3防御，+3速度）
     const shinyBonus = isShiny ? 1.3 : 1;
@@ -4503,8 +4614,11 @@
     const events = [];
     let playerHp = playerPet.hpMax;
     let wildHp = wildPet.hpMax;
-    const playerAtk = getPetAttack(playerPet);
-    const playerDef = getPetDefense(playerPet);
+    // 越级保护：野生宠物比你高 1-2 级时，给你补一点攻防（最多补 2 级），
+    // 不然等级差 1 级就是必输，新手第一战遇上 2 级怪就卡住了
+    const lvGap = Math.max(0, Math.min(2, (wildPet.level || 1) - (playerPet.level || 1)));
+    const playerAtk = getPetAttack(playerPet) + lvGap * 3;
+    const playerDef = getPetDefense(playerPet) + lvGap * 2;
     const playerSpd = getPetSpeed(playerPet);
 
     log.push(`野生的 ${wildPet.name}（Lv.${wildPet.level}）出现了！`);
@@ -4685,8 +4799,8 @@
     els.battleModal.hidden = false;
     els.battleTitle.textContent = win ? "⚔️ 战斗胜利！" : "⚔️ 战斗失败…";
     els.battleResult.textContent = win
-      ? "获得额外经验奖励！"
-      : "本次探索收益降低，可能丢失道具！";
+      ? "打赢了！这场不给经验，可以试着抓它。"
+      : "打输了，这场不给经验，可能被抢走道具。";
     els.battleResult.className = `battle-result ${win ? "win" : "lose"}`;
 
     if (els.battlePlayerName) els.battlePlayerName.textContent = playerPet?.name || "我方";
