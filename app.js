@@ -1465,25 +1465,82 @@
     };
   }
 
-  // 排行榜：显示所有学生，按战力或经验排序
-  function showRank(type) {
-    els.rankTabPower.classList.toggle("active", type === "power");
-    els.rankTabExp.classList.toggle("active", type === "exp");
-    els.rankModal.hidden = false;
+  // ===== 排行榜：战力 / 经验 / 财富 / 时装 =====
+  const RANK_META = {
+    power: { title: "战力榜", hint: "按宠物战力总和排名" },
+    exp: { title: "经验榜", hint: "按累计经验排名" },
+    wealth: { title: "财富榜", hint: "按洛克贝余额排名" },
+    outfit: { title: "时装榜", hint: "按已拥有的时装套数排名" },
+  };
 
-    const profiles = state.profiles
-      .filter((p) => p.pet)
-      .map((p) => ({
+  let rankCache = null;
+  let rankCacheAt = 0;
+  let rankRenderToken = 0;
+  // 演练账号（老师自己建的测试号）不参与全班榜单，免得挡住真学生
+  const RANK_HIDDEN_PATTERN = /测试|引导|demo|test/i;
+
+  // 排行榜统一从云端拉全班名单，否则每个孩子只能看到自己
+  async function loadRankProfiles(force) {
+    const now = Date.now();
+    if (!force && rankCache && now - rankCacheAt < 60000) return rankCache;
+    let list = state.profiles.slice();
+    if (CLOUD_ENABLED) {
+      try {
+        const rows = await cloudGetAllStudents();
+        if (Array.isArray(rows) && rows.length) list = rows.map((row) => profileFromCloud(row));
+      } catch (error) {
+        console.warn("读取云端排行榜失败（先显示本地数据）", error);
+      }
+    }
+    rankCache = list.filter((p) => p && p.name && !RANK_HIDDEN_PATTERN.test(p.name));
+    rankCacheAt = now;
+    return rankCache;
+  }
+
+  function buildRankRows(list, type) {
+    const rows = list.map((p) => {
+      const pets = (Array.isArray(p.pets) ? p.pets : []).filter((pet) => pet && pet.level);
+      const ownOutfits = Array.isArray(p.outfits) ? p.outfits.filter(Boolean) : [];
+      return {
         name: p.name,
-        level: p.pet.level,
-        power: getPetPower(p.pet),
-        exp: p.exp,
-        type: p.pet.type,
-      }))
-      .sort((a, b) => (type === "power" ? b.power - a.power : b.exp - a.exp));
+        petCount: pets.length,
+        power: pets.reduce((sum, pet) => sum + getPetPower(pet), 0),
+        maxLevel: pets.length ? Math.max(...pets.map((pet) => pet.level)) : 0,
+        exp: Math.max(0, Number(p.exp) || 0),
+        rockbell: Math.max(0, Number(p.rockbell) || 0),
+        // 人人都有新手装，老账号存档里没有 outfits 字段时按 1 套算
+        outfits: ownOutfits.length || 1,
+      };
+    });
+    const sorters = {
+      power: (a, b) => b.power - a.power,
+      exp: (a, b) => b.exp - a.exp,
+      wealth: (a, b) => b.rockbell - a.rockbell,
+      outfit: (a, b) => b.outfits - a.outfits,
+    };
+    return rows.sort(sorters[type] || sorters.power);
+  }
 
-    els.rankList.replaceChildren();
-    profiles.forEach((p, index) => {
+  function rankSubText(row, type) {
+    if (type === "power")
+      return row.petCount ? `${row.petCount}只宠物 · 最高Lv.${row.maxLevel}` : "还没有宠物";
+    if (type === "exp") return row.maxLevel ? `最高Lv.${row.maxLevel}` : "还没孵出宠物";
+    if (type === "wealth") return "洛克贝余额";
+    return "已解锁时装";
+  }
+
+  function rankValueText(row, type) {
+    if (type === "power") return `战力 ${row.power}`;
+    if (type === "exp") return `经验 ${row.exp}`;
+    if (type === "wealth") return `💰 ${row.rockbell}`;
+    return `👗 ${row.outfits} 套`;
+  }
+
+  function renderRankList(container, rows, type) {
+    if (!container) return;
+    container.replaceChildren();
+    const me = getActiveProfile();
+    rows.forEach((row, index) => {
       const item = document.createElement("div");
       item.className = `rank-item${index < 3 ? ` top${index + 1}` : ""}`;
 
@@ -1496,30 +1553,55 @@
 
       const name = document.createElement("div");
       name.className = "rank-name";
-      name.textContent = p.name;
+      name.textContent = me && me.name === row.name ? `${row.name}（我）` : row.name;
 
       const sub = document.createElement("div");
       sub.className = "rank-sub";
-      sub.textContent = `Lv.${p.level} · ${p.type}`;
+      sub.textContent = rankSubText(row, type);
 
       info.append(name, sub);
 
       const value = document.createElement("span");
       value.className = "rank-value";
-      value.textContent = type === "power" ? `战力 ${p.power}` : `经验 ${p.exp}`;
+      value.textContent = rankValueText(row, type);
 
       item.append(num, info, value);
-      els.rankList.appendChild(item);
+      container.appendChild(item);
     });
 
-    if (profiles.length === 0) {
+    if (rows.length === 0) {
       const empty = document.createElement("div");
       empty.className = "rank-item";
       empty.style.justifyContent = "center";
       empty.style.color = "var(--muted)";
       empty.textContent = "暂无排行数据";
-      els.rankList.appendChild(empty);
+      container.appendChild(empty);
     }
+  }
+
+  async function showRank(type) {
+    const key = RANK_META[type] ? type : "power";
+    const token = ++rankRenderToken;
+    [
+      [els.rankTabPower, "power"],
+      [els.rankTabExp, "exp"],
+      [els.rankTabWealth, "wealth"],
+      [els.rankTabOutfit, "outfit"],
+    ].forEach(([el, k]) => {
+      if (el) el.classList.toggle("active", k === key);
+    });
+    els.rankModal.hidden = false;
+    // 有缓存就先秒出，避免每切一个榜都闪一下"读取中"
+    if (rankCache) {
+      renderRankList(els.rankList, buildRankRows(rankCache, key), key);
+    } else if (els.rankList) {
+      els.rankList.innerHTML =
+        '<div class="rank-item" style="justify-content:center;color:var(--muted)">正在读取全班数据…</div>';
+    }
+
+    const list = await loadRankProfiles();
+    if (token !== rankRenderToken) return; // 期间又切了别的榜，让后来的那次渲染
+    renderRankList(els.rankList, buildRankRows(list, key), key);
   }
 
   function cacheElements() {
@@ -1541,6 +1623,14 @@
     els.rankClose = document.getElementById("rankClose");
     els.rankTabPower = document.getElementById("rankTabPower");
     els.rankTabExp = document.getElementById("rankTabExp");
+    els.rankTabWealth = document.getElementById("rankTabWealth");
+    els.rankTabOutfit = document.getElementById("rankTabOutfit");
+    els.rankViewTabPower = document.getElementById("rankViewTabPower");
+    els.rankViewTabExp = document.getElementById("rankViewTabExp");
+    els.rankViewTabWealth = document.getElementById("rankViewTabWealth");
+    els.rankViewTabOutfit = document.getElementById("rankViewTabOutfit");
+    els.rankTitle = document.getElementById("rankTitle");
+    els.rankHint = document.getElementById("rankHint");
     els.navRank = document.getElementById("navRank");
     els.saveStatus = document.getElementById("saveStatus");
     els.createForm = document.getElementById("createForm");
@@ -1706,6 +1796,8 @@
     els.rankClose?.addEventListener("click", () => { els.rankModal.hidden = true; });
     els.rankTabPower?.addEventListener("click", () => showRank("power"));
     els.rankTabExp?.addEventListener("click", () => showRank("exp"));
+    els.rankTabWealth?.addEventListener("click", () => showRank("wealth"));
+    els.rankTabOutfit?.addEventListener("click", () => showRank("outfit"));
     els.rankModal?.addEventListener("click", (e) => {
       if (e.target === els.rankModal) els.rankModal.hidden = true;
     });
@@ -1834,6 +1926,15 @@
     });
     // 排行榜视图切换
     els.navRank?.addEventListener("click", () => switchView("rank"));
+    const bindRankViewTab = (el, type) =>
+      el?.addEventListener("click", () => {
+        rankViewType = type;
+        renderRankView();
+      });
+    bindRankViewTab(els.rankViewTabPower, "power");
+    bindRankViewTab(els.rankViewTabExp, "exp");
+    bindRankViewTab(els.rankViewTabWealth, "wealth");
+    bindRankViewTab(els.rankViewTabOutfit, "outfit");
     // 引导系统事件（新版：手指引导 + 功能卡）
     els.guideSkip?.addEventListener("click", skipGuideV2);
     els.guideNext?.addEventListener("click", () => handleGuideNextClick());
@@ -6319,78 +6420,33 @@
   // ============================================
   // 排行榜系统（视图版）
   // ============================================
+  let rankViewType = "power";
+
   async function renderRankView() {
     if (!els.rankContent) return;
-    els.rankContent.replaceChildren();
+    const token = ++rankRenderToken;
 
-    // 排行榜从云端拉全班，保证每个同学看到的都是同一张榜
-    let sourceProfiles = state.profiles;
-    if (CLOUD_ENABLED) {
-      try {
-        const rows = await cloudGetAllStudents();
-        if (Array.isArray(rows) && rows.length) {
-          sourceProfiles = rows.map((row) => profileFromCloud(row));
-        }
-      } catch (error) {
-        console.warn("读取云端排行榜失败（先显示本地数据）", error);
-      }
-    }
-    if (!els.rankContent) return;
-    els.rankContent.replaceChildren();
-
-    const profiles = sourceProfiles
-      .filter((p) => p && p.name)
-      .map(p => {
-        const pets = p.pets || [];
-        const totalPower = pets.reduce((sum, pet) => sum + getPetPower(pet), 0);
-        return {
-          name: p.name,
-          power: totalPower,
-          petCount: pets.length,
-          maxLevel: pets.length ? Math.max(...pets.map(pet => pet.level)) : 0,
-        };
-      })
-      .sort((a, b) => b.power - a.power);
-
-    profiles.forEach((p, index) => {
-      const item = document.createElement("div");
-      item.className = `rank-item${index < 3 ? ` top${index + 1}` : ""}`;
-
-      const num = document.createElement("span");
-      num.className = "rank-num";
-      num.textContent = index + 1;
-
-      const info = document.createElement("div");
-      info.className = "rank-info";
-
-      const name = document.createElement("div");
-      name.className = "rank-name";
-      const me = getActiveProfile();
-      name.textContent = me && me.name === p.name ? `${p.name}（我）` : p.name;
-
-      const sub = document.createElement("div");
-      sub.className = "rank-sub";
-      sub.textContent =
-        p.petCount > 0 ? `${p.petCount}只宠物 · 最高Lv.${p.maxLevel}` : "还没有宠物";
-
-      info.append(name, sub);
-
-      const value = document.createElement("span");
-      value.className = "rank-value";
-      value.textContent = `战力 ${p.power}`;
-
-      item.append(num, info, value);
-      els.rankContent.appendChild(item);
+    [
+      [els.rankViewTabPower, "power"],
+      [els.rankViewTabExp, "exp"],
+      [els.rankViewTabWealth, "wealth"],
+      [els.rankViewTabOutfit, "outfit"],
+    ].forEach(([el, k]) => {
+      if (el) el.classList.toggle("active", k === rankViewType);
     });
+    const meta = RANK_META[rankViewType] || RANK_META.power;
+    if (els.rankTitle) els.rankTitle.textContent = meta.title;
+    if (els.rankHint) els.rankHint.textContent = meta.hint;
 
-    if (profiles.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "rank-item";
-      empty.style.justifyContent = "center";
-      empty.style.color = "var(--muted)";
-      empty.textContent = "暂无排行数据";
-      els.rankContent.appendChild(empty);
+    if (rankCache) {
+      renderRankList(els.rankContent, buildRankRows(rankCache, rankViewType), rankViewType);
+    } else {
+      els.rankContent.replaceChildren();
     }
+
+    const list = await loadRankProfiles();
+    if (token !== rankRenderToken) return;
+    renderRankList(els.rankContent, buildRankRows(list, rankViewType), rankViewType);
   }
 
   async function publishRankReward() {
