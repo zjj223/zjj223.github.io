@@ -1611,7 +1611,7 @@
 
       const liked = document.createElement("span");
       liked.className = "rank-liked";
-      liked.textContent = `👍 ${row.likedCount}`;
+      liked.textContent = `获赞 ${row.likedCount}`;
 
       const likeBtn = document.createElement("button");
       likeBtn.type = "button";
@@ -1634,7 +1634,7 @@
         likeBtn.disabled = true;
         likeBtn.textContent = "明天再来";
       } else {
-        likeBtn.textContent = "点赞 +5";
+        likeBtn.textContent = "点赞";
       }
       likeBtn.addEventListener("click", () => likeRankEntry(row.name, type, likeBtn));
 
