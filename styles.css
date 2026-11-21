@@ -7033,7 +7033,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 10px 12px;
+  padding: 8px 9px;
   border: 2px solid var(--line);
   border-radius: var(--r-md);
   background: #fffdf5;
@@ -7048,7 +7048,8 @@ body {
 }
 
 .role-info-value {
-  font-size: 16px;
+  font-size: 14px;
+  letter-spacing: -0.2px;
   color: #3f2f1c;
   white-space: nowrap;
   overflow: hidden;
@@ -7122,8 +7123,9 @@ body {
 
 /* ---- 衣服页 ---- */
 .role-clothes {
-  display: flex;
-  justify-content: center;
+  display: block !important;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .role-clothes-box {
@@ -8174,6 +8176,219 @@ body {
   color: #7d7466;
   font-size: 13px;
   margin: 6px 0 2px;
+}
+
+/* ================= 时装系统：衣柜 + 商店 ================= */
+.fashion-shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 14px 0 10px;
+}
+
+.fashion-shop-card {
+  background: #fff;
+  border: 2px solid #e6e0d3;
+  border-radius: 14px;
+  padding: 10px;
+  text-align: center;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.fashion-shop-card.is-owned {
+  border-color: #8fbf6b;
+  background: #fbfff5;
+}
+
+.fashion-shop-icon {
+  width: 100%;
+  height: 152px;
+  background: linear-gradient(180deg, #fdf6e3, #f2ead6);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.fashion-shop-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.fashion-shop-name {
+  margin-top: 4px;
+  font-weight: 800;
+  color: #3c3830;
+  font-size: 14px;
+}
+
+.fashion-shop-tag {
+  font-size: 12px;
+  color: #9a8f7c;
+}
+
+.fashion-shop-intro {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #8a8171;
+  margin: 2px 0 4px;
+  min-height: 30px;
+}
+
+.fashion-shop-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  margin-top: auto;
+}
+
+.fashion-buy-bell,
+.fashion-buy-item,
+.fashion-wear-btn {
+  width: 100%;
+  border: 0;
+  border-radius: 9px;
+  padding: 7px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+}
+
+.fashion-buy-bell {
+  background: #5b9bd5;
+}
+
+.fashion-buy-item {
+  background: #7cae5c;
+}
+
+.fashion-wear-btn {
+  background: #d9a441;
+  margin-top: auto;
+}
+
+.fashion-wear-btn.is-on {
+  background: #e8e2d2;
+  color: #8a8171;
+  cursor: default;
+}
+
+.fashion-buy-bell:disabled,
+.fashion-buy-item:disabled {
+  background: #ddd6c7;
+  color: #a89f8d;
+  cursor: not-allowed;
+}
+
+#roleModal .role-layout.is-clothes {
+  grid-template-columns: 132px minmax(0, 1fr) !important;
+}
+
+#roleModal .role-layout.is-clothes .role-portrait-frame {
+  min-height: 0 !important;
+}
+
+.outfit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)) !important;
+  gap: 8px;
+}
+
+/* 角色弹窗 · 衣柜 */
+.role-clothes-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px 8px;
+  border-bottom: 1px solid #ece5d6;
+  margin-bottom: 10px;
+}
+
+.role-clothes-head strong {
+  font-size: 15px;
+  color: #3c3830;
+}
+
+.role-clothes-head span {
+  font-size: 12px;
+  color: #9a8f7c;
+}
+
+.outfit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 9px;
+}
+
+.outfit-card {
+  border: 2px solid #e6e0d3;
+  border-radius: 11px;
+  background: #fff;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: transform .12s ease, border-color .12s ease;
+}
+
+.outfit-card:hover {
+  transform: translateY(-2px);
+  border-color: #d9a441;
+}
+
+.outfit-card.is-wearing {
+  border-color: #d9a441;
+  background: #fff8e6;
+  box-shadow: 0 0 0 2px rgba(217, 164, 65, .25);
+}
+
+.outfit-card.is-locked {
+  opacity: .55;
+  filter: grayscale(.5);
+}
+
+.outfit-thumb {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: contain;
+  background: linear-gradient(180deg, #fdf6e3, #f5efe2);
+  border-radius: 8px;
+}
+
+.outfit-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: #3c3830;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.outfit-tag {
+  font-size: 10px;
+  color: #9a8f7c;
+}
+
+.outfit-card.is-wearing .outfit-tag {
+  color: #b07d1c;
+  font-weight: 700;
+}
+
+.role-clothes-note {
+  margin: 10px 0 2px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8a8171;
 }
 /* ================= V29 老师后台：名单 + 详情 ================= */
 .teacher-select-hidden {
