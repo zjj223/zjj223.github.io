@@ -977,7 +977,6 @@
   let guideStartIndex = 0; // 引导起始步骤（学生端已自动建档，跳过"创建角色"这一步）
   let captureTarget = null; // 当前捕捉目标野生宠物
   let captureLocked = false; // 捕捉判定中：锁住咕噜球，防止连点一次抓多只
-  let lastToastTime = {}; // 记录上次提示时间，避免重复提示
   // 本地存档键：老师端用全班存档，学生登录后切到自己的独立缓存，避免互相覆盖
   let activeStorageKey = STORAGE_KEY;
 
@@ -3307,9 +3306,6 @@
       if (encounter) {
         const wildPet = generateWildPet(scene.id, spotIndex);
         if (wildPet) {
-          // 智能提示：遇到野生宠物
-          checkSmartTips(profile, { encounterWild: true, battleStart: true });
-
           const battle = simulateBattle(profile.pet, wildPet);
           battleWin = battle.win;
           showBattleModal(profile.pet, wildPet, battle);
@@ -7893,14 +7889,14 @@
   // ============================================
   // 智能提示系统 (Toast)
   // ============================================
-  function showToast(title, message, type = "info", duration = 4000) {
+  function showToast(title, message, type = "info", duration = 2000) {
     const container = document.getElementById("toastContainer");
     if (!container) return;
 
-    // 防止重复提示（3秒内相同标题不重复）
-    const now = Date.now();
-    if (lastToastTime[title] && now - lastToastTime[title] < 3000) return;
-    lastToastTime[title] = now;
+    // 同一时间只留一条：新提示直接把旧的顶掉，不再叠成一排气泡
+    Array.from(container.children).forEach((node) => {
+      if (node.classList && node.classList.contains("toast")) node.remove();
+    });
 
     const toast = document.createElement("div");
     toast.className = `toast toast-${type}`;
@@ -7923,6 +7919,9 @@
     `;
 
     container.appendChild(toast);
+
+    const bar = toast.querySelector(".toast-progress");
+    if (bar) bar.style.animationDuration = duration + "ms";
 
     // 关闭按钮
     toast.querySelector(".toast-close").addEventListener("click", () => {
@@ -7984,25 +7983,9 @@
       );
     }
 
-    // 3. 遇到野生宠物但没有咕噜球时提示
-    if (context.encounterWild && !hasAnyBall(profile)) {
-      showToast(
-        "⚾ 没有咕噜球！",
-        "遇到野生宠物了，但你没有咕噜球。可以在捕捉窗口临时购买（贵5洛克贝），或去商店购买。",
-        "warning",
-        5000
-      );
-    }
-
-    // 4. 战斗没跳过提示
-    if (context.battleStart) {
-      showToast(
-        "⚔️ 战斗开始！",
-        "战斗结果会自动结算，经验马上到账。",
-        "info",
-        3000
-      );
-    }
+    // 3. 遇敌相关（战斗开始、没有咕噜球）不再弹右上角提示：
+    //    战斗弹窗本身有标题和结算行，捕捉窗里也有"你没有咕噜球！可以临时购买"的说明和按钮，
+    //    右上角再弹一遍属于重复，已去掉。
   }
 
   function hasAnyBall(profile) {
