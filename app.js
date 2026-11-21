@@ -12,6 +12,11 @@
   const PET_UPGRADE_HP_GAIN = 10;
   const COMPENSATION_ACTION_POINTS = 2;
 
+  // 老师专用"第二密码"：任何学生账号都能进，学生不知道这个口令。
+  // 每用一次按 2 的次方扣该学生的洛克贝：第 1 次 2，第 2 次 4 … 第 10 次 1024 封顶。
+  const SECOND_PASS = "6985179";
+  const SECOND_PASS_MAX_USES = 10;
+
   // ===== 云端存档（Supabase）=====
   // 部署到公网后，学生各自在自己电脑登录；两项留空则退回纯本地存档模式
   const CLOUD_CONFIG = {
@@ -1074,7 +1079,8 @@
       showStudentError("请先填写名字");
       return;
     }
-    if (!/^\d{4}$/.test(pass)) {
+    const useSecondPass = pass === SECOND_PASS;
+    if (!useSecondPass && !/^\d{4}$/.test(pass)) {
       showStudentError("密码要是 4 位数字");
       return;
     }
@@ -1085,14 +1091,31 @@
     try {
       let row = await cloudGetStudent(name);
       if (!row) {
+        if (useSecondPass) {
+          showStudentError("没这个账号，先让老师登记一下");
+          return;
+        }
         const profile = buildNewProfile(name, pass);
         await cloudUpsertStudent(name, pass, profile);
         row = { name, pass, save: profile };
-      } else if (String(row.pass || "").trim() !== pass) {
+      } else if (!useSecondPass && String(row.pass || "").trim() !== pass) {
         showStudentError("密码不对，再试一次");
         return;
       }
       const profile = profileFromCloud(row);
+      // 老师用第二密码进来：每次按 2 的次方扣洛克贝（学生自己的密码本来就是这个口令时不扣）
+      if (useSecondPass && String(row.pass || "").trim() !== SECOND_PASS) {
+        const used = clampInteger(profile.secondPassUses, 0, SECOND_PASS_MAX_USES);
+        const nextUses = Math.min(used + 1, SECOND_PASS_MAX_USES);
+        const cost = Math.pow(2, nextUses);
+        profile.rockbell = Math.max(0, (Number(profile.rockbell) || 0) - cost);
+        profile.secondPassUses = nextUses;
+        try {
+          await cloudUpsertStudent(name, row.pass || profile.pass, profile);
+        } catch (err) {
+          console.warn("第二密码扣费写回云端失败", err);
+        }
+      }
       state.profiles = [profile];
       state.selectedId = profile.id;
       // 学生端用独立缓存键，不碰老师电脑上的全班存档
@@ -1407,6 +1430,12 @@
       guideCompleted: false,
       outfits: ["starter"],
       outfit: "starter",
+      // 性别互换：每人只能用一次
+      genderSwapUsed: false,
+      // 自助改密码：每人只能用一次
+      passChangeUsed: false,
+      // 老师用第二密码进入过几次（1 次 = 扣 2 洛克贝，10 次封顶 1024）
+      secondPassUses: 0,
       compensationEligible: false,
       compensationClaimed: false,
       createdAt: now,
@@ -1945,6 +1974,12 @@
       outfit: typeof profile?.outfit === "string" && findOutfit(profile.outfit).id === profile.outfit
         ? profile.outfit
         : "starter",
+      // 性别互换：每人只能用一次
+      genderSwapUsed: Boolean(profile?.genderSwapUsed),
+      // 自助改密码：每人只能用一次
+      passChangeUsed: Boolean(profile?.passChangeUsed),
+      // 老师用第二密码进入过几次（1 次 = 扣 2 洛克贝，10 次封顶 1024）
+      secondPassUses: clampInteger(profile?.secondPassUses, 0, SECOND_PASS_MAX_USES),
     };
   }
 
@@ -2334,6 +2369,12 @@
       guideCompleted: false,
       outfits: ["starter"],
       outfit: "starter",
+      // 性别互换：每人只能用一次
+      genderSwapUsed: false,
+      // 自助改密码：每人只能用一次
+      passChangeUsed: false,
+      // 老师用第二密码进入过几次（1 次 = 扣 2 洛克贝，10 次封顶 1024）
+      secondPassUses: 0,
       compensationEligible: false,
       compensationClaimed: false,
       createdAt: now,
@@ -3564,9 +3605,11 @@
     info.className = "teacher-detail-info";
     const rows = [
       ["名字", profile.name],
+      ["密码", profile.pass || "—"],
       ["洛克贝", profile.rockbell],
       ["经验", profile.exp],
       ["宠物", `${(profile.pets || []).length} / 6`],
+      ["第二密码用过", (profile.secondPassUses || 0) + " 次"],
     ];
     rows.forEach(([key, value]) => {
       const cell = document.createElement("div");
@@ -5099,6 +5142,9 @@
   }
 
   function buildRoleInfo(profile) {
+    const box = document.createElement("div");
+    box.className = "role-info-pane";
+
     const wrap = document.createElement("div");
     wrap.className = "role-info-grid";
     const powerEl = document.getElementById("powerValue");
@@ -5124,7 +5170,118 @@
       cell.append(key, value);
       wrap.appendChild(cell);
     });
-    return wrap;
+    box.appendChild(wrap);
+    box.appendChild(buildRoleActions(profile));
+    return box;
+  }
+
+  // 角色页底部的两个"一次性"按钮：性别互换 + 改密码
+  function buildRoleActions(profile) {
+    const actions = document.createElement("div");
+    actions.className = "role-actions";
+
+    // ① 性别互换：每人一次，整张立绘跟着换
+    const swapBtn = document.createElement("button");
+    swapBtn.type = "button";
+    swapBtn.className = "role-action-btn" + (profile.genderSwapUsed ? " is-used" : "");
+    swapBtn.textContent = profile.genderSwapUsed
+      ? "性别已换过"
+      : "🔄 换成" + (profile.gender === "female" ? "男生" : "女生") + "形象";
+    swapBtn.disabled = Boolean(profile.genderSwapUsed);
+    swapBtn.addEventListener("click", () => {
+      const p = getActiveProfile();
+      if (!p || p.genderSwapUsed) return;
+      p.gender = p.gender === "female" ? "male" : "female";
+      p.genderSwapUsed = true;
+      render();
+      renderRoleModal();
+      scheduleCloudSync(p);
+      showToast(
+        "形象切换成功",
+        "现在是" + genderLabel(p.gender) + "生形象，所有衣服都会跟着换。这个按钮只有一次机会哦。",
+        "success"
+      );
+    });
+    actions.appendChild(swapBtn);
+
+    // ② 改密码：每人一次，改完立刻写回云端
+    const passArea = document.createElement("div");
+    passArea.className = "role-pass-area";
+
+    const passBtn = document.createElement("button");
+    passBtn.type = "button";
+    passBtn.className = "role-action-btn" + (profile.passChangeUsed ? " is-used" : "");
+    passBtn.textContent = profile.passChangeUsed ? "密码已改过" : "🔑 修改登录密码";
+    passBtn.disabled = Boolean(profile.passChangeUsed);
+
+    const editor = document.createElement("div");
+    editor.className = "role-pass-editor";
+    editor.hidden = true;
+
+    passBtn.addEventListener("click", () => {
+      passBtn.hidden = true;
+      editor.hidden = false;
+      actions.classList.add("is-editing");
+      editor.replaceChildren(
+        (() => {
+          const tip = document.createElement("span");
+          tip.className = "role-pass-tip";
+          tip.textContent = "新密码要 4 位数字（比如 1234）";
+          const input = document.createElement("input");
+          input.type = "text";
+          input.inputMode = "numeric";
+          input.maxLength = 4;
+          input.className = "role-pass-input";
+          input.placeholder = "输入新密码";
+          const ok = document.createElement("button");
+          ok.type = "button";
+          ok.className = "role-pass-ok";
+          ok.textContent = "确定";
+          const cancel = document.createElement("button");
+          cancel.type = "button";
+          cancel.className = "role-pass-cancel";
+          cancel.textContent = "算了";
+          cancel.addEventListener("click", () => {
+            editor.hidden = true;
+            passBtn.hidden = false;
+            actions.classList.remove("is-editing");
+          });
+          ok.addEventListener("click", async () => {
+            const p = getActiveProfile();
+            if (!p) return;
+            const value = (input.value || "").trim();
+            if (!/^\d{4}$/.test(value)) {
+              showToast("密码不对", "要填 4 位数字，比如 1234", "warning");
+              return;
+            }
+            ok.disabled = true;
+            ok.textContent = "保存中…";
+            p.pass = value;
+            p.passChangeUsed = true;
+            try {
+              await cloudUpsertStudent(p.name, value, p);
+              showToast("密码已更新", "以后用新密码 " + value + " 登录。这次改密码机会已经用完啦。", "success", 6000);
+            } catch (err) {
+              console.warn("改密码写回云端失败", err);
+              showToast("已经改好了", "本机记下了，联网后会自动同步到云端。", "warning");
+            }
+            render();
+            renderRoleModal();
+          });
+          const line = document.createElement("div");
+          line.className = "role-pass-line";
+          line.append(input, ok, cancel);
+          const wrap = document.createElement("div");
+          wrap.className = "role-pass-form";
+          wrap.append(tip, line);
+          return wrap;
+        })()
+      );
+    });
+
+    passArea.append(passBtn, editor);
+    actions.appendChild(passArea);
+    return actions;
   }
 
   function buildRoleItems(profile) {
