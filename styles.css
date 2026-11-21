@@ -9221,3 +9221,107 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
 .stage-spot:focus-visible .spot-tip.is-right {
   transform: translate(0, 0);
 }
+
+/* ---------------- 登录三角色外壳（学生 / 家长 / 老师） ---------------- */
+/* 三个 tab 挤在 340px 卡片里，字缩一点、别换行 */
+.login-tab {
+  white-space: nowrap;
+  font-size: 0.82rem;
+}
+
+/* 学生登录后的选择页：卡片内容换成「你好 + 两个按钮」 */
+#studentLanding {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.landing-hello {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #3b3125;
+  text-align: center;
+}
+
+.landing-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 学习台按钮走"次要按钮"：白底绿字，视觉上比开始游戏轻一档 */
+#btnStudyRoom.is-ghost {
+  background: var(--surface-hi);
+  color: var(--green-deep);
+  border: 2px solid var(--line);
+  box-shadow: 0 3px 0 #d8c8ab, var(--inner-hi);
+}
+
+#btnStudyRoom.is-ghost:hover:not(:disabled) {
+  background: #f6f1e4;
+}
+
+#btnStudyRoom.is-ghost:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: var(--inner-hi);
+}
+
+/* 行内提示：不弹 alert，只在卡片里露一行字 */
+.login-hint {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: #b9751a;
+  text-align: center;
+}
+
+/* 切换账号做成文字链接，不抢按钮位置 */
+.login-link {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 顶栏右侧：学习台按钮 + 存档状态 */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 学生端游戏是全屏层（.game-area fixed z-index:15），会把顶栏盖住，
+   所以这个「回学习台」按钮单独浮到底栏右侧的空白处，z-index 压在全屏层之上 */
+#btnBackHome {
+  position: fixed;
+  right: 16px;
+  bottom: 7px;
+  z-index: 40;
+}
+
+.topbar-home {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface-hi);
+  color: var(--green-deep);
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 2px 0 #d8c8ab;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.topbar-home:hover {
+  background: #f6f1e4;
+}
+
+.topbar-home:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
