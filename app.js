@@ -4760,7 +4760,40 @@
       card.style.left = `${xy[0]}%`;
       card.style.top = `${xy[1]}%`;
       card.disabled = isExploring;
-      card.title = `${spot.name}：${spot.desc}（经验 ${spot.exp[0]}-${spot.exp[1]}，免费探索）`;
+      card.setAttribute(
+        "aria-label",
+        `${spot.name}：${spot.desc}（经验 ${spot.exp[0]}-${spot.exp[1]}，免费探索）`,
+      );
+
+      // 悬停小面板：这个点会遇到几级野生宠物、遇敌概率、掉道具概率
+      const wildCfg = WILD_PETS[scene.id];
+      const lvRange =
+        (wildCfg && Array.isArray(wildCfg.levels) && wildCfg.levels[spotIndex]) ||
+        (wildCfg && wildCfg.levelRange) ||
+        [1, 1];
+      const dropPct = Math.round((spotIndex === 4 ? 0.7 : ITEM_DROP_CHANCE) * 100);
+      const encPct = Math.round(((wildCfg && wildCfg.encounterRate) || 0) * 100);
+
+      const spotTip = document.createElement("span");
+      spotTip.className = `spot-tip${xy[1] < 34 ? " is-below" : ""}${
+        xy[0] < 22 ? " is-left" : xy[0] > 78 ? " is-right" : ""
+      }`;
+      [
+        ["🐾", `野生宠物 Lv.${lvRange[0]}-${lvRange[1]}`],
+        ["⚔️", `遇敌概率 ${encPct}%`],
+        ["🎁", `道具概率 ${dropPct}%`],
+      ].forEach(([icon, text]) => {
+        const row = document.createElement("span");
+        row.className = "spot-tip-row";
+        const iconEl = document.createElement("span");
+        iconEl.className = "spot-tip-icon";
+        iconEl.textContent = icon;
+        const textEl = document.createElement("span");
+        textEl.className = "spot-tip-text";
+        textEl.textContent = text;
+        row.append(iconEl, textEl);
+        spotTip.appendChild(row);
+      });
 
       const spotIcon = document.createElement("span");
       spotIcon.className = "stage-dot";
@@ -4771,6 +4804,7 @@
       spotName.textContent = spot.name;
 
       card.append(spotIcon, spotName);
+      card.appendChild(spotTip);
       els.sceneSpotList.appendChild(card);
     });
 
