@@ -165,7 +165,10 @@ if (last) {
 }
 
 /* 按钮 */
-document.getElementById('btnSet').onclick = () => go(NAV.set, '线上单文件副本没有题单页');
+document.getElementById('btnSet').onclick = () => {
+  if (!NAV.set) return toast('线上单文件副本没有题单页');
+  location.href = NAV.set + '?name=' + encodeURIComponent(name);
+};
 document.getElementById('btnLast').onclick = () => {
   const target = last ? 'ybt' + last.pid : ('ybt' + ((Y.problems[0] || {}).pid || ''));
   if (!target || target === 'ybt') return go(NAV.set, '题单页打不开');
