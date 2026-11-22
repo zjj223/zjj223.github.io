@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>学习台 · 俊杰侃信奥</title>
+<style>
+  :root{--blue:#2947c9;--blue-d:#1f36a0;--line:#e3e8f2;--ink:#262626;--dim:#98a2b8;--bg:#f4f6fa;--ok:#52c41a}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+  .top{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+  .top-in{max-width:1100px;margin:0 auto;padding:0 18px;height:52px;display:flex;align-items:center;gap:12px}
+  .logo{font-weight:700;font-size:15.5px;letter-spacing:.5px}
+  .logo i{display:inline-block;width:22px;height:22px;border-radius:6px;background:var(--blue);color:#fff;
+    font-size:12px;text-align:center;line-height:22px;font-style:normal;margin-right:8px;vertical-align:-4px}
+  .sp{flex:1}
+  .who{font-size:12.5px;color:var(--dim)}
+  .coin{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;background:#fff8e6;
+    border:1px solid #ffe2a8;color:#a26a00;padding:3px 10px;border-radius:999px;cursor:pointer;font-family:inherit}
+  .coin:hover{background:#ffefcc}
+  .out{font-size:12.5px;color:var(--dim);text-decoration:none;padding:4px 10px;border-radius:6px}
+  .out:hover{background:#f2f4f9;color:var(--blue)}
+
+  .wrap{max-width:1100px;margin:0 auto;padding:34px 18px 60px}
+  h1{margin:0;font-size:23px;font-weight:700}
+  .sub{margin:6px 0 24px;font-size:12.5px;color:var(--dim)}
+
+  .cards{display:flex;gap:16px;flex-wrap:wrap}
+  .card{flex:1;min-width:280px;border:1px solid var(--line);border-radius:12px;background:#fff;
+    padding:20px 20px 18px;display:flex;flex-direction:column}
+  .card .t{font-size:16px;font-weight:700}
+  .card .d{margin-top:6px;font-size:12.5px;color:var(--dim);min-height:38px}
+  .card .go{margin-top:14px;align-self:flex-start;background:var(--blue);color:#fff;border:0;border-radius:8px;
+    padding:9px 20px;font-size:13px;cursor:pointer;font-family:inherit}
+  .card .go:hover{background:var(--blue-d)}
+  .card.main{background:linear-gradient(120deg,#33478f,#1e2b5c 62%,#16204a);border:0;color:#fff}
+  .card.main .d{color:#c2cef0}
+  .card.main .go{background:#fff;color:var(--blue)}
+  .card.main .go:hover{background:#eef2ff}
+  .card.ghost .go{background:#fff;color:var(--blue);border:1px solid #c9d6f5}
+  .card.ghost .go:hover{background:#f4f8ff}
+
+  .prog{margin-top:22px;border:1px solid var(--line);border-radius:12px;background:#fff;
+    padding:16px 20px;display:flex;align-items:center;gap:16px}
+  .prog .n{font-size:13px;color:#4b5568;white-space:nowrap}
+  .prog .track{flex:1;height:8px;background:#eef1f7;border-radius:99px;overflow:hidden}
+  .prog .track i{display:block;height:100%;background:var(--blue);border-radius:99px;transition:width .4s}
+  .prog .pct{font-size:13px;font-weight:600;color:var(--blue);min-width:42px;text-align:right}
+
+  .toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,10px);background:rgba(37,43,55,.95);
+    color:#fff;font-size:13px;padding:9px 18px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.22);
+    opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:99}
+  .toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  @media (max-width:640px){ .card{min-width:100%} h1{font-size:20px} }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-in">
+    <span class="logo"><i>J</i>俊杰侃信奥</span>
+    <span class="sp"></span>
+    <span class="who" id="whoName">同学</span>
+    <button class="coin" id="btnCoin">🪙 128</button>
+    <a class="out" id="btnOut" href="index.html">切换账号</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <h1 id="hello">继续练</h1>
+  <p class="sub" id="subline">C++ 题单 · 79 题</p>
+
+  <div class="cards">
+    <div class="card main">
+      <div class="t">C++ 题单</div>
+      <div class="d" id="cardSetDesc">一本通编程启蒙 第一章 顺序结构 · 79 题</div>
+      <button class="go" id="btnSet">开始做题</button>
+    </div>
+    <div class="card ghost">
+      <div class="t">接着上次</div>
+      <div class="d" id="cardLastDesc">还没做过的题</div>
+      <button class="go" id="btnLast">继续</button>
+    </div>
+  </div>
+
+  <div class="prog">
+    <span class="n" id="progText">已通过 0 / 79</span>
+    <span class="track"><i id="progBar" style="width:0%"></i></span>
+    <span class="pct" id="progPct">0%</span>
+  </div>
+</div>
+
+<script src="data/ybt.js"></script>
+<script>
+const Y = window.YBT || { problems: [] };
+const TOTAL = (Y.problems || []).length;
+const DONE_KEY = 'studypage.done';
+const LAST_KEY = 'studypage.last';
+const CDN_ONLY = /(^|\.)doubaocdn\.com$/.test(location.hostname) || /(^|\.)byteimg\.com$/.test(location.hostname);
+const NAV = {
+  set: CDN_ONLY ? '' : '题单.html',
+  work: CDN_ONLY ? '' : '预览_DevC布局.html',
+  login: CDN_ONLY ? '' : 'index.html'
+};
+
+function readName() {
+  const q = new URLSearchParams(location.search).get('name');
+  if (q) return q;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!/carlosia_phase1_save_v1/.test(k)) continue;
+      const v = JSON.parse(localStorage.getItem(k) || '{}');
+      const n = v && v.profile && v.profile.name;
+      if (n) return n;
+    }
+  } catch (e) {}
+  return '同学';
+}
+function doneCount() {
+  try { return new Set(JSON.parse(localStorage.getItem(DONE_KEY) || '[]')).size; } catch (e) { return 0; }
+}
+function lastProblem() {
+  let id = '';
+  try { id = localStorage.getItem(LAST_KEY) || ''; } catch (e) {}
+  const pid = (id || '').replace(/^ybt/, '');
+  const p = (Y.problems || []).find((x) => String(x.pid) === pid);
+  return p || null;
+}
+
+let toastTimer = null;
+function toast(msg) {
+  let el = document.getElementById('toastBox');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toastBox'; el.className = 'toast';
+    el.addEventListener('click', () => el.classList.remove('on'));
+    document.body.appendChild(el);
+  }
+  el.textContent = msg; el.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 2200);
+}
+const go = (url, note) => { if (!url) return toast(note || '线上副本没有这一页'); location.href = url; };
+
+/* 名字与进度 */
+const name = readName();
+document.getElementById('whoName').textContent = name;
+document.getElementById('hello').textContent = '继续练，' + name;
+document.getElementById('subline').textContent = 'C++ 题单 · ' + TOTAL + ' 题';
+document.getElementById('cardSetDesc').textContent = '一本通编程启蒙 第一章 顺序结构 · ' + TOTAL + ' 题';
+
+const done = doneCount();
+document.getElementById('progText').textContent = '已通过 ' + done + ' / ' + TOTAL;
+document.getElementById('progBar').style.width = (TOTAL ? done / TOTAL * 100 : 0) + '%';
+document.getElementById('progPct').textContent = (TOTAL ? Math.round(done / TOTAL * 100) : 0) + '%';
+
+const last = lastProblem();
+if (last) {
+  document.getElementById('cardLastDesc').textContent = last.pid + ' ' + last.title.replace(/^【[^】]*】/, '').trim();
+  document.getElementById('btnLast').textContent = '继续';
+} else {
+  document.getElementById('cardLastDesc').textContent = '还没做过题，从第一题开始';
+  document.getElementById('btnLast').textContent = '从第一题开始';
+}
+
+/* 按钮 */
+document.getElementById('btnSet').onclick = () => go(NAV.set, '线上单文件副本没有题单页');
+document.getElementById('btnLast').onclick = () => {
+  const target = last ? 'ybt' + last.pid : ('ybt' + ((Y.problems[0] || {}).pid || ''));
+  if (!target || target === 'ybt') return go(NAV.set, '题单页打不开');
+  go(NAV.work + '?pid=' + target, '线上单文件副本没有做题页');
+};
+document.getElementById('btnCoin').onclick = () => toast('金币系统还没接通');
+document.getElementById('btnOut').onclick = (e) => { if (!NAV.login) { e.preventDefault(); go(null, '登录页只在本机'); } };
+</script>
+</body>
+</html>
