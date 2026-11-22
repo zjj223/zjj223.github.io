@@ -112,12 +112,57 @@
   }
 
   // 调服务端函数（PostgREST 的 /rpc/ 入口）。口令校验、发门票、写入限制都在服务端做
-  function rpcCall(fn, body) {
+  function rpcCall(fn, body, options) {
+    const opts = Object.assign({ timeout: 15000 }, options || {});
     return cloudRequest(`rpc/${fn}`, {
       method: "POST",
       body: JSON.stringify(body || {}),
-      timeout: 15000,
+      timeout: opts.timeout,
     });
+  }
+
+  // 学生正常退出：作废自己的门票并记录最后退出时间；网络失败不阻塞切换账号
+  async function studentLogout(options) {
+    const opts = options || {};
+    if (!CLOUD_ENABLED || !studentToken || location.protocol === "file:") {
+      return { ok: true, skipped: true };
+    }
+    try {
+      const res = await rpcCall("student_logout", { p_token: studentToken }, { timeout: 4000 });
+      return res || { ok: false };
+    } catch (err) {
+      if (!opts.silent) console.warn("学生退出同步失败", err);
+      return { ok: false };
+    }
+  }
+
+  // 关页面/刷新时最后努力一次；keepalive 让请求在页面卸载后继续发
+  function studentLogoutBeacon() {
+    if (!CLOUD_ENABLED || !studentToken || location.protocol === "file:") return;
+    try {
+      fetch(`${CLOUD_CONFIG.url}/rest/v1/rpc/student_logout`, {
+        method: "POST",
+        headers: cloudHeaders(),
+        body: JSON.stringify({ p_token: studentToken }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch (err) {
+      /* 忽略 */
+    }
+  }
+
+  function studentCheck() {
+    if (!CLOUD_ENABLED || !studentToken || location.protocol === "file:") {
+      return Promise.resolve({ ok: true, skipped: true });
+    }
+    return rpcCall("student_check", { p_token: studentToken });
+  }
+
+  function teacherKickStudent(name) {
+    if (!teacherToken) {
+      return Promise.reject(new Error("没有老师门票，请先进入后台"));
+    }
+    return rpcCall("teacher_kick", { p_token: teacherToken, p_name: name });
   }
 
   // 读全班：必须凭门票走服务端函数（返回里不带任何密码字段）。
@@ -185,6 +230,33 @@
     return profile;
   }
 
+  // 账号时间只放在老师端内存里，不塞进学生存档：存档会被归一化、也会被整包写回
+  function rememberRosterRows(rows) {
+    teacherRosterMeta.clear();
+    (rows || []).forEach((row) => rememberRosterRow(row));
+  }
+
+  function rememberRosterRow(row) {
+    if (!row || !row.name) return;
+    teacherRosterMeta.set(row.name, {
+      last_login_at: row.last_login_at || null,
+      last_seen_at: row.last_seen_at || null,
+      last_logout_at: row.last_logout_at || null,
+      online: Boolean(row.online),
+    });
+  }
+
+  function formatRosterTime(value, emptyText) {
+    if (!value) return emptyText;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return emptyText;
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(
+      date.getHours()
+    )}:${pad(date.getMinutes())}`;
+  }
+
+
   // 只同步"当前选中的这个角色"，合并写请求，避免连点探索时刷爆接口
   function scheduleCloudSync(profile) {
     if (!CLOUD_ENABLED || !cloudSyncAllowed || !profile || !profile.name) {
@@ -224,6 +296,10 @@
       // 老师端改档走老师门票；两样都没有就不写（表权限已经收紧，直写会被拒）
       if (studentToken) {
         const res = await rpcCall("student_save", { p_token: studentToken, p_save: payload.save });
+        if (res && res.code === "no_session") {
+          handleForcedLogout("登录已失效或被老师退出，请重新登录");
+          return;
+        }
         if (!res || !res.ok) {
           throw new Error((res && res.code) || "save_rejected");
         }
@@ -997,6 +1073,11 @@
   let selectedSceneId = "grassland";
   let teacherUnlocked = false;
   let teacherSelectedId = null; // 后台名单里点中的学生
+  const teacherRosterMeta = new Map(); // 姓名 → 最后登录/活动/退出/在线，不塞进存档
+  let lastCreatedStudent = null; // 老师刚建号的一次性密码，只给复制/下载
+  let sessionWatchTimer = null; // 学生端 30 秒会话检查
+  let sessionVisibilityBound = false;
+  let forcedLogoutReloading = false;
   let resultMessage = "";
   let resultIsWarning = false;
   let currentView = "world"; // "world" 大世界 / "scene" 场景内 / "shop" 商店
@@ -1054,6 +1135,7 @@
     }
     // 本地双击打开（老师备课）默认进老师入口；线上默认学生登录
     setLoginMode(location.protocol === "file:" ? "teacher" : "student");
+    consumeForcedLogoutNotice();
   }
 
   // 老师登录：进后台，并把云端全班数据拉下来（拉不到就继续用本地）
@@ -1096,12 +1178,15 @@
       try {
         const rows = await cloudGetAllStudents();
         if (rows && rows.length) {
+          rememberRosterRows(rows);
           const merged = rows.map(profileFromCloud);
           state.profiles = merged;
           state.selectedId = merged[0].id;
           normalizeState();
           pendingEvolution = null;
           setSaveStatus(`全班数据已加载（${merged.length} 人）`);
+        } else {
+          teacherRosterMeta.clear();
         }
       } catch (err) {
         console.warn("读取云端名单失败", err);
@@ -1136,7 +1221,7 @@
     render();
   }
 
-  // 学生登录：按名字查云端存档，查不到就自动建一个新档
+  // 学生登录：按名字查云端存档；账号只能由老师创建，查不到不再自动建档
   async function handleStudentLogin(event) {
     event.preventDefault();
     if (!CLOUD_ENABLED) {
@@ -1162,17 +1247,8 @@
     try {
       let res = null;
       if (isPin) {
-        // 1) 服务端校验密码（连错 5 次锁 60 秒），通过后发一张 12 小时门票
+        // 服务端校验密码（连错 5 次锁 60 秒），通过后发一张 12 小时门票
         res = await rpcCall("student_login", { p_name: name, p_pin: pass });
-        if (res && !res.ok && res.code === "no_user") {
-          // 2) 没这个账号：自动建档也走服务端（不再由前端直接往表里插）
-          const fresh = buildNewProfile(name, pass);
-          res = await rpcCall("student_register", {
-            p_name: name,
-            p_pin: pass,
-            p_save: fresh,
-          });
-        }
       } else {
         // 老师代管：用权限码进某个孩子的账号，服务端核对并扣费
         res = await rpcCall("teacher_enter", { p_code: pass, p_name: name });
@@ -1183,9 +1259,7 @@
         if (code === "bad_pin") showStudentError("密码不对，再试一次");
         else if (code === "locked") showStudentError(`试错太多，请等 ${res.seconds || 60} 秒再试`);
         else if (code === "class_locked") showStudentError("老师已暂停全班登录，等老师说开始");
-        else if (code === "exists") showStudentError("这个名字已经有人用了，换个名字或找老师");
-        else if (code === "bad_pin_format") showStudentError("密码要 4~6 位数字");
-        else if (code === "no_user") showStudentError("没这个账号，先让老师登记一下");
+        else if (code === "no_user") showStudentError("没有这个账号，请让老师先创建；现在学生不能自己注册");
         else if (code === "bad_code") showStudentError("老师的码不对");
         else showStudentError("登录没通过，检查名字和密码");
         return;
@@ -1199,7 +1273,7 @@
       // 学生端用独立缓存键，不碰老师电脑上的全班存档
       activeStorageKey = `${STORAGE_KEY}_cloud_${name}`;
       cloudSyncAllowed = true;
-      // 已自动建档，引导从第 2 步开始，不再提示"创建角色"
+      // 老师建号时已生成初始存档，引导从第 2 步开始，不再提示"创建角色"
       guideStartIndex = 1;
       normalizeState();
       pendingEvolution = null;
@@ -1210,6 +1284,7 @@
       }
       // 登录成功后先停在「开始游戏 / 学习台」选择页，点开始游戏才真正进游戏
       showStudentLanding(profile.name);
+      startSessionWatch();
     } catch (err) {
       console.error("学生登录失败", err);
       showStudentError("连不上云端，检查网络后再试");
@@ -2333,10 +2408,13 @@
     els.studentPass = document.getElementById("studentPass");
     els.studentLoginBtn = document.getElementById("studentLoginBtn");
     els.studentLoginError = document.getElementById("studentLoginError");
-    els.registerForm = document.getElementById("registerForm");
-    els.registerName = document.getElementById("registerName");
-    els.registerPass = document.getElementById("registerPass");
-    els.registerBtn = document.getElementById("registerBtn");
+    els.newStudentName = document.getElementById("newStudentName");
+    els.newStudentPin = document.getElementById("newStudentPin");
+    els.createStudentAccount = document.getElementById("createStudentAccount");
+    els.kickSelectedStudent = document.getElementById("kickSelectedStudent");
+    els.createStudentResult = document.getElementById("createStudentResult");
+    els.copyCreatedPin = document.getElementById("copyCreatedPin");
+    els.downloadCreatedPin = document.getElementById("downloadCreatedPin");
     els.pushAllToCloud = document.getElementById("pushAllToCloud");
     els.exportAllSaves = document.getElementById("exportAllSaves");
     els.exportMessage = document.getElementById("exportMessage");
@@ -2487,21 +2565,19 @@
     els.sceneInventory = document.getElementById("sceneInventory");
   }
 
-  // ===== 登录外壳：账号登录 / 账号注册 / 后台登录，学生多一层「开始游戏 / 学习台」选择页 =====
+  // ===== 登录外壳：账号登录 / 后台登录，学生多一层「开始游戏 / 学习台」选择页 =====
   function setLoginMode(mode) {
     document.querySelectorAll("[data-login-mode]").forEach((btn) => {
       btn.classList.toggle("is-active", btn.dataset.loginMode === mode);
     });
     const studentForm = document.getElementById("studentLoginForm");
-    const registerForm = document.getElementById("registerForm");
     const teacherForm = document.getElementById("loginForm");
     const landing = document.getElementById("studentLanding");
-    // 三个表单同一时间只放一个，切换时落地页和所有提示一起复位
+    // 两个表单同一时间只放一个，切换时落地页和所有提示一起复位
     if (studentForm) studentForm.hidden = mode !== "student";
-    if (registerForm) registerForm.hidden = mode !== "register";
     if (teacherForm) teacherForm.hidden = mode !== "teacher";
     if (landing) landing.hidden = true;
-    ["studentLoginError", "registerError", "loginError", "landingNotice"].forEach((id) => {
+    ["studentLoginError", "loginError", "landingNotice"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.hidden = true;
     });
@@ -2513,7 +2589,7 @@
     const tabs = document.querySelector(".login-tabs");
     if (!landing) return;
     if (tabs) tabs.hidden = true;
-    ["studentLoginForm", "registerForm", "loginForm", "studentLoginError", "registerError", "landingNotice"].forEach((id) => {
+    ["studentLoginForm", "loginForm", "studentLoginError", "landingNotice"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.hidden = true;
     });
@@ -2638,7 +2714,7 @@
   function reopenHome() {
     const tabs = document.querySelector(".login-tabs");
     if (tabs) tabs.hidden = true;
-    ["studentLoginForm", "studentLoginError", "registerError", "landingNotice", "registerForm", "loginForm"].forEach((id) => {
+    ["studentLoginForm", "studentLoginError", "landingNotice", "loginForm"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.hidden = true;
     });
@@ -2647,81 +2723,84 @@
     els.loginView.classList.remove("hidden");
   }
 
-  // 账号注册：名字 + 4~6 位数字密码，走服务端建档（和登录里"自动建档"是同一条链路）
-  async function handleRegister(event) {
-    event.preventDefault();
-    if (!CLOUD_ENABLED) {
-      showRegisterError("云端未配置，暂时只能本地玩");
-      return;
+  // 被老师踢下线或门票失效：清掉内存门票，回登录页并说明原因
+  function handleForcedLogout(message) {
+    if (forcedLogoutReloading) return;
+    forcedLogoutReloading = true;
+    stopSessionWatch();
+    if (cloudSyncTimer) {
+      clearTimeout(cloudSyncTimer);
+      cloudSyncTimer = null;
     }
-    const name = (els.registerName.value || "").trim().slice(0, 12);
-    const pass = (els.registerPass.value || "").trim();
-    if (!name) {
-      showRegisterError("请先填一个账号名");
-      return;
-    }
-    if (!/^\d{4,6}$/.test(pass)) {
-      showRegisterError("密码要 4~6 位数字");
-      return;
-    }
-    showRegisterError("");
-    els.registerBtn.disabled = true;
-    const oldLabel = els.registerBtn.textContent;
-    els.registerBtn.textContent = "正在注册…";
+    cloudSyncQueued = null;
+    cloudSyncBusy = false;
+    cloudSyncAllowed = false;
+    studentToken = null;
     try {
-      const fresh = buildNewProfile(name, pass);
-      const res = await rpcCall("student_register", {
-        p_name: name,
-        p_pin: pass,
-        p_save: fresh,
-      });
-      if (!res || !res.ok) {
-        const code = res && res.code;
-        if (code === "exists") showRegisterError("这个名字已经有人用了，换一个");
-        else if (code === "bad_pin_format") showRegisterError("密码要 4~6 位数字");
-        else if (code === "class_locked") showRegisterError("老师已暂停全班登录，等老师说开始");
-        else if (code === "bad_pin") showRegisterError("密码不对，再试一次");
-        else showRegisterError("注册没通过，稍后再试");
-        return;
-      }
-      studentToken = res.token || null;
-      const profile = profileFromCloud({ name, save: res.save, updated_at: res.updated_at });
-      state.profiles = [profile];
-      state.selectedId = profile.id;
-      activeStorageKey = `${STORAGE_KEY}_cloud_${name}`;
-      cloudSyncAllowed = true;
-      guideStartIndex = 1;
-      normalizeState();
-      pendingEvolution = null;
-      try {
-        localStorage.setItem(activeStorageKey, JSON.stringify(state));
-      } catch (err) {
-        console.warn("写本地缓存失败", err);
-      }
-      showStudentLanding(profile.name);
+      sessionStorage.setItem("forcedLogoutNotice", message || "登录已失效，请重新登录");
     } catch (err) {
-      console.error("账号注册失败", err);
-      showRegisterError("连不上云端，检查网络后再试");
-    } finally {
-      els.registerBtn.disabled = false;
-      els.registerBtn.textContent = oldLabel;
+      /* 忽略 */
+    }
+    location.reload();
+  }
+
+  async function checkStudentSession() {
+    if (!studentToken || forcedLogoutReloading) return;
+    try {
+      const res = await studentCheck();
+      if (!res || res.ok === false) {
+        if (res && res.code === "no_session") {
+          handleForcedLogout("老师已让你退出，请重新登录");
+        }
+      }
+    } catch (err) {
+      // 网络抖动不踢人，等下一轮；真正没门票时服务端会明确返回 no_session
     }
   }
 
-  function showRegisterError(message) {
-    const el = document.getElementById("registerError");
-    if (!el) return;
-    el.textContent = message || "";
-    el.hidden = !message;
+  function startSessionWatch() {
+    stopSessionWatch();
+    if (!CLOUD_ENABLED || !studentToken || location.protocol === "file:") return;
+    sessionWatchTimer = setInterval(() => {
+      if (!document.hidden) checkStudentSession();
+    }, 30000);
+    if (!sessionVisibilityBound) {
+      sessionVisibilityBound = true;
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) checkStudentSession();
+      });
+    }
   }
 
-  // 切换账号：重载回登录页，顺手把本地缓存落一次，避免刚打的几秒进度丢在内存里
-  function switchAccount() {
+  function stopSessionWatch() {
+    if (sessionWatchTimer) {
+      clearInterval(sessionWatchTimer);
+      sessionWatchTimer = null;
+    }
+  }
+
+  // 刷新回登录页后，把"为什么被退出来"显示在登录错误行
+  function consumeForcedLogoutNotice() {
+    let message = "";
+    try {
+      message = sessionStorage.getItem("forcedLogoutNotice") || "";
+      if (message) sessionStorage.removeItem("forcedLogoutNotice");
+    } catch (err) {
+      /* 忽略 */
+    }
+    if (message) showStudentError(message);
+  }
+
+  // 切换账号：先告诉服务端正常退出（失败也不拦着），再把本地缓存落一次
+  async function switchAccount() {
     try {
       localStorage.setItem(activeStorageKey, JSON.stringify(state));
     } catch (err) {
       /* 忽略 */
     }
+    await studentLogout({ silent: true });
+    stopSessionWatch();
+    studentToken = null;
     location.reload();
   }
 
@@ -2730,12 +2809,14 @@
     if (els.studentLoginForm) {
       els.studentLoginForm.addEventListener("submit", handleStudentLogin);
     }
-    // 账号登录 / 账号注册 / 后台登录三个入口来回切，统一走 setLoginMode，保证只露一个表单
+    // 账号登录 / 后台登录两个入口来回切，统一走 setLoginMode，保证只露一个表单
     document.querySelectorAll("[data-login-mode]").forEach((btn) => {
       btn.addEventListener("click", () => setLoginMode(btn.dataset.loginMode));
     });
-    const registerForm = document.getElementById("registerForm");
-    if (registerForm) registerForm.addEventListener("submit", handleRegister);
+    els.createStudentAccount?.addEventListener("click", handleCreateStudentAccount);
+    els.kickSelectedStudent?.addEventListener("click", handleKickSelectedStudent);
+    els.copyCreatedPin?.addEventListener("click", copyCreatedStudentPin);
+    els.downloadCreatedPin?.addEventListener("click", downloadCreatedStudentPin);
     const startGameBtn = document.getElementById("btnStartGame");
     if (startGameBtn) startGameBtn.addEventListener("click", enterGame);
     const studyRoomBtn = document.getElementById("btnStudyRoom");
@@ -2748,6 +2829,8 @@
     }
     const switchAccountBtn = document.getElementById("btnSwitchAccount");
     if (switchAccountBtn) switchAccountBtn.addEventListener("click", switchAccount);
+    // 直接关页面/刷新：最后努力记录正常退出；失败就靠最后活动时间兜底
+    window.addEventListener("pagehide", studentLogoutBeacon);
     const backHomeBtn = document.getElementById("btnBackHome");
     if (backHomeBtn) backHomeBtn.addEventListener("click", reopenHome);
     els.rankClose?.addEventListener("click", () => { els.rankModal.hidden = true; });
@@ -4522,6 +4605,7 @@
       if (!row || !row.save || typeof row.save !== "object") {
         throw new Error("云端没有找到这个学生的存档");
       }
+      rememberRosterRow(row);
       latestSave = cloneSaveObject(row.save);
       latestBeforePatch = cloneSaveObject(row.save);
     } catch (err) {
@@ -4853,7 +4937,12 @@
       bell.className = "teacher-roster-bell";
       bell.textContent = `💰 ${profile.rockbell}`;
 
-      chip.append(name, bell);
+      const meta = teacherRosterMeta.get(profile.name);
+      const dot = document.createElement("span");
+      dot.className = "teacher-roster-online" + (meta && meta.online ? " is-online" : "");
+      dot.title = meta && meta.online ? "在线" : "离线";
+
+      chip.append(dot, name, bell);
       if (keyword && profile.name.indexOf(keyword) < 0) chip.hidden = true;
       box.appendChild(chip);
     });
@@ -4864,6 +4953,7 @@
     const box = document.getElementById("teacherDetail");
     if (!box) return;
     box.replaceChildren();
+    if (els.kickSelectedStudent) els.kickSelectedStudent.disabled = !profile;
 
     if (!profile) {
       const empty = document.createElement("p");
@@ -4875,6 +4965,7 @@
 
     const info = document.createElement("div");
     info.className = "teacher-detail-info";
+    const meta = teacherRosterMeta.get(profile.name) || {};
     const rows = [
       ["名字", profile.name],
       ["密码", "由系统保管（看不到）"],
@@ -4882,6 +4973,10 @@
       ["经验", profile.exp],
       ["宠物", `${(profile.pets || []).length} / ${MAX_PETS}`],
       ["第二密码用过", (profile.secondPassUses || 0) + " 次"],
+      ["最后登录", formatRosterTime(meta.last_login_at, "从未登录")],
+      ["最后活动", formatRosterTime(meta.last_seen_at, "—")],
+      ["最后退出", formatRosterTime(meta.last_logout_at, "未正常退出")],
+      ["状态", meta.online ? "🟢 在线" : "⚪ 离线"],
     ];
     rows.forEach(([key, value]) => {
       const cell = document.createElement("div");
@@ -4917,6 +5012,212 @@
         kind: "item",
       }))));
     });
+  }
+
+  async function refreshTeacherRosterFromCloud(preferredName) {
+    const rows = await cloudGetAllStudents();
+    rememberRosterRows(rows);
+    const merged = (rows || []).map(profileFromCloud);
+    state.profiles = merged;
+    // 新建账号后让全班名单完整显示，避免"拉入学生"过滤把新账号藏起来
+    pulledProfileIds = [];
+    const picked =
+      merged.find((profile) => profile.name === preferredName) ||
+      merged.find((profile) => profile.id === teacherSelectedId) ||
+      merged[0] ||
+      null;
+    teacherSelectedId = picked ? picked.id : null;
+    state.selectedId = picked ? picked.id : null;
+    if (picked) normalizeState();
+    pendingEvolution = null;
+    render();
+    if (els.teacherSelect) els.teacherSelect.value = picked ? picked.id : "";
+    renderTeacherRoster(getTeacherRosterProfiles());
+    renderTeacherDetail(picked);
+    if (typeof renderPulledList === "function") renderPulledList();
+    return picked;
+  }
+
+  function setCreateStudentResult(message, warning) {
+    const el = els.createStudentResult;
+    if (!el) return;
+    el.textContent = message || "";
+    el.classList.toggle("warning", Boolean(warning));
+    el.classList.toggle("success", Boolean(message) && !warning);
+  }
+
+  async function handleCreateStudentAccount() {
+    if (!teacherUnlocked) {
+      setCreateStudentResult("请先进入老师后台。", true);
+      return;
+    }
+    if (!CLOUD_ENABLED || location.protocol === "file:") {
+      setCreateStudentResult("离线模式不能建云端账号，请先上传到线上或连上网络。", true);
+      return;
+    }
+    const name = (els.newStudentName?.value || "").trim().slice(0, 12);
+    const pin = (els.newStudentPin?.value || "").trim();
+    if (!name) {
+      setCreateStudentResult("请先填学生姓名（1~12 个字）。", true);
+      return;
+    }
+    if (pin && !/^\d{4,6}$/.test(pin)) {
+      setCreateStudentResult("密码要 4~6 位数字；不想设就留空，由系统生成。", true);
+      return;
+    }
+    const btn = els.createStudentAccount;
+    if (btn) {
+      btn.disabled = true;
+      btn.dataset.oldText = btn.textContent;
+      btn.textContent = "正在创建…";
+    }
+    setCreateStudentResult("正在创建账号…", false);
+    if (els.copyCreatedPin) els.copyCreatedPin.hidden = true;
+    if (els.downloadCreatedPin) els.downloadCreatedPin.hidden = true;
+    try {
+      const save = buildNewProfile(name, "000000");
+      const res = await teacherCreateStudent(name, pin, save);
+      if (!res || !res.ok) {
+        const code = res && res.code;
+        if (code === "exists") setCreateStudentResult(`已有同名账号「${name}」，换一个名字，或让学生直接用原密码登录。`, true);
+        else if (code === "no_session") setCreateStudentResult("老师登录已失效，请退出后台重新进。", true);
+        else if (code === "bad_name") setCreateStudentResult("姓名不能为空，最多 12 个字。", true);
+        else setCreateStudentResult("创建失败，请检查网络后重试。", true);
+        return;
+      }
+      const shownPin = String(res.pin || pin || "");
+      lastCreatedStudent = { name, pin: shownPin };
+      setCreateStudentResult(
+        `已创建：${name}\n密码：${shownPin}\n密码只显示这一次，请现在复制或下载密码清单。`,
+        false
+      );
+      if (els.copyCreatedPin) els.copyCreatedPin.hidden = false;
+      if (els.downloadCreatedPin) els.downloadCreatedPin.hidden = false;
+      if (els.newStudentPin) els.newStudentPin.value = "";
+      try {
+        await refreshTeacherRosterFromCloud(name);
+        setTeacherMessage(`已创建学生账号：${name}`, false);
+      } catch (err) {
+        console.warn("创建后刷新名单失败", err);
+        setCreateStudentResult(
+          `已创建：${name}\n密码：${shownPin}\n名单刷新失败，请重新进一次后台查看。`,
+          true
+        );
+      }
+    } catch (err) {
+      console.error("创建学生账号失败", err);
+      setCreateStudentResult("连不上云端，检查网络后再试。", true);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = btn.dataset.oldText || "创建学生账号";
+      }
+    }
+  }
+
+  function copyCreatedStudentPin() {
+    if (!lastCreatedStudent) {
+      setCreateStudentResult("还没有刚创建的密码，请先创建账号。", true);
+      return;
+    }
+    const text = `姓名：${lastCreatedStudent.name}\n密码：${lastCreatedStudent.pin}`;
+    const fallback = () => {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      try {
+        document.execCommand("copy");
+        setTeacherMessage("密码已复制到剪贴板", false);
+      } catch (err) {
+        setCreateStudentResult("复制失败，请手动选中上面的密码。", true);
+      }
+      area.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => setTeacherMessage("密码已复制到剪贴板", false),
+        fallback
+      );
+    } else {
+      fallback();
+    }
+  }
+
+  function downloadCreatedStudentPin() {
+    if (!lastCreatedStudent) {
+      setCreateStudentResult("还没有刚创建的密码，请先创建账号。", true);
+      return;
+    }
+    const text = `姓名\t密码\n${lastCreatedStudent.name}\t${lastCreatedStudent.pin}\n\n生成时间：${new Date().toLocaleString()}\n密码只保存在这份清单里，请妥善保管。\n`;
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `学生账号密码_${lastCreatedStudent.name}_${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setTeacherMessage("密码清单已下载", false);
+  }
+
+  async function handleKickSelectedStudent() {
+    if (!teacherUnlocked) return;
+    const profile =
+      state.profiles.find((item) => item.id === teacherSelectedId) || getTeacherSelectedProfile();
+    if (!profile) {
+      setTeacherMessage("请先在名单里选中一个学生。", true);
+      return;
+    }
+    if (!CLOUD_ENABLED || location.protocol === "file:") {
+      setTeacherMessage("离线模式没有在线学生可踢。", true);
+      return;
+    }
+    if (!confirm(`确定让「${profile.name}」立即退出？最多丢失最近几秒未同步的进度。`)) {
+      return;
+    }
+    const btn = els.kickSelectedStudent;
+    if (btn) {
+      btn.disabled = true;
+      btn.dataset.oldText = btn.textContent;
+      btn.textContent = "正在退出…";
+    }
+    try {
+      const res = await teacherKickStudent(profile.name);
+      if (!res || !res.ok) {
+        const code = res && res.code;
+        if (code === "no_session") setTeacherMessage("老师登录已失效，请退出后台重新进。", true);
+        else setTeacherMessage("强制退出失败，请检查网络后重试。", true);
+        return;
+      }
+      const count = Number(res.count) || 0;
+      if (count > 0) {
+        const meta = teacherRosterMeta.get(profile.name) || {};
+        meta.last_logout_at = res.last_logout_at || new Date().toISOString();
+        meta.last_seen_at = meta.last_logout_at;
+        meta.online = false;
+        teacherRosterMeta.set(profile.name, meta);
+        setTeacherMessage(`已强制下线：${profile.name}（作废 ${count} 个在线会话）`, false);
+      } else {
+        const meta = teacherRosterMeta.get(profile.name) || {};
+        meta.online = false;
+        teacherRosterMeta.set(profile.name, meta);
+        setTeacherMessage(`${profile.name} 当前不在线。`, false);
+      }
+      renderTeacherRoster(getTeacherRosterProfiles());
+      renderTeacherDetail(profile);
+    } catch (err) {
+      console.error("强制退出失败", err);
+      setTeacherMessage("连不上云端，强制退出没有成功。", true);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = btn.dataset.oldText || "强制退出选中学生";
+      }
+    }
   }
 
   function buildTeacherItemGroup(title, items) {
