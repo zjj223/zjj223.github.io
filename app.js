@@ -11,6 +11,39 @@
   const PET_UPGRADE_HP_GAIN = 10;
   const COMPENSATION_ACTION_POINTS = 2;
 
+  // ===== 五行觉醒活动 =====
+  // 五只五行神兽在大陆流窜：活动期内每次探索 1% 命中（与异色同率），再在五只里等概率抽。
+  // 到期自动失效；enabled 置 false 可一键关停（宠物数据与边框不受影响）。
+  const WUXING_EVENT = Object.freeze({
+    name: "五行觉醒",
+    enabled: true,
+    start: "2026-11-23",
+    end: "2027-01-31", // 寒假前收尾
+    rate: 0.01,
+    ballId: "ball-wuxing",
+  });
+  const WUXING_PET_IDS = Object.freeze([
+    "wuxing-jin",
+    "wuxing-mu",
+    "wuxing-shui",
+    "wuxing-huo",
+    "wuxing-tu",
+  ]);
+
+  // 今天（本地时区）的 YYYY-MM-DD，用于"每天首次上线提醒"
+  function localDateKey(date) {
+    const d = date || new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  function isWuxingEventActive(date) {
+    if (!WUXING_EVENT.enabled) return false;
+    const key = localDateKey(date);
+    return key >= WUXING_EVENT.start && key <= WUXING_EVENT.end;
+  }
+
+
   // 【安全改造】老师权限码、老师代管口令都不再写在前端。
   // 前端只把用户输入的字符交给服务端函数核对（teacher_login / teacher_enter），
   // 核对通过后拿到一张会话门票，前端从此不带任何口令。
@@ -253,6 +286,7 @@
     { id: "ball4", name: "超级咕噜球", price: 30, catchRate: 0.20, color: "#ffa726", desc: "捕捉率20%" },
     { id: "ball5", name: "至尊咕噜球", price: 60, catchRate: 0.30, color: "#ab47bc", desc: "捕捉率30%" },
     { id: "ball6", name: "国王咕噜球", price: 120, catchRate: 0.50, color: "#ef5350", desc: "捕捉率50%" },
+    { id: "ball-wuxing", name: "五行咕噜球", price: 120, catchRate: 0.50, catchRateWuxing: 0.70, color: "#ffd54f", desc: "普通50%，对五行神兽70%" },
   ]);
 
   // ===== 时装 / 形象 =====
@@ -2419,6 +2453,8 @@
     els.capturePetName = document.getElementById("capturePetName");
     els.capturePetLevel = document.getElementById("capturePetLevel");
     els.capturePetType = document.getElementById("capturePetType");
+    els.captureShinyLabel = document.getElementById("captureShinyLabel");
+    els.captureWuxingLabel = document.getElementById("captureWuxingLabel");
     els.captureBallList = document.getElementById("captureBallList");
     els.captureResult = document.getElementById("captureResult");
     // 排行榜视图元素
@@ -2628,9 +2664,9 @@
     const studyRoomBtn = document.getElementById("btnStudyRoom");
     if (studyRoomBtn) {
       studyRoomBtn.addEventListener("click", () => {
-        // 学习台 → 题库主页（独立静态页，点题再进 Dev-C++ 做题页）
-        const win = window.open("刷题主页.html", "_studypage");
-        if (!win) showLandingNotice("题库页被浏览器拦下了，允许弹窗后再试一次");
+        // 学习台 → 三屏外壳的学习台页（再点题单，最后进做题页）
+        const win = window.open("学习台.html?name=" + encodeURIComponent((getActiveProfile() || {}).name || ""), "_studypage");
+        if (!win) showLandingNotice("学习台被浏览器拦下了，允许弹窗后再试一次");
       });
     }
     const switchAccountBtn = document.getElementById("btnSwitchAccount");
@@ -3048,6 +3084,8 @@
       hpMax: clampInteger(pet.hpMax, PET_BASE_HP_MAX, Number.MAX_SAFE_INTEGER),
       mpMax: clampInteger(pet.mpMax, PET_BASE_MP_MAX, Number.MAX_SAFE_INTEGER),
       isShiny: !!pet.isShiny || (petTemplate?.petId || "").startsWith("shiny-"),
+      // 五行神兽：数据与异色同级，但边框/标识单独一套
+      isWuxing: !!pet.isWuxing || (petTemplate?.petId || "").startsWith("wuxing-"),
       hatchedAt: typeof pet.hatchedAt === "string" ? pet.hatchedAt : new Date().toISOString(),
       // 亲密度等级：集齐场景道具后 +1，最高 10
       bond: clampInteger(pet.bond, 0, 10),
@@ -5549,19 +5587,38 @@
   }
 
   // 宠物战斗属性计算（由等级决定，无需存档）
+  // 异色与五行神兽共享同一套资质加成
+  function hasRareBonus(pet) {
+    return !!(pet && (pet.isShiny || pet.isWuxing));
+  }
+
+  // 五行神兽的元素（金木水火土）与主题色
+  const WUXING_ELEMENTS = Object.freeze({
+    "wuxing-jin": { label: "金", color: "#ffcd5a" },
+    "wuxing-mu": { label: "木", color: "#8fe0a4" },
+    "wuxing-shui": { label: "水", color: "#7fd4ff" },
+    "wuxing-huo": { label: "火", color: "#ff9a5c" },
+    "wuxing-tu": { label: "土", color: "#e6b464" },
+  });
+
+  function wuxingElementOf(pet) {
+    if (!pet) return null;
+    return WUXING_ELEMENTS[pet.petId] || null;
+  }
+
   function getPetAttack(pet) {
     const base = Math.floor(PET_BASE_ATTACK + (pet.level - 1) * PET_ATTACK_PER_LEVEL);
-    return pet.isShiny ? base + 5 : base;
+    return hasRareBonus(pet) ? base + 5 : base;
   }
 
   function getPetDefense(pet) {
     const base = Math.floor(PET_BASE_DEFENSE + (pet.level - 1) * PET_DEFENSE_PER_LEVEL);
-    return pet.isShiny ? base + 3 : base;
+    return hasRareBonus(pet) ? base + 3 : base;
   }
 
   function getPetSpeed(pet) {
     const base = Math.floor(PET_BASE_SPEED + (pet.level - 1) * PET_SPEED_PER_LEVEL);
-    return pet.isShiny ? base + 3 : base;
+    return hasRareBonus(pet) ? base + 3 : base;
   }
 
   // 战斗力综合评分
@@ -5583,13 +5640,20 @@
   function generateWildPet(sceneId, spotIndex) {
     const config = WILD_PETS[sceneId];
     if (!config) return null;
-    // 判断是否遇到异色稀有宠物（低概率）
-    let petId;
+    let petId = null;
     let isShiny = false;
-    if (config.shinyPetIds && config.shinyPetIds.length > 0 && Math.random() < (config.shinyRate || 0.01)) {
+    let isWuxing = false;
+    // 五行觉醒：活动期内独立 1% 判定，命中后在全地图五只里等概率抽一只
+    if (isWuxingEventActive() && Math.random() < WUXING_EVENT.rate) {
+      petId = WUXING_PET_IDS[Math.floor(Math.random() * WUXING_PET_IDS.length)];
+      isWuxing = true;
+    }
+    // 判断是否遇到异色稀有宠物（低概率）
+    if (!petId && config.shinyPetIds && config.shinyPetIds.length > 0 && Math.random() < (config.shinyRate || 0.01)) {
       petId = config.shinyPetIds[Math.floor(Math.random() * config.shinyPetIds.length)];
       isShiny = true;
-    } else {
+    }
+    if (!petId) {
       // 该场景所有野生宠物等概率出现
       petId = config.petIds[Math.floor(Math.random() * config.petIds.length)];
     }
@@ -5601,21 +5665,26 @@
       (idx >= 0 && Array.isArray(config.levels) && config.levels[idx]) || config.levelRange;
     const level = randomInt(range[0], range[1]);
     const stage = template.stages.find((s) => level >= s.needLevel) || template.stages[0];
-    // 异色宠物基础资质更强（+30%血量，+5攻击，+3防御，+3速度）
-    const shinyBonus = isShiny ? 1.3 : 1;
-    const shinyAtkBonus = isShiny ? 5 : 0;
-    const shinyDefBonus = isShiny ? 3 : 0;
-    const shinySpdBonus = isShiny ? 3 : 0;
+    // 异色/五行宠物基础资质更强（+30%血量，+5攻击，+3防御，+3速度）
+    const rareBonus = isShiny || isWuxing;
+    const rareHpBonus = rareBonus ? 1.3 : 1;
+    const rareAtkBonus = rareBonus ? 5 : 0;
+    const rareDefBonus = rareBonus ? 3 : 0;
+    const rareSpdBonus = rareBonus ? 3 : 0;
     return {
+      petId,
       name: stage.name,
       image: stage.image || null,
+      desc: template.desc || "",
       type: stage.type || template.type,
+      style: stage.style || template.style,
       level,
       isShiny,
-      hpMax: Math.floor((PET_BASE_HP_MAX + (level - 1) * PET_UPGRADE_HP_GAIN) * shinyBonus),
-      attack: getPetAttack({ level }) + shinyAtkBonus,
-      defense: getPetDefense({ level }) + shinyDefBonus,
-      speed: getPetSpeed({ level }) + shinySpdBonus,
+      isWuxing,
+      hpMax: Math.floor((PET_BASE_HP_MAX + (level - 1) * PET_UPGRADE_HP_GAIN) * rareHpBonus),
+      attack: getPetAttack({ level }) + rareAtkBonus,
+      defense: getPetDefense({ level }) + rareDefBonus,
+      speed: getPetSpeed({ level }) + rareSpdBonus,
     };
   }
 
@@ -6047,8 +6116,10 @@
     const stageData = petTemplate.stages[stageNumber - 1] || petTemplate.stages[0];
     // 异色宠物判断
     const isShiny = petTemplate.petId?.startsWith("shiny-") || previousPet?.isShiny;
-    // 异色宠物基础资质更强（+30%血量）
-    const baseHp = isShiny ? Math.floor(PET_BASE_HP_MAX * 1.3) : PET_BASE_HP_MAX;
+    // 五行神兽判断：资质与异色同级，标识单独处理
+    const isWuxing = petTemplate.petId?.startsWith("wuxing-") || previousPet?.isWuxing;
+    // 异色/五行宠物基础资质更强（+30%血量）
+    const baseHp = isShiny || isWuxing ? Math.floor(PET_BASE_HP_MAX * 1.3) : PET_BASE_HP_MAX;
     return {
       petId: petTemplate.petId || "",
       stage: stageNumber,
@@ -6062,6 +6133,7 @@
       hpMax: previousPet?.hpMax || baseHp,
       mpMax: previousPet?.mpMax || PET_BASE_MP_MAX,
       isShiny: !!isShiny,
+      isWuxing: !!isWuxing,
       hatchedAt: previousPet?.hatchedAt || now,
       bond: clampInteger(previousPet?.bond, 0, 10),
       nickname: typeof previousPet?.nickname === "string" ? previousPet.nickname : "",
@@ -6086,6 +6158,15 @@
       shinyBadge.className = "shiny-badge";
       shinyBadge.textContent = "✨异色";
       visual.appendChild(shinyBadge);
+    }
+    if (pet.isWuxing) {
+      visual.classList.add("wuxing-pet");
+      const element = wuxingElementOf(pet);
+      if (element) visual.style.setProperty("--wx-color", element.color);
+      const wuxingBadge = document.createElement("div");
+      wuxingBadge.className = "wuxing-badge";
+      wuxingBadge.textContent = `五行·${element ? element.label : ""}`;
+      visual.appendChild(wuxingBadge);
     }
     if (pet.image) {
       const image = document.createElement("img");
@@ -6873,6 +6954,16 @@
       card.title = index === profile.activePetIndex ? "当前出战宠物" : "点击设为出战";
       card.style.cursor = index === profile.activePetIndex ? "default" : "pointer";
 
+      if (pet.isWuxing) {
+        card.classList.add("wuxing-pet");
+        const element = wuxingElementOf(pet);
+        if (element) card.style.setProperty("--wx-color", element.color);
+        const badge = document.createElement("div");
+        badge.className = "wuxing-badge";
+        badge.textContent = `五行·${element ? element.label : ""}`;
+        card.appendChild(badge);
+      }
+
       const header = document.createElement("div");
       header.className = "pet-team-header";
 
@@ -7134,6 +7225,17 @@
     if (els.captureShinyLabel) {
       els.captureShinyLabel.style.display = wildPet.isShiny ? "inline-block" : "none";
     }
+    // 五行神兽标识：按元素换配色
+    if (els.captureWuxingLabel) {
+      const element = wuxingElementOf(wildPet);
+      if (element) {
+        els.captureWuxingLabel.textContent = `五行·${element.label}`;
+        els.captureWuxingLabel.style.display = "inline-block";
+        els.captureWuxingLabel.style.setProperty("--wx-color", element.color);
+      } else {
+        els.captureWuxingLabel.style.display = "none";
+      }
+    }
 
     renderCaptureBalls();
     els.captureModal.hidden = false;
@@ -7192,8 +7294,11 @@
     if (profile.balls[ballId] <= 0) delete profile.balls[ballId];
 
     // 计算捕捉成功率（野生宠物等级越高，越难捕捉）
+    // 五行咕噜球对五行神兽：固定 70%，不扣等级惩罚
     const levelPenalty = Math.max(0, (captureTarget.level - 5) * 0.01);
-    const successRate = Math.max(0.01, ball.catchRate - levelPenalty);
+    const wuxingRate = captureTarget.isWuxing ? ball.catchRateWuxing : null;
+    const successRate =
+      typeof wuxingRate === "number" ? wuxingRate : Math.max(0.01, ball.catchRate - levelPenalty);
     const success = Math.random() < successRate;
 
     if (success) {
@@ -7215,6 +7320,7 @@
         exp: 0,
         bond: 0,
         isShiny: !!captureTarget.isShiny,
+        isWuxing: !!captureTarget.isWuxing,
         nickname: null,
       });
       profile.pets.push(newPet);
