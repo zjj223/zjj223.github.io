@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>自学攻略 · 俊杰侃信奥</title>
+<title>俊杰侃信奥 · 学习台</title>
 <style>
   :root{--blue:#2947c9;--blue-d:#1f36a0;--line:#e3e8f2;--ink:#262626;--dim:#98a2b8;--bg:#f4f6fa;--ok:#52c41a}
   *{box-sizing:border-box}
@@ -22,35 +22,31 @@
   .out{font-size:12.5px;color:var(--dim);text-decoration:none;padding:4px 10px;border-radius:6px}
   .out:hover{background:#f2f4f9;color:var(--blue)}
 
-  .wrap{max-width:1180px;margin:0 auto;padding:20px 18px 60px;display:flex;gap:16px;align-items:flex-start}
-  /* 左栏：自学攻略 → 题单 */
-  .left{width:300px;flex:0 0 300px;position:sticky;top:64px}
-  .left h1{margin:0 0 10px;font-size:20px;font-weight:700}
-  .nav{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-  .nav a{display:flex;align-items:center;gap:8px;padding:9px 14px;text-decoration:none;color:#4b5568;font-size:13px}
-  .nav a+a{border-top:1px solid #f1f4f9}
-  .nav a:hover{background:#f4f8ff;color:var(--blue)}
-  .nav a .n{margin-left:auto;font-size:11.5px;color:#a3acbe;font-variant-numeric:tabular-nums}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 18px 60px;display:flex;gap:18px;align-items:flex-start}
 
-  .setcard{margin-top:12px;background:linear-gradient(120deg,#33478f,#1e2b5c 62%,#16204a);
-    border-radius:12px;color:#fff;padding:18px 18px 16px;display:block}
-  .setcard .t{font-size:16px;font-weight:700}
-  .setcard .meta{margin-top:6px;font-size:12.5px;color:#c2cef0}
-  .setcard .prog{margin-top:14px}
-  .setcard .track{height:6px;background:rgba(255,255,255,.2);border-radius:99px;overflow:hidden}
-  .setcard .track i{display:block;height:100%;background:#6ee7a8;border-radius:99px;transition:width .4s}
-  .setcard .pct{margin-top:6px;font-size:11.5px;color:#aebde8}
-  .setcard .go{display:inline-block;width:auto;margin-top:16px;background:#fff;color:var(--blue);border:0;
-    border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap}
-  .setcard .go:hover{background:#eef2ff}
+  /* 左：窄的深色菜单卡 */
+  .left{width:214px;flex:0 0 214px;position:sticky;top:64px}
+  .menu{background:linear-gradient(120deg,#33478f,#1e2b5c 62%,#16204a);border-radius:12px;
+    padding:8px;color:#fff;box-shadow:0 6px 18px rgba(20,40,90,.12)}
+  .menu button{display:flex;align-items:center;gap:8px;width:100%;background:transparent;border:0;color:#dfe6fb;
+    font:inherit;font-size:13px;text-align:left;padding:10px 12px;border-radius:9px;cursor:pointer}
+  .menu button+button{margin-top:2px}
+  .menu button:hover{background:rgba(255,255,255,.08)}
+  .menu button.on{background:rgba(255,255,255,.16);color:#fff;font-weight:600}
+  .menu button .n{margin-left:auto;font-size:11.5px;color:#a9b8e6;font-variant-numeric:tabular-nums}
+  .menu button.on .n{color:#dfe6fb}
 
-  /* 右栏：自学事项 + 题目 */
+  /* 右：视图区 */
   .main{flex:1;min-width:0}
-  .paper{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+  .view{display:none}
+  .view.on{display:block}
+
+  .paper{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 18px}
   .paper h2{margin:0 0 8px;font-size:15.5px}
   .paper ul{margin:0;padding-left:18px}
   .paper li{font-size:13px;color:#4b5568;margin:5px 0;line-height:1.7}
   .paper li b{color:var(--ink)}
+  .paper code{background:#f1f4f9;border-radius:4px;padding:1px 5px;font-size:12.5px}
 
   .listhd{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
   .listhd h2{margin:0;font-size:16px}
@@ -85,8 +81,8 @@
   .rate-box{height:5px;background:#eef1f7;border-radius:99px;overflow:hidden;width:110px;display:inline-block;vertical-align:-1px}
   .rate-box i{display:block;height:100%;background:#8fb4ff;border-radius:99px}
   .rate-txt{display:inline-block;margin-left:8px;font-size:11.5px;color:#9aa3b5}
-  .go{color:#b9c2d6;text-align:right;width:34px}
-  tbody tr:hover .go{color:var(--blue)}
+  .arrow{color:#b9c2d6;text-align:right;width:34px}
+  tbody tr:hover .arrow{color:var(--blue)}
   .empty{padding:36px 0;text-align:center;color:#b0b8c8;font-size:13px}
   .toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,10px);background:rgba(37,43,55,.95);
     color:#fff;font-size:13px;padding:9px 18px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.22);
@@ -95,6 +91,8 @@
   @media (max-width:900px){
     .wrap{flex-direction:column}
     .left{width:100%;flex:auto;position:static}
+    .menu{display:flex;gap:6px;padding:6px}
+    .menu button{justify-content:center}
     .rate{display:none}
   }
 </style>
@@ -113,57 +111,50 @@
 
 <div class="wrap">
   <div class="left">
-    <h1>自学攻略</h1>
-    <div class="nav">
-      <a href="#guide"><span>自学事项</span><span class="n">7 条</span></a>
-      <a href="#list"><span>C++ 题单</span><span class="n" id="navCount">79 题</span></a>
-    </div>
-
-    <div class="setcard">
-      <div class="t">C++ 题单</div>
-      <div class="meta">第一章 顺序结构 · <span id="setTotal">79</span> 题</div>
-      <div class="prog">
-        <div class="track"><i id="setBar" style="width:0%"></i></div>
-        <div class="pct" id="setPct">已通过 0 / 79</div>
-      </div>
-      <button class="go" id="btnSet">开始做题</button>
+    <div class="menu" id="menu">
+      <button data-view="guide"><span>自学事项</span><span class="n">7 条</span></button>
+      <button data-view="list" class="on"><span>C++ 题单</span><span class="n" id="navCount">79 题</span></button>
     </div>
   </div>
 
   <div class="main">
-    <div class="paper" id="guide">
-      <h2>自学事项</h2>
-      <ul>
-        <li><b>一题一题来。</b>从题号小的往大的做，别跳题；跳过去的题早晚要回来补。</li>
-        <li><b>先把题读两遍。</b>弄清输入是什么、输出是什么，再看一眼样例，把样例原样抄到纸上。</li>
-        <li><b>先在纸上写思路。</b>三句话：读什么 → 算什么 → 输出什么。思路清楚了再打开编辑器。</li>
-        <li><b>写代码保持一个风格。</b>等号、加减、比较两边不留空格，例如 <code>int a=10;</code>，看着利索也少出错。</li>
-        <li><b>先编再跑。</b>编译不过的时候先看第一条报错，九成是少了分号、括号没配对、变量没定义。</li>
-        <li><b>样例对不上就自己造数据。</b>拿小数字手算一遍，和程序的结果逐位比，找出第一个不一样的数。</li>
-        <li><b>每题留一句错因。</b>写在本子上，第二天同样的题重做一遍；一天 3 题，比一次刷 20 题有用。</li>
-      </ul>
+    <div class="view" id="viewGuide">
+      <div class="paper">
+        <h2>自学事项</h2>
+        <ul>
+          <li><b>一题一题来。</b>从题号小的往大的做，别跳题；跳过去的题早晚要回来补。</li>
+          <li><b>先把题读两遍。</b>弄清输入是什么、输出是什么，再看一眼样例，把样例原样抄到纸上。</li>
+          <li><b>先在纸上写思路。</b>三句话：读什么 → 算什么 → 输出什么。思路清楚了再打开编辑器。</li>
+          <li><b>写代码保持一个风格。</b>等号、加减、比较两边不留空格，例如 <code>int a=10;</code>，看着利索也少出错。</li>
+          <li><b>先编再跑。</b>编译不过的时候先看第一条报错，九成是少了分号、括号没配对、变量没定义。</li>
+          <li><b>样例对不上就自己造数据。</b>拿小数字手算一遍，和程序的结果逐位比，找出第一个不一样的数。</li>
+          <li><b>每题留一句错因。</b>写在本子上，第二天同样的题重做一遍；一天 3 题，比一次刷 20 题有用。</li>
+        </ul>
+      </div>
     </div>
 
-    <div class="listhd" id="list">
-      <h2>题目</h2>
-      <span class="num" id="listNum">79 题</span>
-      <span class="track"><i id="listBar" style="width:0%"></i></span>
-      <span class="pct" id="listPct">0%</span>
-    </div>
+    <div class="view on" id="viewList">
+      <div class="listhd">
+        <h2>C++ 题单</h2>
+        <span class="num">第一章 顺序结构 · <span id="listNum">79</span> 题</span>
+        <span class="track"><i id="listBar" style="width:0%"></i></span>
+        <span class="pct" id="listPct">0%</span>
+      </div>
 
-    <div class="tabs" id="tabs">
-      <button class="tab on" data-s="all">全部</button>
-      <button class="tab" data-s="todo">未做</button>
-      <button class="tab" data-s="done">已通过</button>
-      <button class="tab right" data-k="ex">例题</button>
-      <button class="tab" data-k="pr">练习</button>
-    </div>
+      <div class="tabs" id="tabs">
+        <button class="tab on" data-s="all">全部</button>
+        <button class="tab" data-s="todo">未做</button>
+        <button class="tab" data-s="done">已通过</button>
+        <button class="tab right" data-k="ex">例题</button>
+        <button class="tab" data-k="pr">练习</button>
+      </div>
 
-    <div class="table">
-      <table>
-        <thead><tr><th class="st">状态</th><th class="id">题号</th><th>题目</th><th class="rate">通过率</th><th class="go"></th></tr></thead>
-        <tbody id="rows"></tbody>
-      </table>
+      <div class="table">
+        <table>
+          <thead><tr><th class="st">状态</th><th class="id">题号</th><th>题目</th><th class="rate">通过率</th><th class="arrow"></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -173,7 +164,6 @@
 const Y = window.YBT || { problems: [] };
 const PROBS = (Y.problems || []).slice();
 const DONE_KEY = 'studypage.done';
-const LAST_KEY = 'studypage.last';
 const doneSet = () => { try { return new Set(JSON.parse(localStorage.getItem(DONE_KEY) || '[]')); } catch (e) { return new Set(); } };
 const pidOf = (p) => 'ybt' + p.pid;
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -183,7 +173,7 @@ const kindOf = (t) => (/^【例/.test(t) ? 'ex' : 'pr');
 const CDN_ONLY = /(^|\.)doubaocdn\.com$/.test(location.hostname) || /(^|\.)byteimg\.com$/.test(location.hostname);
 const NAV = { work: CDN_ONLY ? '' : '预览_DevC布局.html', login: CDN_ONLY ? '' : 'index.html' };
 
-const state = { status: 'all', kind: 'all' };
+const state = { status: 'all', kind: 'all', view: 'list' };
 
 function readName() {
   const q = new URLSearchParams(location.search).get('name');
@@ -199,12 +189,6 @@ function readName() {
   } catch (e) {}
   return '同学';
 }
-function lastId() {
-  let id = '';
-  try { id = localStorage.getItem(LAST_KEY) || ''; } catch (e) {}
-  const pid = id.replace(/^ybt/, '');
-  return (Y.problems || []).some((x) => String(x.pid) === pid) ? id : '';
-}
 
 let toastTimer = null;
 function toast(msg) {
@@ -218,34 +202,30 @@ function toast(msg) {
   el.textContent = msg; el.classList.add('on');
   clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 2200);
 }
-const go = (url, note) => { if (!url) return toast(note || '线上副本没有这一页'); location.href = url; };
 const openProblem = (id) => { if (!NAV.work) return toast('线上副本没有做题页'); location.href = NAV.work + '?pid=' + id; };
 
-/* 顶栏 / 左侧 */
-const name = readName();
-document.getElementById('whoName').textContent = name;
+document.getElementById('whoName').textContent = readName();
 document.getElementById('navCount').textContent = PROBS.length + ' 题';
-document.getElementById('setTotal').textContent = PROBS.length;
+document.getElementById('listNum').textContent = PROBS.length;
+
+/* 左侧菜单切换右侧视图：只看自学事项时，下面的题目表不出现 */
+function switchView(v) {
+  state.view = v;
+  document.querySelectorAll('#menu button').forEach((b) => b.classList.toggle('on', b.dataset.view === v));
+  document.getElementById('viewGuide').classList.toggle('on', v === 'guide');
+  document.getElementById('viewList').classList.toggle('on', v === 'list');
+}
+document.getElementById('menu').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-view]'); if (!b) return;
+  switchView(b.dataset.view);
+});
 
 function renderStats() {
   const done = doneSet();
   const ok = PROBS.filter((p) => done.has(pidOf(p))).length;
   const pct = PROBS.length ? Math.round(ok / PROBS.length * 100) : 0;
-  document.getElementById('setBar').style.width = pct + '%';
-  document.getElementById('setPct').textContent = '已通过 ' + ok + ' / ' + PROBS.length;
   document.getElementById('listBar').style.width = pct + '%';
   document.getElementById('listPct').textContent = pct + '% · ' + ok + '/' + PROBS.length;
-  const last = lastId();
-  const btn = document.getElementById('btnSet');
-  if (last) {
-    const pid = last.replace(/^ybt/, '');
-    const p = PROBS.find((x) => String(x.pid) === pid);
-    btn.textContent = '继续做题';
-    document.getElementById('setPct').dataset.last = last;
-    document.querySelector('#guide') && (document.querySelector('.setcard .meta').title = pid + ' ' + (p ? nameOf(p.title) : ''));
-  } else {
-    btn.textContent = '开始做题';
-  }
 }
 
 function render() {
@@ -256,7 +236,7 @@ function render() {
     if (state.kind !== 'all' && kindOf(p.title) !== state.kind) return false;
     return true;
   });
-  document.getElementById('listNum').textContent = list.length + ' 题';
+  document.getElementById('listNum').textContent = list.length;
   document.getElementById('rows').innerHTML = list.length ? list.map((p) => {
     const ok = done.has(pidOf(p));
     const rate = p.sub ? Math.round(p.ac / p.sub * 100) : 0;
@@ -266,7 +246,7 @@ function render() {
       '<td><span class="ttl">' + esc(nameOf(p.title)) + '</span></td>' +
       '<td class="rate"><span class="rate-box"><i style="width:' + Math.min(100, rate) + '%"></i></span>' +
         '<span class="rate-txt">' + rate + '%</span></td>' +
-      '<td class="go">›</td></tr>';
+      '<td class="arrow">›</td></tr>';
   }).join('') : '<tr><td colspan="5"><div class="empty">没有符合条件的题目</div></td></tr>';
 }
 
@@ -293,17 +273,12 @@ document.getElementById('rows').addEventListener('keydown', (e) => {
   if (tr) openProblem(tr.dataset.id);
 });
 
-document.getElementById('btnSet').onclick = () => {
-  const last = lastId();
-  if (last) return openProblem(last);
-  if (!PROBS.length) return toast('题单还没载入');
-  openProblem('ybt' + PROBS[0].pid);
-};
 document.getElementById('btnCoin').onclick = () => toast('金币系统还没接通');
 document.getElementById('btnOut').onclick = (e) => { if (!NAV.login) { e.preventDefault(); toast('登录页只在本机'); } };
 
 renderStats();
 render();
+switchView(location.hash === '#guide' ? 'guide' : 'list');
 </script>
 </body>
 </html>
