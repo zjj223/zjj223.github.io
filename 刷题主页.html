@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>题库 · C++ 入门题单</title>
+<style>
+  :root{
+    --blue:#2947c9; --blue-d:#1f36a0; --line:#e3e8f2; --ink:#262626;
+    --dim:#888; --bg:#f4f6fa; --ok:#52c41a; --tag-bg:#eef2ff; --tag-ink:#3b5bd6;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+  }
+  /* ---------- 顶栏 ---------- */
+  .top{
+    background:#fff; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:10;
+  }
+  .top-in{
+    max-width:1100px; margin:0 auto; padding:0 18px; height:52px;
+    display:flex; align-items:center; gap:14px;
+  }
+  .back{
+    color:var(--dim); text-decoration:none; font-size:13px; padding:4px 8px; border-radius:6px;
+  }
+  .back:hover{background:#f2f4f9; color:var(--blue)}
+  .crumbs{font-size:13px; color:#555; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .crumbs b{color:var(--ink)}
+  .crumb-sep{color:#c9d0de; margin:0 6px}
+  .coin{
+    display:inline-flex; align-items:center; gap:5px; font-size:13px;
+    background:#fff8e6; border:1px solid #ffe2a8; color:#a26a00;
+    padding:3px 10px; border-radius:999px;
+  }
+  .btn-game{
+    background:var(--blue); color:#fff; border:0; border-radius:7px;
+    padding:7px 14px; font-size:13px; cursor:pointer; text-decoration:none;
+  }
+  .btn-game:hover{background:var(--blue-d)}
+
+  /* ---------- 头图 ---------- */
+  .hero{
+    max-width:1100px; margin:18px auto 0; padding:0 18px;
+  }
+  .hero-card{
+    background:linear-gradient(120deg,#33478f,#1e2b5c 62%,#16204a);
+    border-radius:12px; padding:22px 24px; color:#fff;
+    display:flex; align-items:center; gap:24px; flex-wrap:wrap;
+  }
+  .hero-card h1{margin:0; font-size:20px; font-weight:700; letter-spacing:.5px}
+  .hero-card p{margin:6px 0 0; font-size:12.5px; color:#c8d2f0}
+  .hero-stat{margin-left:auto; display:flex; gap:26px}
+  .hero-stat div{text-align:center}
+  .hero-stat .n{font-size:22px; font-weight:700; line-height:1.2}
+  .hero-stat .t{font-size:11.5px; color:#b6c2e8}
+  .bar{width:180px; height:7px; background:rgba(255,255,255,.18); border-radius:99px; overflow:hidden; margin-top:8px}
+  .bar i{display:block; height:100%; background:#6ee7a8; border-radius:99px; transition:width .4s}
+
+  /* ---------- 主体 ---------- */
+  .wrap{max-width:1100px; margin:16px auto 60px; padding:0 18px}
+  .tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px}
+  .tab{
+    border:1px solid var(--line); background:#fff; color:#555; cursor:pointer;
+    padding:6px 14px; border-radius:7px; font-size:13px;
+  }
+  .tab:hover{border-color:#c3cfec; color:var(--blue)}
+  .tab.on{background:var(--blue); border-color:var(--blue); color:#fff}
+
+  .tools{
+    background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:10px 12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+  .search{
+    flex:1; min-width:180px; display:flex; align-items:center; gap:8px;
+    border:1px solid var(--line); border-radius:7px; padding:6px 10px;
+  }
+  .search input{border:0; outline:0; flex:1; font-size:13px; background:transparent}
+  .search span{color:#bbb}
+  .seg{display:flex; border:1px solid var(--line); border-radius:7px; overflow:hidden}
+  .seg button{border:0; background:#fff; padding:6px 12px; font-size:13px; color:#666; cursor:pointer}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.on{background:var(--tag-bg); color:var(--blue); font-weight:600}
+
+  /* ---------- 表格 ---------- */
+  .table{background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  table{width:100%; border-collapse:collapse}
+  thead th{
+    text-align:left; font-weight:600; font-size:12.5px; color:#7b8499;
+    background:#f8fafd; padding:11px 12px; border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  tbody tr{cursor:pointer; transition:background .12s}
+  tbody tr:hover{background:#f4f8ff}
+  tbody td{padding:12px; border-bottom:1px solid #f1f4f9; vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  .st{width:44px; text-align:center; font-size:13px}
+  .st .dot{display:inline-block; width:16px; height:16px; border-radius:50%; border:1.5px dashed #d6dcea}
+  .st .done{
+    width:18px; height:18px; border-radius:50%; background:var(--ok); border:0;
+    color:#fff; font-size:11px; line-height:18px; display:inline-block;
+  }
+  .id{width:74px; color:#98a2b8; font-variant-numeric:tabular-nums; font-size:12.5px}
+  .ttl{color:var(--blue); font-weight:500; font-size:14px}
+  tbody tr:hover .ttl{text-decoration:underline}
+  .diff{white-space:nowrap}
+  .pill{padding:2px 9px; border-radius:4px; font-size:11.5px; font-weight:600}
+  .p-0{background:#d9f7be; color:#277a06}
+  .p-1{background:#e6f4ff; color:#1a5cbf}
+  .p-2{background:#fff3d6; color:#8a5a00}
+  .rate{width:150px}
+  .rate-box{height:5px; background:#eef1f7; border-radius:99px; overflow:hidden}
+  .rate-box i{display:block; height:100%; background:#8fb4ff; border-radius:99px}
+  .rate-txt{font-size:11.5px; color:#9aa3b5; margin-top:4px}
+  .tags{white-space:nowrap}
+  .tg{display:inline-block; background:var(--tag-bg); color:var(--tag-ink);
+      font-size:11px; padding:2px 8px; border-radius:4px; margin-right:5px}
+  .go{color:#b9c2d6; text-align:right; width:42px}
+  tbody tr:hover .go{color:var(--blue)}
+  .empty{padding:50px 0; text-align:center; color:#b0b8c8; font-size:13px}
+
+  .foot{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:11px 4px; font-size:12.5px; color:#95a0b3;
+  }
+  .tip{margin-top:14px; font-size:12px; color:#9aa3b5; line-height:1.9}
+  .tip b{color:#6b7a99}
+
+  /* ---------- 交互层：可点元素 + 轻提示 ---------- */
+  .coin{font-family:inherit; cursor:pointer}
+  .coin:hover{background:#ffefcc}
+  .crumbs .clk{cursor:pointer; height:auto}
+  .crumbs .clk:hover{color:var(--blue); text-decoration:underline}
+  .toast{
+    position:fixed; left:50%; bottom:34px; transform:translate(-50%,10px);
+    background:rgba(37,43,55,.95); color:#fff; font:13px/1.6 -apple-system,"Microsoft YaHei",sans-serif;
+    padding:9px 18px; border-radius:999px; box-shadow:0 8px 24px rgba(0,0,0,.22);
+    opacity:0; pointer-events:none; transition:opacity .18s ease, transform .18s ease;
+    z-index:9999; max-width:82vw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .toast.on{opacity:1; transform:translate(-50%,0); pointer-events:auto}
+  .toast i{font-style:normal; color:#a9b2c4; margin-left:7px; font-size:12px}
+  tbody tr.flash{background:#fff9e2}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-in">
+    <a class="back" id="backGame" href="index.html">← 游戏主页</a>
+    <div class="crumbs"><span class="clk" id="crumbStudy">学习台</span><span class="crumb-sep">›</span><span class="clk" id="crumbLib">题库</span><span class="crumb-sep">›</span><b>C++ 入门题单</b></div>
+    <button class="coin" id="btnCoin">🪙 128</button>
+    <a class="btn-game" id="btnGame" href="index.html">进入游戏</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-card">
+    <div>
+      <h1>C++ 入门题单</h1>
+      <p>点开任意一道题，直接在 Dev-C++ 里写、编译、运行，改完点提交评测。</p>
+      <div class="bar"><i id="heroBar" style="width:0%"></i></div>
+    </div>
+    <div class="hero-stat">
+      <div><div class="n" id="statDone">0</div><div class="t">已通过</div></div>
+      <div><div class="n" id="statTotal">0</div><div class="t">题目总数</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="tabs" id="tabs"></div>
+
+  <div class="tools">
+    <label class="search"><span>🔍</span><input id="q" placeholder="搜索题号或题目名称，例如 排序 / 3-2" /></label>
+    <div class="seg" id="statusSeg">
+      <button data-s="all" class="on">全部</button>
+      <button data-s="todo">未做</button>
+      <button data-s="done">已通过</button>
+    </div>
+    <div class="seg" id="diffSeg">
+      <button data-d="all" class="on">全部难度</button>
+      <button data-d="入门">入门</button>
+      <button data-d="普及−">普及−</button>
+    </div>
+  </div>
+
+  <div class="table">
+    <table>
+      <thead>
+        <tr>
+          <th class="st">状态</th>
+          <th class="id">题号</th>
+          <th>题目</th>
+          <th class="diff">难度</th>
+          <th class="rate">通过率</th>
+          <th class="tags">标签</th>
+          <th class="go"></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <div class="foot">
+    <span id="footInfo">共 0 题</span>
+    <span>第 1 / 1 页</span>
+  </div>
+
+  <p class="tip">
+    <b>说明：</b>这是课堂练习用的本地题库，题目数据先内置在这一个页面里；点行会跳到
+    <code>预览_DevC布局.html#题号</code>，题面、样例、可复制内容都会跟着换。
+    回来时地址里带着 <code>#p题号</code>，会自动高亮刚才那道题。
+    以后接了自己的判题机，只要把「提交评测」那一处换成真实请求，其余界面不用动。
+  </p>
+</div>
+
+<script>
+const LIST = [
+  { id:'p1001', no:'1-1', title:'A+B 问题',      group:'C++ 入门', diff:'入门',  rate:92, tags:['模拟','输入输出'], sub:'2.29M' },
+  { id:'p1002', no:'1-2', title:'你好，世界',      group:'C++ 入门', diff:'入门',  rate:96, tags:['字符串'], sub:'1.86M' },
+  { id:'p1003', no:'1-3', title:'两数之差',        group:'C++ 入门', diff:'入门',  rate:88, tags:['模拟'], sub:'980K' },
+  { id:'p1004', no:'1-4', title:'圆的面积',        group:'C++ 入门', diff:'入门',  rate:71, tags:['浮点数','格式化输出'], sub:'640K' },
+  { id:'p1005', no:'1-5', title:'奇数还是偶数',    group:'C++ 入门', diff:'入门',  rate:90, tags:['分支','取余'], sub:'1.02M' },
+  { id:'p2001', no:'2-1', title:'1 到 n 求和',     group:'循环',    diff:'入门',  rate:85, tags:['循环','long long'], sub:'1.44M' },
+  { id:'p2002', no:'2-2', title:'数字反转',        group:'循环',    diff:'普及−', rate:64, tags:['循环','前导零'], sub:'720K' },
+  { id:'p3001', no:'3-1', title:'数组最大值',      group:'数组',    diff:'入门',  rate:82, tags:['数组','最值'], sub:'860K' },
+  { id:'p3002', no:'3-2', title:'冒泡排序',        group:'数组',    diff:'普及−', rate:58, tags:['排序','数组'], sub:'510K' },
+  { id:'p3003', no:'3-3', title:'阶乘',            group:'数组',    diff:'普及−', rate:55, tags:['递推','long long'], sub:'430K' }
+];
+
+const DONE_KEY = 'studypage.done';
+function doneSet(){
+  try { return new Set(JSON.parse(localStorage.getItem(DONE_KEY) || '[]')); } catch(e){ return new Set(); }
+}
+
+const state = { group:'全部', status:'all', diff:'all', q:'' };
+const $rows = document.getElementById('rows');
+const diffCls = { '入门':'p-0', '普及−':'p-1', '普及':'p-2' };
+
+function renderTabs(){
+  const groups = ['全部', ...new Set(LIST.map(p => p.group))];
+  document.getElementById('tabs').innerHTML = groups.map(g =>
+    `<button class="tab ${g===state.group?'on':''}" data-g="${g}">${g}</button>`
+  ).join('');
+}
+
+function filtered(){
+  const done = doneSet();
+  return LIST.filter(p => {
+    if (state.group !== '全部' && p.group !== state.group) return false;
+    if (state.diff !== 'all' && p.diff !== state.diff) return false;
+    if (state.status === 'done' && !done.has(p.id)) return false;
+    if (state.status === 'todo' && done.has(p.id)) return false;
+    if (state.q){
+      const k = state.q.toLowerCase();
+      if (!(p.title.toLowerCase().includes(k) || p.no.includes(k) || p.id.includes(k) || p.tags.join(' ').toLowerCase().includes(k))) return false;
+    }
+    return true;
+  });
+}
+
+function render(){
+  const done = doneSet();
+  const list = filtered();
+  $rows.innerHTML = list.length ? list.map(p => {
+    const ok = done.has(p.id);
+    return `<tr data-id="${p.id}" tabindex="0">
+      <td class="st">${ok ? '<span class="done">✓</span>' : '<span class="dot"></span>'}</td>
+      <td class="id">${p.no}</td>
+      <td><span class="ttl">${p.title}</span></td>
+      <td><span class="pill ${diffCls[p.diff]||'p-1'}">${p.diff}</span></td>
+      <td>
+        <div class="rate-box"><i style="width:${p.rate}%"></i></div>
+        <div class="rate-txt">${p.rate}% 通过 · 提交 ${p.sub}</div>
+      </td>
+      <td class="tags">${p.tags.map(t => `<span class="tg">${t}</span>`).join('')}</td>
+      <td class="go">›</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7"><div class="empty">没有符合条件的题目</div></td></tr>';
+
+  document.getElementById('footInfo').textContent = `共 ${list.length} 题（题库总计 ${LIST.length} 题）`;
+}
+
+function renderStats(){
+  const done = doneSet();
+  const okCount = LIST.filter(p => done.has(p.id)).length;
+  document.getElementById('statDone').textContent = okCount;
+  document.getElementById('statTotal').textContent = LIST.length;
+  document.getElementById('heroBar').style.width = (okCount / LIST.length * 100).toFixed(0) + '%';
+}
+
+/* ---------- 交互层：导航 / 轻提示 / hash 存档 ---------- */
+const CDN_ONLY = /(^|\.)doubaocdn\.com$/.test(location.hostname) || /(^|\.)byteimg\.com$/.test(location.hostname);
+const NAV = {
+  game: CDN_ONLY ? '' : 'index.html',
+  work: CDN_ONLY ? '' : '预览_DevC布局.html'
+};
+
+let toastTimer = null;
+function toast(msg, note) {
+  let el = document.getElementById('toastBox');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toastBox';
+    el.className = 'toast';
+    el.addEventListener('click', () => el.classList.remove('on'));
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  if (note) { const i = document.createElement('i'); i.textContent = note; el.appendChild(i); }
+  el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('on'), 2200);
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { const t = document.getElementById('toastBox'); if (t) t.classList.remove('on'); }
+});
+function goPage(url, note) {
+  if (!url) { toast('该功能正在开发中', note || '线上副本没有这一页'); return; }
+  location.href = url;
+}
+
+/* 顶栏 */
+document.getElementById('btnCoin').onclick = () => toast('该功能正在开发中', '金币系统还没接通');
+['backGame', 'btnGame'].forEach(id => {
+  document.getElementById(id).onclick = (e) => {
+    if (!NAV.game) { e.preventDefault(); goPage(null, '游戏资源只在本机'); }
+  };
+});
+document.getElementById('crumbStudy').onclick = () => goPage(NAV.game, '学习台就是游戏主页');
+document.getElementById('crumbLib').onclick = () => {
+  state.group = '全部'; state.status = 'all'; state.diff = 'all'; state.q = '';
+  syncControls(); renderTabs(); render(); updateHash();
+};
+
+/* hash 存档：分组 / 状态 / 难度 / 搜索词，加上 #p题号 用来高亮 */
+let HIGHLIGHT = '';
+function readHash() {
+  const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+  if (h.get('group')) state.group = h.get('group');
+  if (h.get('status')) state.status = h.get('status');
+  if (h.get('diff')) state.diff = h.get('diff');
+  if (h.get('q')) state.q = h.get('q');
+  HIGHLIGHT = h.get('p') || '';
+}
+function updateHash() {
+  const parts = [];
+  if (state.group !== '全部') parts.push('group=' + encodeURIComponent(state.group));
+  if (state.status !== 'all') parts.push('status=' + state.status);
+  if (state.diff !== 'all') parts.push('diff=' + encodeURIComponent(state.diff));
+  if (state.q) parts.push('q=' + encodeURIComponent(state.q));
+  history.replaceState(null, '', parts.length ? '#' + parts.join('&') : location.pathname + location.search);
+}
+function syncControls() {
+  document.querySelectorAll('#statusSeg button').forEach(x => x.classList.toggle('on', x.dataset.s === state.status));
+  document.querySelectorAll('#diffSeg button').forEach(x => x.classList.toggle('on', x.dataset.d === state.diff));
+  const q = document.getElementById('q');
+  if (q) q.value = state.q;
+}
+function highlightTarget() {
+  if (!HIGHLIGHT) return;
+  const tr = $rows.querySelector('tr[data-id="' + HIGHLIGHT + '"]');
+  if (tr) { tr.classList.add('flash'); tr.scrollIntoView({ block: 'center' }); }
+}
+
+document.getElementById('tabs').addEventListener('click', e => {
+  const b = e.target.closest('.tab'); if (!b) return;
+  state.group = b.dataset.g; renderTabs(); render(); updateHash();
+});
+document.querySelectorAll('#statusSeg button').forEach(b => {
+  b.onclick = () => {
+    state.status = b.dataset.s;
+    document.querySelectorAll('#statusSeg button').forEach(x => x.classList.toggle('on', x === b));
+    render(); updateHash();
+  };
+});
+document.querySelectorAll('#diffSeg button').forEach(b => {
+  b.onclick = () => {
+    state.diff = b.dataset.d;
+    document.querySelectorAll('#diffSeg button').forEach(x => x.classList.toggle('on', x === b));
+    render(); updateHash();
+  };
+});
+document.getElementById('q').addEventListener('input', e => { state.q = e.target.value.trim(); render(); updateHash(); });
+
+$rows.addEventListener('click', e => {
+  const tr = e.target.closest('tr[data-id]'); if (!tr) return;
+  if (!NAV.work) return toast('该功能正在开发中', '线上单文件版请用题库视图里的题');
+  location.href = NAV.work + '#' + tr.dataset.id;
+});
+
+/* 方向键上下移动焦点 */
+$rows.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  const trs = [...$rows.querySelectorAll('tr[data-id]')];
+  const i = trs.indexOf(document.activeElement);
+  const next = trs[i + (e.key === 'ArrowDown' ? 1 : -1)];
+  if (next) { e.preventDefault(); next.focus(); }
+});
+
+readHash();
+syncControls();
+renderTabs();
+renderStats();
+render();
+highlightTarget();
+</script>
+</body>
+</html>
