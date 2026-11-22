@@ -17,7 +17,7 @@
   const WUXING_EVENT = Object.freeze({
     name: "五行觉醒",
     enabled: true,
-    start: "2026-11-23",
+    start: "2026-11-22",
     end: "2027-01-31", // 寒假前收尾
     rate: 0.01,
     ballId: "ball-wuxing",
@@ -2510,17 +2510,82 @@
     document.getElementById("landingHello").textContent = `你好，${name}`;
     landing.hidden = false;
     els.loginView.classList.remove("hidden");
+    // 五行觉醒活动期间：选择页顶部提示条（当天已弹过弹窗也显示，不打扰操作）
+    if (isWuxingEventActive()) {
+      showLandingNotice("🌌 五行觉醒：五只神兽流窜大陆，寒假前记得去抓！", 0);
+    }
   }
 
-  function showLandingNotice(text) {
+  function showLandingNotice(text, duration) {
     const el = document.getElementById("landingNotice");
     if (!el) return;
     el.textContent = text;
     el.hidden = false;
     clearTimeout(showLandingNotice._t);
-    showLandingNotice._t = setTimeout(() => {
-      el.hidden = true;
-    }, 3000);
+    const ms = typeof duration === "number" ? duration : 3000;
+    if (ms > 0) {
+      showLandingNotice._t = setTimeout(() => {
+        el.hidden = true;
+      }, ms);
+    }
+  }
+
+  // ============================================
+  // 五行觉醒：上线提醒
+  // ============================================
+  function buildWuxingNoticeModal() {
+    const old = document.getElementById("wuxingNoticeModal");
+    if (old) old.remove();
+    const overlay = document.createElement("div");
+    overlay.id = "wuxingNoticeModal";
+    overlay.className = "modal-overlay wuxing-notice-overlay";
+    const pets = WUXING_PET_IDS.map((id) => PET_DATABASE.find((p) => p.petId === id)).filter(Boolean);
+    overlay.innerHTML = `
+      <div class="modal wuxing-notice-modal" role="dialog" aria-modal="true" aria-label="五行觉醒活动">
+        <div class="wuxing-notice-kicker">限时活动 ${WUXING_EVENT.start} — ${WUXING_EVENT.end}</div>
+        <h3 class="wuxing-notice-title">🌌 五行觉醒</h3>
+        <p class="wuxing-notice-desc">大陆上流窜了五只五行宠物——<b>金、木、水、火、土</b>。它们在寒假之前频繁现身，请尽情进行捕捉吧！</p>
+        <div class="wuxing-notice-pets">
+          ${pets
+            .map((pet) => {
+              const el = WUXING_ELEMENTS[pet.petId] || { label: "", color: "#ffd75e" };
+              return `<figure class="wuxing-notice-pet" style="--wx-color:${el.color}">
+                <img src="${pet.image}" alt="${pet.name}">
+                <figcaption><span>${el.label}</span>${pet.name}</figcaption>
+              </figure>`;
+            })
+            .join("")}
+        </div>
+        <p class="wuxing-notice-tip">🛒 商店已上架「五行咕噜球」：普通捕捉 50%，对五行宠物 <b>70%</b>。</p>
+        <div class="wuxing-notice-actions">
+          <button type="button" class="wuxing-btn primary" data-wx-act="ok">知道了，去抓宠</button>
+          <button type="button" class="wuxing-btn ghost" data-wx-act="shop">去商店看看</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-wx-act]");
+      if (!btn) return;
+      const act = btn.dataset.wxAct;
+      overlay.remove();
+      if (act === "shop") {
+        renderStore("balls");
+        show("storeModal");
+      }
+    });
+    return overlay;
+  }
+
+  // 每天第一次进游戏弹一次主题提醒；同一天再登录只在选择页显示提示条
+  function maybeShowWuxingNotice() {
+    if (!isWuxingEventActive()) return;
+    const profile = getActiveProfile();
+    if (!profile) return;
+    const today = localDateKey();
+    if (profile.wuxingNoticeDate === today) return;
+    profile.wuxingNoticeDate = today;
+    saveState("五行觉醒提醒");
+    setTimeout(() => buildWuxingNoticeModal(), 260);
   }
 
   // 真正进游戏：原先写在学生登录成功那一段，原样搬出来，点「开始游戏」才执行
@@ -2555,6 +2620,8 @@
     }
     setupZoneLayout();
     render();
+    // 五行觉醒：每天第一次进游戏弹一次提醒
+    maybeShowWuxingNotice();
   }
 
   // 游戏顶栏「🏠 学习台」：只是把全屏选择页盖回去，不重新鉴权、不重读云端、不动 state
@@ -3008,6 +3075,9 @@
         profile?.likesSent && typeof profile.likesSent === "object" ? profile.likesSent : {},
       // 收到的赞（展示用，打开面板时按全班记录重新算）
       likedCount: Math.max(0, Number(profile?.likedCount) || 0),
+      // 五行觉醒活动：最近一次弹出主题提醒的日期（YYYY-MM-DD），每天只弹一次
+      wuxingNoticeDate:
+        typeof profile?.wuxingNoticeDate === "string" ? profile.wuxingNoticeDate : "",
     };
   }
 
@@ -7319,6 +7389,10 @@
         level: 1,
         exp: 0,
         bond: 0,
+        // 异色 / 五行 与野生遇敌同一套资质：1 级基础血量 1.3 倍
+        hpMax: captureTarget.isShiny || captureTarget.isWuxing
+          ? Math.floor(PET_BASE_HP_MAX * 1.3)
+          : PET_BASE_HP_MAX,
         isShiny: !!captureTarget.isShiny,
         isWuxing: !!captureTarget.isWuxing,
         nickname: null,
