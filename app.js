@@ -2565,7 +2565,13 @@
     const startGameBtn = document.getElementById("btnStartGame");
     if (startGameBtn) startGameBtn.addEventListener("click", enterGame);
     const studyRoomBtn = document.getElementById("btnStudyRoom");
-    if (studyRoomBtn) studyRoomBtn.addEventListener("click", () => showLandingNotice("学生端暂未开放"));
+    if (studyRoomBtn) {
+      studyRoomBtn.addEventListener("click", () => {
+        // 学习台 → 题库主页（独立静态页，点题再进 Dev-C++ 做题页）
+        const win = window.open("刷题主页.html", "_studypage");
+        if (!win) showLandingNotice("题库页被浏览器拦下了，允许弹窗后再试一次");
+      });
+    }
     const switchAccountBtn = document.getElementById("btnSwitchAccount");
     if (switchAccountBtn) switchAccountBtn.addEventListener("click", switchAccount);
     const backHomeBtn = document.getElementById("btnBackHome");
@@ -2827,6 +2833,13 @@
     const pet = normalizePet(profile?.pet) || normalizeLegacyImagePet(profile);
     const hasLegacyPet = Boolean(profile?.pet || profile?.petName);
 
+    // 宠物栏：所有宠物 + 出战下标
+    // 【修复】原来这里写死 clamp 到 0~2，导致第 4、5、6 只永远选不上出战（一存档就被改回第 3 只）
+    const petList = Array.isArray(profile?.pets)
+      ? profile.pets.map(normalizePet).filter(Boolean)
+      : (pet ? [pet] : []);
+    const petIndex = clampInteger(profile?.activePetIndex, 0, Math.max(0, petList.length - 1));
+
     return {
       id:
         typeof profile?.id === "string" && profile.id
@@ -2859,8 +2872,8 @@
       createdAt:
         typeof profile?.createdAt === "string" ? profile.createdAt : new Date().toISOString(),
       // 多宠物系统：所有宠物列表
-      pets: Array.isArray(profile?.pets) ? profile.pets.map(normalizePet).filter(Boolean) : (pet ? [pet] : []),
-      activePetIndex: clampInteger(profile?.activePetIndex, 0, 2),
+      pets: petList,
+      activePetIndex: petIndex,
       // 咕噜球库存：{ ballId: 数量 }
       balls: normalizeInventory(profile?.balls),
       // 新手引导是否完成
