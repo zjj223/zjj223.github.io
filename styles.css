@@ -4801,10 +4801,34 @@ button:active:not(:disabled) {
 .pull-student-section,
 .rank-reward-section,
 .guide-reset-section,
+.student-account-section,
 .export-save-section {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px dashed rgba(60, 100, 70, 0.22);
+}
+
+.student-account-section .field input {
+  margin-top: 6px;
+}
+
+.teacher-roster-chip {
+  position: relative;
+}
+
+.teacher-roster-online {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #b9b3a7;
+}
+
+.teacher-roster-online.is-online {
+  background: #2fb45f;
+  box-shadow: 0 0 0 2px rgba(47, 180, 95, 0.16);
 }
 /* ===== 稳定性修复：视图切换不再依赖 opacity 动画 =====
    后台标签页会冻结 CSS animation，若停在 from{opacity:0} 会导致整块内容不可见 */
