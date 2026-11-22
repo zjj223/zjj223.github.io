@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>卡罗西亚大陆</title>
-    <link rel="stylesheet" href="./styles.css?v=20261121z52" />
+    <link rel="stylesheet" href="./styles.css?v=20261122z53" />
   </head>
   <body>
     <!-- 老师登录界面 -->
@@ -33,9 +33,9 @@
             id="studentPass"
             type="text"
             inputmode="numeric"
-            maxlength="4"
+            maxlength="6"
             autocomplete="off"
-            placeholder="4 位数字密码"
+            placeholder="4~6 位数字密码"
             required
           />
           <button type="submit" class="login-button" id="studentLoginBtn">开始游戏</button>
@@ -463,7 +463,7 @@
                 <span class="field-hint">把后台里的每个孩子建成云端账号，密码统一 1234</span>
               </label>
               <div class="teacher-actions">
-                <button id="pushAllToCloud" class="primary-button" type="button">一键上传云端（密码1234）</button>
+                <button id="pushAllToCloud" class="primary-button" type="button">一键上传云端（自动发随机密码）</button>
                 <button id="exportAllSaves" class="secondary-button" type="button">先导出 JSON 备份</button>
               </div>
               <div id="exportMessage" class="teacher-message"></div>
@@ -471,14 +471,14 @@
             <div class="account-lock-section">
               <label class="field">
                 <span>🔒 上课时间控制</span>
-                <span class="field-hint">锁住时先自动备份每个人的原密码，恢复时按各自原密码写回（备份存在这台电脑的浏览器里，别清缓存）</span>
+                <span class="field-hint">锁班 = 暂停全班登录（不动任何人的密码）；解锁 = 恢复登录。密码只有服务端知道哈希，前端看不到</span>
               </label>
               <div class="teacher-actions">
-                <button id="lockAllPasswords" class="danger-button" type="button">🔒 锁住全班（6985179）</button>
-                <button id="unlockAllPasswords" class="secondary-button" type="button">🔓 恢复各自原密码</button>
+                <button id="lockAllPasswords" class="danger-button" type="button">🔒 暂停全班登录</button>
+                <button id="unlockAllPasswords" class="secondary-button" type="button">🔓 恢复全班登录</button>
               </div>
               <div class="teacher-actions">
-                <button id="exportPassBackup" class="ghost-button" type="button">💾 导出密码备份</button>
+                <button id="exportPassBackup" class="ghost-button" type="button">🔑 重置全班密码（生成清单）</button>
               </div>
               <div id="lockMessage" class="teacher-message"></div>
             </div>
@@ -700,9 +700,9 @@
       </div>
     </div>
 
-    <script src="./assets/vendor/supabase.js?v=20261121z52"></script>
-    <script src="./data/petConfig.js?v=20261121z52"></script>
-    <script src="./app.js?v=20261121z52"></script>
+    <script src="./assets/vendor/supabase.js?v=20261122z53"></script>
+    <script src="./data/petConfig.js?v=20261122z53"></script>
+    <script src="./app.js?v=20261122z53"></script>
 
   <!-- 新手引导：手指引导 + 功能卡 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
