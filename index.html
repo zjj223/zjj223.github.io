@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>俊杰侃信奥</title>
-    <link rel="stylesheet" href="./styles.css?v=20261122z60" />
+    <link rel="stylesheet" href="./styles.css?v=20261122z61" />
   </head>
   <body>
     <!-- 账号 / 后台登录界面 -->
@@ -315,7 +315,10 @@
                     <span class="button-icon" aria-hidden="true">←</span>返回大世界
                   </button>
                   <h2 id="sceneInnerTitle">场景</h2>
-                  <button id="sceneBagBtn" class="scene-bag-btn" type="button">🎒 道具 0/0</button>
+                  <div class="scene-topbar-actions">
+                    <button id="sceneEncounterModeBtn" class="scene-mode-btn mode-normal" type="button" title="遇宠模式">⚖️ 正常</button>
+                    <button id="sceneBagBtn" class="scene-bag-btn" type="button">🎒 道具 0/0</button>
+                  </div>
                   <div id="sceneInventory" class="scene-inventory"></div>
                 </div>
                 <div id="sceneAtmosphere" class="scene-atmosphere"></div>
@@ -726,9 +729,9 @@
       </div>
     </div>
 
-    <script src="./assets/vendor/supabase.js?v=20261122z60"></script>
-    <script src="./data/petConfig.js?v=20261122z60"></script>
-    <script src="./app.js?v=20261122z60"></script>
+    <script src="./assets/vendor/supabase.js?v=20261122z61"></script>
+    <script src="./data/petConfig.js?v=20261122z61"></script>
+    <script src="./app.js?v=20261122z61"></script>
 
   <!-- 新手引导：手指引导 + 功能卡 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
