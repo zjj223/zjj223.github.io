@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>一本通编程启蒙 · 第一章 顺序结构</title>
+<style>
+  :root{
+    --blue:#2947c9; --blue-d:#1f36a0; --line:#e3e8f2; --ink:#262626;
+    --dim:#888; --bg:#f4f6fa; --ok:#52c41a; --tag-bg:#eef2ff; --tag-ink:#3b5bd6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;}
+  .top{background:#fff; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:10;}
+  .top-in{max-width:1180px; margin:0 auto; padding:0 18px; height:52px; display:flex; align-items:center; gap:14px;}
+  .back{color:var(--dim); text-decoration:none; font-size:13px; padding:4px 8px; border-radius:6px;}
+  .back:hover{background:#f2f4f9; color:var(--blue)}
+  .crumbs{font-size:13px; color:#555; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .crumbs b{color:var(--ink)}
+  .crumb-sep{color:#c9d0de; margin:0 6px}
+  .clk{cursor:pointer}
+  .clk:hover{color:var(--blue); text-decoration:underline}
+  .coin{display:inline-flex; align-items:center; gap:5px; font-size:13px; background:#fff8e6;
+    border:1px solid #ffe2a8; color:#a26a00; padding:3px 10px; border-radius:999px; cursor:pointer; font-family:inherit;}
+  .coin:hover{background:#ffefcc}
+  .btn-game{background:var(--blue); color:#fff; border:0; border-radius:7px; padding:7px 14px;
+    font-size:13px; cursor:pointer; text-decoration:none;}
+  .btn-game:hover{background:var(--blue-d)}
+
+  .hero{max-width:1180px; margin:18px auto 0; padding:0 18px;}
+  .hero-card{background:linear-gradient(120deg,#33478f,#1e2b5c 62%,#16204a); border-radius:12px;
+    padding:22px 24px; color:#fff; display:flex; align-items:center; gap:24px; flex-wrap:wrap;}
+  .hero-card h1{margin:0; font-size:20px; font-weight:700; letter-spacing:.5px}
+  .hero-card h1 span{font-size:13px; font-weight:400; color:#aebde8; margin-left:10px}
+  .hero-card p{margin:6px 0 0; font-size:12.5px; color:#c8d2f0}
+  .hero-stat{margin-left:auto; display:flex; gap:26px}
+  .hero-stat div{text-align:center}
+  .hero-stat .n{font-size:22px; font-weight:700; line-height:1.2}
+  .hero-stat .t{font-size:11.5px; color:#b6c2e8}
+  .bar{width:200px; height:7px; background:rgba(255,255,255,.18); border-radius:99px; overflow:hidden; margin-top:10px}
+  .bar i{display:block; height:100%; background:#6ee7a8; border-radius:99px; transition:width .4s}
+
+  .wrap{max-width:1180px; margin:16px auto 60px; padding:0 18px;}
+  .chap-tabs{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px}
+  .chap{background:#fff; border:1px solid var(--line); border-radius:8px; padding:7px 16px;
+    font-size:13px; color:#666; cursor:pointer;}
+  .chap.on{background:var(--blue); border-color:var(--blue); color:#fff; font-weight:600}
+  .chap.off{color:#b9c1d2; cursor:not-allowed}
+
+  .cols{display:flex; gap:16px; align-items:flex-start}
+  .side{width:250px; flex:0 0 250px; background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:12px 10px; position:sticky; top:66px}
+  .side h4{margin:2px 8px 10px; font-size:13px; color:#7b8499; font-weight:600}
+  .side a{display:flex; align-items:center; gap:8px; text-decoration:none; color:#4b5568;
+    font-size:13px; padding:7px 8px; border-radius:7px; line-height:1.35}
+  .side a:hover{background:#f4f8ff; color:var(--blue)}
+  .side a .c{margin-left:auto; font-size:11.5px; color:#a3acbe; font-variant-numeric:tabular-nums}
+  .side .none{color:#b3bacb}
+  .main{flex:1; min-width:0}
+
+  .tools{background:#fff; border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;}
+  .search{flex:1; min-width:180px; display:flex; align-items:center; gap:8px;
+    border:1px solid var(--line); border-radius:7px; padding:6px 10px;}
+  .search input{border:0; outline:0; flex:1; font-size:13px; background:transparent}
+  .seg{display:flex; border:1px solid var(--line); border-radius:7px; overflow:hidden}
+  .seg button{border:0; background:#fff; padding:6px 12px; font-size:13px; color:#666; cursor:pointer}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.on{background:var(--tag-bg); color:var(--blue); font-weight:600}
+
+  .sec{background:#fff; border:1px solid var(--line); border-radius:10px; margin-bottom:14px; overflow:hidden}
+  .sec-hd{display:flex; align-items:center; gap:10px; padding:12px 16px; background:#f8fafd;
+    border-bottom:1px solid var(--line); cursor:pointer;}
+  .sec-hd .no{background:var(--blue); color:#fff; font-size:12px; border-radius:6px; padding:2px 8px; font-weight:600}
+  .sec-hd h3{margin:0; font-size:14.5px; font-weight:600}
+  .sec-hd .n{margin-left:auto; font-size:12px; color:#98a2b8}
+  .sec-hd .fold{font-size:12px; color:#b9c2d6}
+  .sec .kp{padding:8px 16px 10px; font-size:12px; color:#8b95a9; background:#fdfefe;
+    border-bottom:1px solid #f1f4f9;}
+  .sec .hint{padding:14px 16px; color:#9aa3b5; font-size:12.5px}
+  .sec .body.fold-away{display:none}
+  table{width:100%; border-collapse:collapse}
+  thead th{text-align:left; font-weight:600; font-size:12.5px; color:#7b8499; background:#fff;
+    padding:9px 12px; border-bottom:1px solid var(--line); white-space:nowrap}
+  tbody tr{cursor:pointer; transition:background .12s}
+  tbody tr:hover{background:#f4f8ff}
+  tbody td{padding:10px 12px; border-bottom:1px solid #f1f4f9; vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  .st{width:40px; text-align:center}
+  .st .dot{display:inline-block; width:15px; height:15px; border-radius:50%; border:1.5px dashed #d6dcea}
+  .st .done{width:17px; height:17px; border-radius:50%; background:var(--ok);
+    color:#fff; font-size:11px; line-height:17px; display:inline-block; text-align:center}
+  .id{width:70px; color:#98a2b8; font-variant-numeric:tabular-nums; font-size:12.5px}
+  .ttl{color:var(--blue); font-weight:500; font-size:13.5px}
+  tbody tr:hover .ttl{text-decoration:underline}
+  .kind{width:64px}
+  .kd{display:inline-block; font-size:11px; padding:1px 7px; border-radius:4px; white-space:nowrap}
+  .kd-ex{background:#e6f4ff; color:#1a5cbf}
+  .kd-pr{background:#fff3d6; color:#8a5a00}
+  .rate{width:170px}
+  .rate-box{height:5px; background:#eef1f7; border-radius:99px; overflow:hidden}
+  .rate-box i{display:block; height:100%; background:#8fb4ff; border-radius:99px}
+  .rate-txt{font-size:11.5px; color:#9aa3b5; margin-top:4px}
+  .tags{white-space:nowrap}
+  .tg{display:inline-block; background:var(--tag-bg); color:var(--tag-ink); font-size:11px;
+    padding:2px 8px; border-radius:4px; margin-right:5px}
+  .go{color:#b9c2d6; text-align:right; width:36px}
+  tbody tr:hover .go{color:var(--blue)}
+  .empty{padding:40px 0; text-align:center; color:#b0b8c8; font-size:13px}
+  .tip{margin:14px 4px 0; font-size:12px; color:#9aa3b5; line-height:1.9}
+  .tip b{color:#6b7a99}
+  .toast{position:fixed; left:50%; bottom:34px; transform:translate(-50%,10px);
+    background:rgba(37,43,55,.95); color:#fff; font-size:13px; padding:9px 18px; border-radius:999px;
+    box-shadow:0 8px 24px rgba(0,0,0,.22); opacity:0; pointer-events:none;
+    transition:opacity .18s ease, transform .18s ease; z-index:9999; max-width:82vw; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis;}
+  .toast.on{opacity:1; transform:translate(-50%,0); pointer-events:auto}
+  @media (max-width:900px){
+    .cols{flex-direction:column}
+    .side{position:static; width:100%; flex:auto}
+    .side a{display:inline-flex; margin:2px 4px; width:auto}
+    .side h4{margin-bottom:8px}
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="top-in">
+    <a class="back" id="backHome" href="刷题主页.html">← 题库</a>
+    <div class="crumbs">
+      <span class="clk" id="crumbStudy">学习台</span><span class="crumb-sep">›</span>
+      <span class="clk" id="crumbLib">题库</span><span class="crumb-sep">›</span>
+      <b>一本通编程启蒙 · 第一章</b>
+    </div>
+    <button class="coin" id="btnCoin">🪙 128</button>
+    <a class="btn-game" id="btnGame" href="index.html">进入游戏</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-card">
+    <div>
+      <h1>一本通编程启蒙 · 第一章 顺序结构 <span>第 01–14 课</span></h1>
+      <p>知识点按原书课程顺序排好：每课先看知识点，再点题目进 Dev-C++ 写代码。题面与样例已抓自一本通编程启蒙题库。</p>
+      <div class="bar"><i id="heroBar" style="width:0%"></i></div>
+    </div>
+    <div class="hero-stat">
+      <div><div class="n" id="statDone">0</div><div class="t">已通过</div></div>
+      <div><div class="n" id="statTotal">0</div><div class="t">题目总数</div></div>
+      <div><div class="n" id="statLesson">14</div><div class="t">课时</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="chap-tabs" id="chapTabs">
+    <button class="chap on" data-c="1">第一章 顺序结构</button>
+    <button class="chap off" data-c="2">第二章 选择结构</button>
+    <button class="chap off" data-c="3">第三章 循环结构</button>
+    <button class="chap off" data-c="4">第四章 函数</button>
+  </div>
+
+  <div class="cols">
+    <aside class="side">
+      <h4>课程目录</h4>
+      <div id="sideList"></div>
+    </aside>
+
+    <div class="main">
+      <div class="tools">
+        <label class="search"><span>🔍</span><input id="q" placeholder="搜索题号 / 题目名 / 知识点，例如 保留3位 / cout" /></label>
+        <div class="seg" id="statusSeg">
+          <button data-s="all" class="on">全部</button>
+          <button data-s="todo">未做</button>
+          <button data-s="done">已通过</button>
+        </div>
+      </div>
+
+      <div id="sections"></div>
+
+      <p class="tip">
+        <b>题单说明：</b>题目按《信息学奥赛一本通·编程启蒙（C++版）》第一章的顺序编排，题面、样例、通过率均来自
+        <a href="https://bas.ssoier.cn/index.php" target="_blank" rel="noopener">一本通编程启蒙题库</a>（抓取于 2026-11-22，仅供课堂练习，版权归原书与原作者）。
+        点一行会打开 <code>预览_DevC布局.html?pid=3xxx</code>，左边是原题题面，右边直接写代码编译运行。
+      </p>
+    </div>
+  </div>
+</div>
+
+<script src="data/ybt.js"></script>
+<script>
+const Y = window.YBT || { lessons: [], problems: [] };
+const PROBS = Y.problems || [];
+const LESSON_NAME = {};
+(Y.lessons || []).forEach(l => { LESSON_NAME[l.no] = l.name; });
+
+const DONE_KEY = 'studypage.done';
+const doneSet = () => { try { return new Set(JSON.parse(localStorage.getItem(DONE_KEY) || '[]')); } catch (e) { return new Set(); } };
+const pidOf = (p) => 'ybt' + p.pid;
+
+const state = { status: 'all', q: '', folded: {} };
+const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const kindOf = (t) => /^【例/.test(t) ? 'ex' : 'pr';
+const titleName = (t) => t.replace(/^【例[0-9.]+】/, '').replace(/^练[0-9.]+/, '').trim();
+const lessonTag = (p) => '第' + String(p.lesson).padStart(2, '0') + '课';
+
+function visible(p, done) {
+  if (state.status === 'done' && !done.has(pidOf(p))) return false;
+  if (state.status === 'todo' && done.has(pidOf(p))) return false;
+  if (state.q) {
+    const k = state.q.toLowerCase();
+    const hay = (p.title + ' ' + p.pid + ' ' + p.desc + ' ' + (LESSON_NAME[p.lesson] || '')).toLowerCase();
+    if (!hay.includes(k)) return false;
+  }
+  return true;
+}
+
+function renderSide() {
+  const done = doneSet();
+  const map = {};
+  PROBS.forEach(p => { map[p.lesson] = (map[p.lesson] || 0) + 1; });
+  const rows = (Y.lessons || []).map(l => {
+    const cnt = map[l.no] || 0;
+    const no = String(l.no).padStart(2, '0');
+    if (!cnt) return '<div class="none" style="padding:6px 8px;font-size:12px">第' + no + '课 ' + esc(l.name) + ' · 无配套练习</div>';
+    return '<a href="#L' + l.no + '"><span>第' + no + '课 ' + esc(l.name) + '</span><span class="c">' + cnt + '</span></a>';
+  }).join('');
+  document.getElementById('sideList').innerHTML = rows;
+}
+
+function render() {
+  const done = doneSet();
+  const groups = (Y.lessons || []).map(l => ({ no: l.no, name: l.name, kp: l.kp, list: PROBS.filter(p => p.lesson === l.no) }));
+  let html = '';
+  let shown = 0;
+  groups.forEach(g => {
+    const list = g.list.filter(p => visible(p, done));
+    if (!list.length && (state.q || state.status !== 'all')) return;
+    shown += list.length;
+    const no = String(g.no).padStart(2, '0');
+    const folded = !!state.folded[g.no];
+    const rows = list.map(p => {
+      const ok = done.has(pidOf(p));
+      const rate = p.sub ? Math.round(p.ac / p.sub * 1000) / 10 : 0;
+      const kind = kindOf(p.title);
+      return '<tr data-id="' + pidOf(p) + '" tabindex="0">' +
+        '<td class="st">' + (ok ? '<span class="done">✓</span>' : '<span class="dot"></span>') + '</td>' +
+        '<td class="id">' + p.pid + '</td>' +
+        '<td><span class="ttl">' + esc(titleName(p.title)) + '</span></td>' +
+        '<td class="kind"><span class="kd ' + (kind === 'ex' ? 'kd-ex' : 'kd-pr') + '">' + (kind === 'ex' ? '例题' : '练习') + '</span></td>' +
+        '<td class="rate"><div class="rate-box"><i style="width:' + Math.min(100, rate) + '%"></i></div>' +
+          '<div class="rate-txt">' + rate + '% 通过 · 提交 ' + p.sub + '</div></td>' +
+        '<td class="tags"><span class="tg">' + esc(lessonTag(p)) + '</span><span class="tg">' + esc(LESSON_NAME[p.lesson] || '顺序结构') + '</span></td>' +
+        '<td class="go">›</td></tr>';
+    }).join('');
+    html += '<div class="sec" id="L' + g.no + '">' +
+      '<div class="sec-hd" data-fold="' + g.no + '">' +
+        '<span class="no">第' + no + '课</span><h3>' + esc(g.name) + '</h3>' +
+        '<span class="n">' + g.list.length + ' 题</span>' +
+        '<span class="fold">' + (folded ? '▸ 展开' : '▾ 收起') + '</span>' +
+      '</div>' +
+      (g.kp ? '<div class="kp">知识点：' + esc(g.kp) + '</div>' : '') +
+      '<div class="body' + (folded ? ' fold-away' : '') + '">' +
+      (list.length ? '<table><thead><tr><th class="st">状态</th><th class="id">题号</th><th>题目</th>' +
+        '<th class="kind">类型</th><th class="rate">通过率</th><th class="tags">标签</th><th class="go"></th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table>'
+        : '<div class="hint">本课为理论课，题库没有配套编程题。</div>') +
+      '</div></div>';
+  });
+  document.getElementById('sections').innerHTML = html || '<div class="sec"><div class="empty">没有符合条件的题目</div></div>';
+  document.getElementById('footInfo') || null;
+}
+
+function renderStats() {
+  const done = doneSet();
+  const ok = PROBS.filter(p => done.has(pidOf(p))).length;
+  document.getElementById('statDone').textContent = ok;
+  document.getElementById('statTotal').textContent = PROBS.length;
+  document.getElementById('heroBar').style.width = (PROBS.length ? ok / PROBS.length * 100 : 0).toFixed(1) + '%';
+}
+
+/* 轻提示 */
+let toastTimer = null;
+function toast(msg) {
+  let el = document.getElementById('toastBox');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toastBox'; el.className = 'toast';
+    el.addEventListener('click', () => el.classList.remove('on'));
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('on'), 2200);
+}
+
+const CDN_ONLY = /(^|\.)doubaocdn\.com$/.test(location.hostname) || /(^|\.)byteimg\.com$/.test(location.hostname);
+const NAV = { game: CDN_ONLY ? '' : 'index.html', lib: CDN_ONLY ? '' : '刷题主页.html', work: CDN_ONLY ? '' : '预览_DevC布局.html' };
+const goPage = (url, note) => { if (!url) return toast(note || '线上单文件副本没有这一页'); location.href = url; };
+
+document.getElementById('btnCoin').onclick = () => toast('金币系统还没接通');
+document.getElementById('crumbStudy').onclick = () => goPage(NAV.game, '学习台就是游戏主页');
+document.getElementById('crumbLib').onclick = () => goPage(NAV.lib, '题库就是刷题主页');
+document.getElementById('backHome').onclick = (e) => { if (!NAV.lib) { e.preventDefault(); goPage(null, '线上单文件副本没有题库页'); } };
+document.getElementById('btnGame').onclick = (e) => { if (!NAV.game) { e.preventDefault(); goPage(null, '游戏资源只在本机'); } };
+
+/* 章节 tab：只有第一章有数据 */
+document.getElementById('chapTabs').addEventListener('click', (e) => {
+  const b = e.target.closest('.chap'); if (!b) return;
+  if (b.classList.contains('off')) return toast(b.textContent + '的题单还在抓取，先做第一章');
+  document.querySelectorAll('.chap').forEach(x => x.classList.toggle('on', x === b));
+});
+
+/* 展开/收起 + 点题跳转 */
+document.getElementById('sections').addEventListener('click', (e) => {
+  const hd = e.target.closest('.sec-hd');
+  if (hd) {
+    const no = hd.dataset.fold;
+    state.folded[no] = !state.folded[no];
+    const sec = hd.parentElement;
+    sec.querySelector('.body').classList.toggle('fold-away', !!state.folded[no]);
+    hd.querySelector('.fold').textContent = state.folded[no] ? '▸ 展开' : '▾ 收起';
+    return;
+  }
+  const tr = e.target.closest('tr[data-id]');
+  if (tr) {
+    if (!NAV.work) return toast('线上单文件副本请用做题页里的题库视图');
+    location.href = NAV.work + '?pid=' + tr.dataset.id;
+  }
+});
+document.getElementById('sections').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const tr = e.target.closest('tr[data-id]');
+  if (tr && NAV.work) location.href = NAV.work + '?pid=' + tr.dataset.id;
+});
+
+document.querySelectorAll('#statusSeg button').forEach(b => {
+  b.onclick = () => {
+    state.status = b.dataset.s;
+    document.querySelectorAll('#statusSeg button').forEach(x => x.classList.toggle('on', x === b));
+    render();
+  };
+});
+document.getElementById('q').addEventListener('input', (e) => { state.q = e.target.value.trim(); render(); });
+
+/* 侧栏跳转时高亮对应小节 */
+document.getElementById('sideList').addEventListener('click', (e) => {
+  const a = e.target.closest('a[href^="#L"]'); if (!a) return;
+  const sec = document.querySelector(a.getAttribute('href'));
+  if (!sec) return;
+  const body = sec.querySelector('.body');
+  if (body && body.classList.contains('fold-away')) {
+    const hd = sec.querySelector('.sec-hd');
+    hd.click();
+  }
+  sec.scrollIntoView({ block: 'start', behavior: 'smooth' });
+});
+
+renderSide();
+render();
+renderStats();
+</script>
+</body>
+</html>
