@@ -24,17 +24,32 @@
 
   .wrap{max-width:1180px;margin:0 auto;padding:20px 18px 60px;display:flex;gap:18px;align-items:flex-start}
 
-  /* 左：窄的深色菜单卡 */
+  /* 左：窄的深色目录卡 */
   .left{width:214px;flex:0 0 214px;position:sticky;top:64px}
   .menu{background:linear-gradient(120deg,#33478f,#1e2b5c 62%,#16204a);border-radius:12px;
-    padding:8px;color:#fff;box-shadow:0 6px 18px rgba(20,40,90,.12)}
+    padding:8px;color:#fff;box-shadow:0 6px 18px rgba(20,40,90,.12);
+    max-height:calc(100vh - 84px);overflow-y:auto;scrollbar-width:thin}
+  .menu::-webkit-scrollbar{width:5px}
+  .menu::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:99px}
   .menu button{display:flex;align-items:center;gap:8px;width:100%;background:transparent;border:0;color:#dfe6fb;
-    font:inherit;font-size:13px;text-align:left;padding:10px 12px;border-radius:9px;cursor:pointer}
+    font:inherit;font-size:13px;text-align:left;padding:9px 12px;border-radius:9px;cursor:pointer}
   .menu button+button{margin-top:2px}
   .menu button:hover{background:rgba(255,255,255,.08)}
   .menu button.on{background:rgba(255,255,255,.16);color:#fff;font-weight:600}
   .menu button .n{margin-left:auto;font-size:11.5px;color:#a9b8e6;font-variant-numeric:tabular-nums}
   .menu button.on .n{color:#dfe6fb}
+  .msep{height:1px;background:rgba(255,255,255,.14);margin:8px 4px}
+
+  .chnode{padding-left:10px!important;font-size:12.5px!important;color:#c7d2f2!important}
+  .chnode .n{color:#8e9dcb}
+  .chnode .car{margin-left:2px;font-size:11px;color:#9fb0e0;transition:transform .15s}
+  .les.hide{display:none}
+  .les{display:flex;flex-direction:column;gap:1px;padding:2px 0 2px 10px;border-left:1px solid rgba(255,255,255,.13);margin:2px 0 4px 14px}
+  .les button{padding:6px 9px!important;font-size:12px!important;color:#b9c6ee!important;border-radius:7px}
+  .les button .n{font-size:11px;color:#8494c4}
+  .les button.on{background:rgba(255,255,255,.2);color:#fff!important;font-weight:600}
+  .les button.on .n{color:#e6ecff}
+  .les .ln{font-variant-numeric:tabular-nums;color:#93a2d0;margin-right:5px}
 
   /* 右：视图区 */
   .main{flex:1;min-width:0}
@@ -67,23 +82,30 @@
   thead th{text-align:left;font-weight:600;font-size:12.5px;color:#7b8499;background:#f8fafd;
     padding:9px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
   tbody tr{cursor:pointer;transition:background .12s}
-  tbody tr:hover{background:#f4f8ff}
-  tbody td{padding:10px 14px;border-bottom:1px solid #f1f4f9;vertical-align:middle}
+  tbody tr[data-id]:hover{background:#f4f8ff}
+  tbody td{padding:8px 14px;border-bottom:1px solid #f1f4f9;vertical-align:middle}
   tbody tr:last-child td{border-bottom:0}
-  .st{width:44px;text-align:center}
+  .st{width:46px;text-align:center}
   .st .dot{display:inline-block;width:15px;height:15px;border-radius:50%;border:1.5px dashed #d6dcea}
   .st .done{width:17px;height:17px;border-radius:50%;background:var(--ok);color:#fff;
     font-size:11px;line-height:17px;display:inline-block;text-align:center}
-  .id{width:78px;color:#98a2b8;font-variant-numeric:tabular-nums;font-size:12.5px}
+  .idx{width:46px;color:#a9b2c4;font-variant-numeric:tabular-nums;font-size:12px;text-align:center}
+  .id{width:66px;color:#98a2b8;font-variant-numeric:tabular-nums;font-size:12.5px}
   .ttl{color:var(--blue);font-weight:500;font-size:13.5px}
-  tbody tr:hover .ttl{text-decoration:underline}
-  .rate{width:200px}
-  .rate-box{height:5px;background:#eef1f7;border-radius:99px;overflow:hidden;width:110px;display:inline-block;vertical-align:-1px}
-  .rate-box i{display:block;height:100%;background:#8fb4ff;border-radius:99px}
-  .rate-txt{display:inline-block;margin-left:8px;font-size:11.5px;color:#9aa3b5}
-  .arrow{color:#b9c2d6;text-align:right;width:34px}
-  tbody tr:hover .arrow{color:var(--blue)}
+  tbody tr[data-id]:hover .ttl{text-decoration:underline}
+  .num-col{width:84px;color:#98a2b8;font-variant-numeric:tabular-nums;font-size:12px}
+  .arrow{color:#b9c2d6;text-align:right;width:30px}
+  tbody tr[data-id]:hover .arrow{color:var(--blue)}
   .empty{padding:36px 0;text-align:center;color:#b0b8c8;font-size:13px}
+
+  /* 节标题行 */
+  tr.grp td{background:#f8fafd;border-bottom:1px solid var(--line);padding:9px 14px}
+  tr.grp .gh{font-weight:700;font-size:13.5px;color:var(--ink)}
+  tr.grp .gk{margin-left:9px;font-size:12px;color:var(--dim)}
+  tr.grp .gn{margin-left:auto;float:right;font-size:12px;color:var(--blue);font-weight:600}
+  tr.closed{cursor:default;opacity:.5}
+  tr.closed .ttl{color:#8b95a8}
+
   .toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,10px);background:rgba(37,43,55,.95);
     color:#fff;font-size:13px;padding:9px 18px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.22);
     opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:99}
@@ -91,9 +113,10 @@
   @media (max-width:900px){
     .wrap{flex-direction:column}
     .left{width:100%;flex:auto;position:static}
-    .menu{display:flex;gap:6px;padding:6px}
-    .menu button{justify-content:center}
-    .rate{display:none}
+    .menu{max-height:none}
+    .les{flex-direction:row;flex-wrap:wrap;border-left:0;margin-left:0;padding-left:0}
+    .les button{width:auto}
+    .num-col,.idx{display:none}
   }
 </style>
 </head>
@@ -113,7 +136,9 @@
   <div class="left">
     <div class="menu" id="menu">
       <button data-view="guide"><span>自学事项</span><span class="n">7 条</span></button>
-      <button data-view="list" class="on"><span>C++ 题单</span><span class="n" id="navCount">79 题</span></button>
+      <div class="msep"></div>
+      <button data-view="list" data-lesson="all" class="on"><span>C++ 题单</span><span class="n" id="navCount">79 题</span></button>
+      <div id="tree"></div>
     </div>
   </div>
 
@@ -135,8 +160,8 @@
 
     <div class="view on" id="viewList">
       <div class="listhd">
-        <h2>C++ 题单</h2>
-        <span class="num">第一章 顺序结构 · <span id="listNum">79</span> 题</span>
+        <h2 id="listTitle">C++ 题单</h2>
+        <span class="num" id="listSub">第一章 顺序结构 · 79 题</span>
         <span class="track"><i id="listBar" style="width:0%"></i></span>
         <span class="pct" id="listPct">0%</span>
       </div>
@@ -151,7 +176,7 @@
 
       <div class="table">
         <table>
-          <thead><tr><th class="st">状态</th><th class="id">题号</th><th>题目</th><th class="rate">通过率</th><th class="arrow"></th></tr></thead>
+          <thead><tr><th class="st">状态</th><th class="idx">序号</th><th class="id">题号</th><th>题目</th><th class="num-col">通过</th><th class="num-col">提交</th><th class="arrow"></th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
@@ -159,21 +184,24 @@
   </div>
 </div>
 
-<script src="data/ybt.js"></script>
+<script src="data/catalog.js"></script>
 <script>
-const Y = window.YBT || { problems: [] };
-const PROBS = (Y.problems || []).slice();
+const C = window.CATALOG || { chapters: [] };
+const CH = (C.chapters && C.chapters[0]) || { name: '顺序结构', lessons: [] };
+const ALL = [];
+CH.lessons.forEach((l) => (l.problems || []).forEach((p) => { p.lesson = l.no; ALL.push(p); }));
+
 const DONE_KEY = 'studypage.done';
 const doneSet = () => { try { return new Set(JSON.parse(localStorage.getItem(DONE_KEY) || '[]')); } catch (e) { return new Set(); } };
 const pidOf = (p) => 'ybt' + p.pid;
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const nameOf = (t) => t.replace(/^【例[0-9.]+】/, '').replace(/^练[0-9.]+/, '').trim();
-const kindOf = (t) => (/^【例/.test(t) ? 'ex' : 'pr');
-
+const nameOf = (t) => String(t).replace(/^【例[0-9.]+】/, '').replace(/^练[0-9.]+/, '').trim();
+const pad = (n) => String(n).padStart(2, '0');
+const wan = (n) => (n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + '万' : String(n || 0));
 const CDN_ONLY = /(^|\.)doubaocdn\.com$/.test(location.hostname) || /(^|\.)byteimg\.com$/.test(location.hostname);
 const NAV = { work: CDN_ONLY ? '' : '预览_DevC布局.html', login: CDN_ONLY ? '' : 'index.html' };
 
-const state = { status: 'all', kind: 'all', view: 'list' };
+const state = { status: 'all', kind: 'all', view: 'list', lesson: 'all' };
 
 function readName() {
   const q = new URLSearchParams(location.search).get('name');
@@ -205,49 +233,108 @@ function toast(msg) {
 const openProblem = (id) => { if (!NAV.work) return toast('线上副本没有做题页'); location.href = NAV.work + '?pid=' + id; };
 
 document.getElementById('whoName').textContent = readName();
-document.getElementById('navCount').textContent = PROBS.length + ' 题';
-document.getElementById('listNum').textContent = PROBS.length;
+document.getElementById('navCount').textContent = ALL.length + ' 题';
 
-/* 左侧菜单切换右侧视图：只看自学事项时，下面的题目表不出现 */
+/* 左栏目录树：章节 → 节（点某一课只看那一课） */
+function buildTree() {
+  const t = document.getElementById('tree');
+  t.innerHTML = '<div class="ch">' +
+    '<button class="chnode"><span class="car">▾</span><span>' + esc(CH.name) + '</span><span class="n">' + ALL.length + '</span></button>' +
+    '<div class="les" id="lesList">' + CH.lessons.filter((l) => (l.problems || []).length).map((l) =>
+      '<button data-lesson="' + l.no + '" title="' + esc(l.kp || '') + '">' +
+      '<span class="ln">' + pad(l.no) + '</span><span>' + esc(l.name) + '</span>' +
+      '<span class="n">' + l.problems.length + '</span></button>').join('') + '</div>' +
+    '</div>';
+}
+buildTree();
+
 function switchView(v) {
   state.view = v;
-  document.querySelectorAll('#menu button').forEach((b) => b.classList.toggle('on', b.dataset.view === v));
   document.getElementById('viewGuide').classList.toggle('on', v === 'guide');
   document.getElementById('viewList').classList.toggle('on', v === 'list');
+  paintMenu();
 }
+
+function paintMenu() {
+  const list = state.view === 'list';
+  document.querySelectorAll('#menu > button[data-view]').forEach((b) => {
+    b.classList.toggle('on', b.dataset.view === 'guide' ? !list : (list && state.lesson === 'all'));
+  });
+  document.querySelectorAll('.les button[data-lesson]').forEach((b) => {
+    b.classList.toggle('on', list && Number(b.dataset.lesson) === state.lesson);
+  });
+}
+
+function pickLesson(no) {
+  state.lesson = (state.lesson === no) ? 'all' : no;
+  switchView('list');
+  paintMenu();
+  renderStats();
+  render();
+}
+
 document.getElementById('menu').addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-view]'); if (!b) return;
-  switchView(b.dataset.view);
+  const ch = e.target.closest('button.chnode');
+  if (ch) {
+    const les = document.getElementById('lesList');
+    const hide = les.classList.toggle('hide');
+    ch.querySelector('.car').textContent = hide ? '▸' : '▾';
+    if (hide) { state.lesson = 'all'; switchView('list'); renderStats(); render(); }
+    return;
+  }
+  const v = e.target.closest('button[data-view]');
+  if (v) { state.lesson = 'all'; switchView(v.dataset.view); renderStats(); render(); return; }
+  const l = e.target.closest('button[data-lesson]');
+  if (l) pickLesson(Number(l.dataset.lesson));
 });
 
 function renderStats() {
+  const pool = state.lesson === 'all' ? ALL : ALL.filter((p) => p.lesson === state.lesson);
   const done = doneSet();
-  const ok = PROBS.filter((p) => done.has(pidOf(p))).length;
-  const pct = PROBS.length ? Math.round(ok / PROBS.length * 100) : 0;
+  const ok = pool.filter((p) => done.has(pidOf(p))).length;
+  const pct = pool.length ? Math.round(ok / pool.length * 100) : 0;
   document.getElementById('listBar').style.width = pct + '%';
-  document.getElementById('listPct').textContent = pct + '% · ' + ok + '/' + PROBS.length;
+  document.getElementById('listPct').textContent = pct + '% · ' + ok + '/' + pool.length;
+  const les = CH.lessons.find((l) => l.no === state.lesson);
+  document.getElementById('listTitle').textContent = state.lesson === 'all' ? 'C++ 题单' : '第' + pad(state.lesson) + '课';
+  document.getElementById('listSub').textContent = state.lesson === 'all'
+    ? CH.name + ' · ' + ALL.length + ' 题'
+    : esc(les ? les.name : '') + ' · ' + pool.length + ' 题';
 }
 
 function render() {
   const done = doneSet();
-  const list = PROBS.filter((p) => {
-    if (state.status === 'done' && !done.has(pidOf(p))) return false;
-    if (state.status === 'todo' && done.has(pidOf(p))) return false;
-    if (state.kind !== 'all' && kindOf(p.title) !== state.kind) return false;
-    return true;
-  });
-  document.getElementById('listNum').textContent = list.length;
-  document.getElementById('rows').innerHTML = list.length ? list.map((p) => {
-    const ok = done.has(pidOf(p));
-    const rate = p.sub ? Math.round(p.ac / p.sub * 100) : 0;
-    return '<tr data-id="' + pidOf(p) + '" tabindex="0">' +
-      '<td class="st">' + (ok ? '<span class="done">✓</span>' : '<span class="dot"></span>') + '</td>' +
-      '<td class="id">' + p.pid + '</td>' +
-      '<td><span class="ttl">' + esc(nameOf(p.title)) + '</span></td>' +
-      '<td class="rate"><span class="rate-box"><i style="width:' + Math.min(100, rate) + '%"></i></span>' +
-        '<span class="rate-txt">' + rate + '%</span></td>' +
-      '<td class="arrow">›</td></tr>';
-  }).join('') : '<tr><td colspan="5"><div class="empty">没有符合条件的题目</div></td></tr>';
+  const groups = CH.lessons
+    .filter((l) => state.lesson === 'all' || l.no === state.lesson)
+    .map((l) => ({
+      les: l,
+      items: (l.problems || []).filter((p) => {
+        if (state.status === 'done' && !done.has(pidOf(p))) return false;
+        if (state.status === 'todo' && done.has(pidOf(p))) return false;
+        if (state.kind !== 'all' && p.kind !== state.kind) return false;
+        return true;
+      })
+    }))
+    .filter((g) => g.items.length);
+
+  document.getElementById('rows').innerHTML = groups.length ? groups.map((g) => {
+    const head = '<tr class="grp"><td colspan="7">' +
+      '<span class="gh">第' + pad(g.les.no) + '课 ' + esc(g.les.name) + '</span>' +
+      '<span class="gk">' + esc(g.les.kp || '') + '</span>' +
+      '<span class="gn">' + g.items.length + ' 题</span></td></tr>';
+    const rows = g.items.map((p, i) => {
+      const ok = done.has(pidOf(p));
+      return '<tr data-id="' + pidOf(p) + '"' + (p.open === false ? ' class="closed"' : ' tabindex="0"') + '>' +
+        '<td class="st">' + (ok ? '<span class="done">✓</span>' : '<span class="dot"></span>') + '</td>' +
+        '<td class="idx">' + (i + 1) + '</td>' +
+        '<td class="id">' + p.pid + '</td>' +
+        '<td><span class="ttl">' + esc(p.title) + '</span></td>' +
+        '<td class="num-col">' + wan(p.ac) + '</td>' +
+        '<td class="num-col">' + wan(p.sub) + '</td>' +
+        '<td class="arrow">›</td></tr>';
+    }).join('');
+    return head + rows;
+  }).join('') : '<tr><td colspan="7"><div class="empty">没有符合条件的题目</div></td></tr>';
 }
 
 document.getElementById('tabs').addEventListener('click', (e) => {
@@ -265,17 +352,22 @@ document.getElementById('tabs').addEventListener('click', (e) => {
 
 document.getElementById('rows').addEventListener('click', (e) => {
   const tr = e.target.closest('tr[data-id]'); if (!tr) return;
+  if (tr.classList.contains('closed')) return toast('这道题还没开放');
   openProblem(tr.dataset.id);
 });
 document.getElementById('rows').addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;
   const tr = e.target.closest('tr[data-id]');
-  if (tr) openProblem(tr.dataset.id);
+  if (tr && !tr.classList.contains('closed')) openProblem(tr.dataset.id);
 });
 
 document.getElementById('btnCoin').onclick = () => toast('金币系统还没接通');
 document.getElementById('btnOut').onclick = (e) => { if (!NAV.login) { e.preventDefault(); toast('登录页只在本机'); } };
 
+/* 直达：#guide 自学事项，#lesson-05 只看第05课 */
+const m = /^#lesson-(\d{1,2})$/.exec(location.hash);
+if (m) state.lesson = Number(m[1]);
+paintMenu();
 renderStats();
 render();
 switchView(location.hash === '#guide' ? 'guide' : 'list');
