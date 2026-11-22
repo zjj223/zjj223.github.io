@@ -286,16 +286,17 @@
   });
 
   // 咕噜球配置（按捕捉率阶梯定价：越稳越贵）
+  // 2026-11-22 调整：所有球捕捉率 +10 个百分点，售价 +20%（18 的四舍五入为 22）
   // 每场战斗 +1 洛克贝，一节课大概攒 30~50 个：便宜的先用，国王球要攒几节课
   const PET_REFRESH_COST = 50; // 刷新起始宠物消耗 50 洛克贝
   const BALL_TYPES = Object.freeze([
-    { id: "ball1", name: "普通咕噜球", price: 5, catchRate: 0.05, color: "#9e9e9e", desc: "基础捕捉率5%" },
-    { id: "ball2", name: "中级咕噜球", price: 10, catchRate: 0.10, color: "#42a5f5", desc: "捕捉率10%" },
-    { id: "ball3", name: "高级咕噜球", price: 18, catchRate: 0.15, color: "#66bb6a", desc: "捕捉率15%" },
-    { id: "ball4", name: "超级咕噜球", price: 30, catchRate: 0.20, color: "#ffa726", desc: "捕捉率20%" },
-    { id: "ball5", name: "至尊咕噜球", price: 60, catchRate: 0.30, color: "#ab47bc", desc: "捕捉率30%" },
-    { id: "ball6", name: "国王咕噜球", price: 120, catchRate: 0.50, color: "#ef5350", desc: "捕捉率50%" },
-    { id: "ball-wuxing", name: "五行咕噜球", price: 120, catchRate: 0.50, catchRateWuxing: 0.70, color: "#ffd54f", desc: "普通50%，对五行神兽70%" },
+    { id: "ball1", name: "普通咕噜球", price: 6, catchRate: 0.15, color: "#9e9e9e", desc: "基础捕捉率15%" },
+    { id: "ball2", name: "中级咕噜球", price: 12, catchRate: 0.20, color: "#42a5f5", desc: "捕捉率20%" },
+    { id: "ball3", name: "高级咕噜球", price: 22, catchRate: 0.25, color: "#66bb6a", desc: "捕捉率25%" },
+    { id: "ball4", name: "超级咕噜球", price: 36, catchRate: 0.30, color: "#ffa726", desc: "捕捉率30%" },
+    { id: "ball5", name: "至尊咕噜球", price: 72, catchRate: 0.40, color: "#ab47bc", desc: "捕捉率40%" },
+    { id: "ball6", name: "国王咕噜球", price: 144, catchRate: 0.60, color: "#ef5350", desc: "捕捉率60%" },
+    { id: "ball-wuxing", name: "五行咕噜球", price: 144, catchRate: 0.60, catchRateWuxing: 0.80, color: "#ffd54f", desc: "普通60%，对五行神兽80%" },
   ]);
 
   // ===== 时装 / 形象 =====
@@ -457,7 +458,7 @@
     },
     {
       title: "商店与市场",
-      desc: "商店用洛克贝买咕噜球，越稳的越贵：普通球 5 洛克贝（5%），国王球 120 洛克贝（50%）。市场可以和同学互相买卖场景道具，成交后卖家承担 1/5 手续费（向上取整），到账是扣完手续费的部分。",
+      desc: "商店用洛克贝买咕噜球，越稳的越贵：普通球 6 洛克贝（15%），国王球 144 洛克贝（60%）。市场可以和同学互相买卖场景道具，成交后卖家承担 1/5 手续费（向上取整），到账是扣完手续费的部分。",
       highlight: "用洛克贝交易，统一定价"
     },
     {
@@ -2565,7 +2566,7 @@
             })
             .join("")}
         </div>
-        <p class="wuxing-notice-tip">🛒 商店已上架「五行咕噜球」：普通捕捉 50%，对五行宠物 <b>70%</b>。</p>
+        <p class="wuxing-notice-tip">🛒 商店已上架「五行咕噜球」：普通捕捉 60%，对五行宠物 <b>80%</b>。</p>
         <div class="wuxing-notice-actions">
           <button type="button" class="wuxing-btn primary" data-wx-act="ok">知道了，去抓宠</button>
           <button type="button" class="wuxing-btn ghost" data-wx-act="shop">去商店看看</button>
@@ -7568,7 +7569,7 @@
     if (profile.balls[ballId] <= 0) delete profile.balls[ballId];
 
     // 计算捕捉成功率（野生宠物等级越高，越难捕捉）
-    // 五行咕噜球对五行神兽：固定 70%，不扣等级惩罚
+    // 五行咕噜球对五行神兽：固定 80%，不扣等级惩罚
     const levelPenalty = Math.max(0, (captureTarget.level - 5) * 0.01);
     const wuxingRate = captureTarget.isWuxing ? ball.catchRateWuxing : null;
     const successRate =
@@ -7840,7 +7841,7 @@
     { key: "grass", target: '.map-pin[data-scene-id="grassland"]', mode: "click", close: ["petModal", "storeModal", "roleModal", "rankModal"], title: "从这里开始", desc: "点「轻风草原」。这是新手村，经验最适合你现在的等级。" },
     { key: "spot", target: ".stage-spot", mode: "click", title: "点一下试试", desc: "点随便一个探索点。会给经验、可能掉道具，也可能遇到野生宠物打一场。" },
     { key: "reward", target: null, mode: "next", title: "经验和洛克贝到手", desc: "看到下面那行字没有？经验涨了。打过战斗的探索还会多 1 个洛克贝，打输了也有。" },
-    { key: "store", target: "#dockTimer", mode: "click", close: ["petModal", "roleModal", "rankModal", "marketModal"], title: "攒够了就买球", desc: "点下面的「商店」。最便宜的球 5 个洛克贝，最贵的 120 个，越贵越容易抓到。有球才能在大世界抓宠物。" },
+    { key: "store", target: "#dockTimer", mode: "click", close: ["petModal", "roleModal", "rankModal", "marketModal"], title: "攒够了就买球", desc: "点下面的「商店」。最便宜的球 6 个洛克贝，最贵的 144 个，越贵越容易抓到。有球才能在大世界抓宠物。" },
     { key: "fashion", target: "#storeTabFashion", mode: "click", title: "商店里还有衣服", desc: "再点右边的「时装」。这里有 10 套衣服，一个场景一套，男女各一个版本。" },
     { key: "role", target: "#dockRole", mode: "click", close: ["storeModal", "petModal", "rankModal"], title: "看看你自己的资料", desc: "点最左边这个「角色」，能看你的名字、等级、洛克贝和现在的样子。" },
     { key: "swap", target: "#roleGenderSwapBtn", mode: "click", fake: true, title: "这里能换一次性别", desc: "点一下这个按钮。换完以后整个形象都会变，男生的衣服变女生的，女生的变男生的。每人只能换一次。" },
@@ -7853,7 +7854,7 @@
     { icon: "🧭", title: "探索不要钱", sub: "想点几次点几次。集齐一个场景的 4 件道具，亲密度升一级。" },
     { icon: "⚔️", title: "每场战斗 +1 洛克贝", sub: "不分场景、不分输赢。输了也有，不用怕打不过。" },
     { icon: "🪢", title: "战斗胜利后可能能抓宠物", sub: "弹出捕捉窗口就扔咕噜球，球越好成功率越高。" },
-    { icon: "🏪", title: "商店：六种球，5 到 120 洛克贝", sub: "越贵越稳：普通球 5 洛克贝抓 5%，国王球 120 洛克贝抓 50%。" },
+    { icon: "🏪", title: "商店：六种球，6 到 144 洛克贝", sub: "越贵越稳：普通球 6 洛克贝抓 15%，国王球 144 洛克贝抓 60%。" },
     { icon: "🛒", title: "市场：和同学互相买卖", sub: "挂 10 洛克贝，成交后卖家承担 1/5 手续费，实收 8。" },
     { icon: "👕", title: "衣服：一个场景一套", sub: "10 套形象，男女各一版。10000 洛克贝，或者那个场景的道具攒够 100 个，就能换。" },
     { icon: "🔄", title: "换性别：每人一次", sub: "在「角色」页点那个按钮，整套形象直接变。换过就不能再换了。" },
