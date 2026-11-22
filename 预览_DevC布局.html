@@ -422,7 +422,6 @@
 <div class="topbar">
   <button class="home" id="btnHome" title="回到题库列表">← 题库</button>
   <span class="crumb" id="crumb">题单：C++ 入门 › <b>1-1 A+B 问题</b></span>
-  <span class="badge" id="badge">v9 · 复刻 Dev-C++ 5.11 + 智能输入（括号配对含尖括号/Tab 四空格/自动缩进）</span>
   <div class="right">
     <button class="coin" id="btnCoin">🪙 128</button>
     <button class="btn-game" id="btnGame">进入游戏</button>
@@ -444,7 +443,6 @@
         <button class="btn" id="btnSample">导入样例</button>
         <button class="btn primary" id="btnSubmit">提交评测</button>
       </div>
-      <p style="margin-top:12px;font-size:11.5px;color:#999">静态布局预览：编译与运行结果为模拟。</p>
     </div>
   </div>
 
@@ -2733,8 +2731,8 @@ function renderProblem(id) {
   document.getElementById('pMeta').innerHTML =
     '<span>提交 ' + p.sub + '</span><span>通过 ' + p.ac + '</span>' +
     '<span>时间限制 ' + p.time + '</span><span>内存限制 ' + p.mem + '</span>' +
-    '<span class="tag">' + p.tag + '</span>';
-  document.getElementById('pBody').innerHTML = p.body + sampleBlock(p.samples) + (p.tip || '');
+    '<span class="tag">' + p.tag + '</span>' + (p.srcNote ? '<span>' + p.srcNote + '</span>' : '');
+  document.getElementById('pBody').innerHTML = p.body + sampleBlock(p.samples);
   if (window.MathJax && window.MathJax.typesetPromise) {
     window.MathJax.typesetPromise([document.getElementById('pBody')]).catch(() => {});
   }
@@ -2831,8 +2829,8 @@ const YBT_LESSON_NAME = {};
             '<h3>输入格式</h3><p>' + p.hin + '</p>' +
             '<h3>输出格式</h3><p>' + p.hout + '</p>',
       samples: [{ in: (p.sin === '无' ? '（无输入）' : p.sin), out: p.sout }],
-      tip: '<h3>说明 / 提示</h3><p>本题出自《信息学奥赛一本通·编程启蒙（C++版）》第' + p.lesson + '课「' + lname + '」。' +
-           '题面与样例抓自 bas.ssoier.cn，仅用于课堂练习。</p>',
+      tip: '',
+      srcNote: '题面 一本通 · 第' + p.lesson + '课',
       ybt: p.pid
     };
     LIB_TAG[key] = [lname, isEx ? '例题' : '练习'];
