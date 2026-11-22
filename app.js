@@ -190,6 +190,12 @@
     if (!CLOUD_ENABLED || !cloudSyncAllowed || !profile || !profile.name) {
       return;
     }
+    // 老师端不做“整包自动同步”：老师名单是登录时的快照，
+    // 整包推回去会把学生后来涨的亲密度、解锁的地图、抓到的宠物全部覆盖掉。
+    // 老师的所有改档都走 patchStudentSave（以云端最新存档为准只改目标字段）。
+    if (teacherUnlocked && !studentToken) {
+      return;
+    }
     // 存档里不再夹带密码；这里显式剔除，避免旧档案里的残留字段被带上去
     const save = Object.assign({}, profile);
     delete save.pass;
@@ -2775,27 +2781,35 @@
       renderTeacherRoster(getTeacherRosterProfiles());
     });
 
-    // 后台详情：道具加减
-    document.getElementById("teacherDetail")?.addEventListener("click", (e) => {
+    // 后台详情：道具加减（按云端最新存档打补丁，绝不整包覆盖）
+    document.getElementById("teacherDetail")?.addEventListener("click", async (e) => {
       const btn = e.target.closest(".teacher-item-btn");
       if (!btn || btn.disabled) return;
       const profile = state.profiles.find((p) => p.id === teacherSelectedId);
       if (!profile) return;
       const delta = Number(btn.dataset.delta) || 0;
       const id = btn.dataset.itemId;
+      const kind = btn.dataset.kind;
       if (!id || !delta) return;
-      if (btn.dataset.kind === "ball") {
-        if (!profile.balls) profile.balls = {};
-        profile.balls[id] = Math.max(0, (profile.balls[id] || 0) + delta);
-      } else {
-        if (!profile.inventory) profile.inventory = {};
-        profile.inventory[id] = Math.max(0, (profile.inventory[id] || 0) + delta);
-        if (profile.inventory[id] <= 0) delete profile.inventory[id];
-      }
-      saveState("后台调整道具");
-      renderTeacherDetail(profile);
+
+      const apply = (target) => {
+        if (kind === "ball") {
+          if (!target.balls) target.balls = {};
+          target.balls[id] = Math.max(0, (Number(target.balls[id]) || 0) + delta);
+          if (target.balls[id] <= 0) delete target.balls[id];
+        } else {
+          if (!target.inventory) target.inventory = {};
+          target.inventory[id] = Math.max(0, (Number(target.inventory[id]) || 0) + delta);
+          if (target.inventory[id] <= 0) delete target.inventory[id];
+        }
+      };
+
+      btn.disabled = true;
+      await patchStudentSave(profile, apply);
+      const current = getTeacherSelectedProfile() || profile;
+      renderTeacherDetail(current);
       renderTeacherRoster(getTeacherRosterProfiles());
-      pushTeacherProfileToCloud(profile);
+      render();
     });
 
     els.teacherLogout.addEventListener("click", handleTeacherLogout);
@@ -4373,26 +4387,49 @@
     els.pulledList.textContent = `已拉入：${names.join("、")}`;
   }
 
-  // 给所有拉入的学生每人加60洛克贝
-  function handleAddAllPulledAp() {
+  // 给所有拉入的学生每人加60洛克贝（同样按云端最新存档打补丁）
+  async function handleAddAllPulledAp() {
     if (pulledProfileIds.length === 0) {
       setTeacherMessage("请先拉入学生再发奖励。", true);
       return;
     }
-    let count = 0;
-    pulledProfileIds.forEach((id) => {
-      const profile = state.profiles.find((p) => p.id === id);
-      if (profile) {
-        profile.rockbell = (profile.rockbell || 0) + 60;
-        count++;
-      }
+    const profiles = pulledProfileIds
+      .map((id) => state.profiles.find((p) => p.id === id))
+      .filter(Boolean);
+    if (!profiles.length) {
+      setTeacherMessage("拉入的学生已不在名单里，请重新拉入。", true);
+      return;
+    }
+    profiles.forEach((profile) => {
+      profile.rockbell = (Number(profile.rockbell) || 0) + 60;
     });
-    saveState("全员奖励发放");
-    setTeacherMessage(`已给 ${count} 名学生每人发放60洛克贝！`, false);
     render();
+    saveState("全员奖励发放");
+
+    if (!teacherCloudWritable()) {
+      setTeacherMessage(`已给 ${profiles.length} 名学生本机 +60（离线模式未同步云端）`, true);
+      return;
+    }
+
+    let synced = 0;
+    try {
+      const rows = await cloudGetAllStudents();
+      for (const profile of profiles) {
+        const row = (rows || []).find((item) => item && item.name === profile.name);
+        if (!row || !row.save) continue;
+        const latestSave = cloneSaveObject(row.save);
+        latestSave.rockbell = Math.max(0, Number(latestSave.rockbell) || 0) + 60;
+        const res = await teacherSetSave(profile.name, latestSave);
+        if (res && res.ok) synced += 1;
+      }
+      setTeacherMessage(`已给 ${profiles.length} 名学生发放60洛克贝，云端同步 ${synced} 人（孩子需重新登录才生效）`, false);
+    } catch (err) {
+      console.warn("全员奖励同步失败", err);
+      setTeacherMessage(`已给 ${profiles.length} 名学生本机 +60，但云端同步失败，请重试`, true);
+    }
   }
 
-  function adjustActionPoints(direction) {
+  async function adjustActionPoints(direction) {
     const amount = Number.parseInt(els.apAmount.value, 10);
     const profile = state.profiles.find((item) => item.id === els.teacherSelect.value);
     if (!profile) {
@@ -4404,39 +4441,123 @@
       return;
     }
 
-    if (direction > 0) {
-      profile.rockbell += amount;
-      setTeacherMessage(`${profile.name} 洛克贝增加 ${amount}。`, false);
-    } else {
-      const deducted = Math.min(profile.rockbell, amount);
-      profile.rockbell -= deducted;
-      setTeacherMessage(`${profile.name} 洛克贝扣除 ${deducted}。`, false);
-    }
-    saveState("后台已存档");
-    pushTeacherProfileToCloud(profile);
+    const signed = direction > 0 ? amount : -amount;
+    await patchStudentSave(
+      profile,
+      (target) => {
+        const current = Math.max(0, Number(target.rockbell) || 0);
+        target.rockbell = Math.max(0, current + signed);
+      },
+      {
+        successText: `${profile.name} 洛克贝${direction > 0 ? "增加" : "扣除"} ${amount}`,
+      },
+    );
     render();
   }
 
-  // 后台改完立刻推云端（学生必须先退出登录，否则会被自己的存档覆盖）
-  async function pushTeacherProfileToCloud(profile) {
-    if (!profile || !CLOUD_ENABLED || location.protocol === "file:") {
-      return;
+  // 注意：这里原来有一个 pushTeacherProfileToCloud(profile)，会把老师登录时的旧快照
+  // 整包推回云端，覆盖学生后来涨的亲密度 / 解锁地图 / 新宠物。已删除，
+  // 老师改档统一走下面的 patchStudentSave（以云端最新存档为准只改目标字段）。
+
+  // 老师改档专用：先取云端最新存档，只改目标字段，再写回。
+  // 这样学生后来涨的亲密度 / 解锁地图 / 新抓的宠物都不会被旧快照覆盖。
+  function teacherCloudWritable() {
+    return CLOUD_ENABLED && location.protocol !== "file:" && Boolean(teacherToken);
+  }
+
+  function cloneSaveObject(value) {
+    return JSON.parse(JSON.stringify(value && typeof value === "object" ? value : {}));
+  }
+
+  // 云端失败时，把老师界面回滚成“云端真实状态”，避免显示成功但实际没写进去
+  function restoreTeacherProfileLocally(name, saveLike) {
+    const idx = state.profiles.findIndex((item) => item && item.name === name);
+    if (idx < 0) return;
+    const refreshed = normalizeProfile(profileFromCloud({ name, save: saveLike }));
+    refreshed.id = state.profiles[idx].id;
+    state.profiles[idx] = refreshed;
+    if (state.selectedId === refreshed.id) state.selectedId = refreshed.id;
+  }
+
+  // 同一个学生的改档排队执行：连点两下“+”也不会各读各的旧存档、互相覆盖
+  const teacherPatchQueues = new Map();
+
+  function patchStudentSave(profile, applyPatch, options) {
+    if (!profile) return Promise.resolve({ ok: false, localOnly: true });
+    const name = profile.name;
+    const prev = teacherPatchQueues.get(name) || Promise.resolve();
+    const run = prev
+      .catch(() => {})
+      .then(() => doPatchStudentSave(profile, applyPatch, options));
+    const wrapped = run.catch(() => {});
+    teacherPatchQueues.set(name, wrapped);
+    wrapped.finally(() => {
+      if (teacherPatchQueues.get(name) === wrapped) teacherPatchQueues.delete(name);
+    });
+    return run;
+  }
+
+  async function doPatchStudentSave(profile, applyPatch, options) {
+    if (!profile) return { ok: false, localOnly: true };
+    const opts = options || {};
+    const localBefore = cloneSaveObject(profile);
+    // 本地先落一次，界面立刻有反馈
+    if (typeof opts.localApply === "function") {
+      opts.localApply(profile);
+    } else {
+      applyPatch(profile);
     }
+
+    if (!teacherCloudWritable()) {
+      setTeacherMessage(`离线模式：改动只存在本机（${profile.name}）`, true);
+      return { ok: true, localOnly: true };
+    }
+
+    let latestSave = null;
+    let latestBeforePatch = null;
     try {
-      if (teacherToken) {
-        // 老师门票：服务端允许改任意学生的存档，但改不了密码
-        const res = await teacherSetSave(profile.name, profile);
-        if (!res || !res.ok) {
-          throw new Error((res && res.code) || "teacher_save_failed");
-        }
-      } else {
-        setTeacherMessage("没拿到老师门票，改动只存在本机；请重新进后台再试。", true);
-        return;
+      const rows = await cloudGetAllStudents();
+      const row = (rows || []).find((item) => item && item.name === profile.name);
+      if (!row || !row.save || typeof row.save !== "object") {
+        throw new Error("云端没有找到这个学生的存档");
       }
-      setTeacherMessage(`已同步云端：${profile.name}（孩子需重新登录才生效）`, false);
+      latestSave = cloneSaveObject(row.save);
+      latestBeforePatch = cloneSaveObject(row.save);
+    } catch (err) {
+      console.warn("读取学生最新存档失败", err);
+      restoreTeacherProfileLocally(profile.name, localBefore);
+      setTeacherMessage(`读取云端最新存档失败：${profile.name}，请检查网络后重试`, true);
+      return { ok: false, localOnly: true };
+    }
+
+    try {
+      applyPatch(latestSave);
+      const res = await teacherSetSave(profile.name, latestSave);
+      if (!res || !res.ok) {
+        throw new Error((res && res.code) || "teacher_save_failed");
+      }
+      // 用云端结果回填本地，避免老师界面继续拿着旧快照
+      const refreshed = normalizeProfile(profileFromCloud({ name: profile.name, save: latestSave }));
+      const idx = state.profiles.findIndex((item) => item && item.name === profile.name);
+      if (idx >= 0) {
+        refreshed.id = state.profiles[idx].id;
+        state.profiles[idx] = refreshed;
+        if (state.selectedId === state.profiles[idx].id) {
+          state.selectedId = refreshed.id;
+        }
+      }
+      setTeacherMessage(
+        opts.successText
+          ? `${opts.successText}（已按云端最新存档同步，孩子需重新登录才生效）`
+          : `已按云端最新存档同步：${profile.name}（孩子需重新登录才生效）`,
+        false
+      );
+      return { ok: true, profile: refreshed };
     } catch (err) {
       console.warn("同步云端失败", err);
+      if (latestBeforePatch) restoreTeacherProfileLocally(profile.name, latestBeforePatch);
       setTeacherMessage(`云端同步失败：${profile.name}，请检查网络后重试`, true);
+      return { ok: false, localOnly: true };
     }
   }
 
@@ -4484,6 +4605,26 @@
 
     saveState("后台已调整宠物等级");
     render();
+
+    // 云端同步：只按最新存档里的出战宠物改等级和血量，避免覆盖其它进度
+    patchStudentSave(
+      profile,
+      (target) => {
+        const list = Array.isArray(target.pets) ? target.pets : (target.pet ? [target.pet] : []);
+        if (!list.length) return;
+        const idx = Math.min(Math.max(Number(target.activePetIndex) || 0, 0), list.length - 1);
+        const targetPet = list[idx] || target.pet;
+        if (!targetPet) return;
+        const cloudLevel = Math.max(1, Number(targetPet.level) || 1);
+        const finalLevel = Math.max(cloudLevel, nextLevel);
+        targetPet.level = finalLevel;
+        // 与游戏内升级一致：在原血量基础上每级 +10，而不是按等级重算
+        targetPet.hpMax = Math.max(1, Number(targetPet.hpMax) || PET_BASE_HP_MAX) + PET_UPGRADE_HP_GAIN * (finalLevel - cloudLevel);
+        if (Array.isArray(target.pets)) target.pets[idx] = targetPet;
+        target.pet = targetPet;
+      },
+      { localApply: () => {} },
+    );
 
     let msg = `${profile.name}：${pet.name} Lv.${oldLevel} → Lv.${nextLevel}（生命 +${
       PET_UPGRADE_HP_GAIN * delta
@@ -4738,7 +4879,7 @@
       ["密码", "由系统保管（看不到）"],
       ["洛克贝", profile.rockbell],
       ["经验", profile.exp],
-      ["宠物", `${(profile.pets || []).length} / 6`],
+      ["宠物", `${(profile.pets || []).length} / ${MAX_PETS}`],
       ["第二密码用过", (profile.secondPassUses || 0) + " 次"],
     ];
     rows.forEach(([key, value]) => {
