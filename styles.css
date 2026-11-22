@@ -2239,24 +2239,27 @@ button:focus-visible {
 .battle-meta {
   display: flex;
   align-items: center;
-  gap: 5px;
+  flex-wrap: wrap;
+  gap: 3px 5px;
   max-width: 100%;
 }
 
 .battle-name {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--ink);
-  max-width: 88px;
+  max-width: 130px;
+  line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .battle-lv {
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   color: #e65100;
   font-weight: 700;
+  flex: 0 0 auto;
 }
 
 .battle-hp-track {

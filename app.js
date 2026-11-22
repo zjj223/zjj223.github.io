@@ -339,7 +339,7 @@
   const PET_DEFENSE_PER_LEVEL = 1.5;
   const PET_SPEED_PER_LEVEL = 1;
 
-  // 系别克制关系（仅展示，实际战斗暂不生效）
+  // 系别克制关系（战斗中生效：克制 ×1.5，被抵抗 ×0.75）
   const TYPE_CHART = Object.freeze({
     "火系": { strong: ["草系", "冰系", "机械系"], weak: ["水系", "地系"] },
     "水系": { strong: ["火系", "地系"], weak: ["草系", "电系"] },
@@ -1051,16 +1051,16 @@
 
   // 每个场景的野生精灵（用于探索遇敌）
     const WILD_PETS = Object.freeze({
-    grassland: { petIds: ["magic-cat", "spring-rabbit", "yibei-fenfen", "sleepy-king", "bounce-seed", "gran-seed", "qili-grass", "small-bee"], levels: [[1, 2], [2, 5], [4, 7], [6, 9], [7, 10], [10, 10]], levelRange: [1, 10], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
-    volcano: { petIds: ["fire-god", "fire-guardian", "fire-dragon", "fire-monkey"], levels: [[11, 12], [12, 15], [14, 17], [16, 19], [17, 20], [20, 20]], levelRange: [11, 20], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
-    "mermaid-bay": { petIds: ["water-spirit", "water-shell", "small-lotus", "water-ball"], levels: [[21, 22], [22, 25], [24, 27], [26, 29], [27, 30], [30, 30]], levelRange: [21, 30], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
-    academy: { petIds: ["dimo", "platinum-unicorn", "holy-sword-x", "pen-child", "small-cow"], levels: [[31, 32], [32, 35], [34, 37], [36, 39], [37, 40], [40, 40]], levelRange: [31, 40], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
-    "snow-valley": { petIds: ["snow-shadow-doll", "sundae-sweet", "snow-doll", "snow-beast"], levels: [[41, 42], [42, 45], [44, 47], [46, 49], [47, 50], [50, 50]], levelRange: [41, 50], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
-    "thunder-valley": { petIds: ["kula", "electric-circle", "thunder-ball"], levels: [[51, 52], [52, 55], [54, 57], [56, 59], [57, 60], [60, 60]], levelRange: [51, 60], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
-    "shadow-forest": { petIds: ["bone-dragon", "flower-antelope", "small-mushroom", "grass-bug"], levels: [[61, 62], [62, 65], [64, 67], [66, 69], [67, 70], [70, 70]], levelRange: [61, 70], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
-    "dark-swamp": { petIds: ["demon-wolf", "dragon-breath-par", "wuda", "star-demon", "duoduo"], levels: [[71, 72], [72, 75], [74, 77], [76, 79], [77, 80], [80, 80]], levelRange: [71, 80], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
-    "dragon-realm": { petIds: ["wing-dragon", "tooth-dragon", "horn-dragon", "small-stone"], levels: [[81, 82], [82, 85], [84, 87], [86, 89], [87, 90], [90, 90]], levelRange: [81, 90], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
-    "sky-city": { petIds: ["royal-griffin", "holy-wing-king", "mini-liwu", "bean-dragon", "mecha-shell"], levels: [[91, 92], [92, 95], [94, 97], [96, 99], [97, 100], [100, 100]], levelRange: [91, 100], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    grassland: { petIds: ["magic-cat", "spring-rabbit", "yibei-fenfen", "sleepy-king", "gran-seed", "qili-grass"], levels: [[1, 2], [2, 5], [4, 7], [6, 9], [7, 10], [10, 10]], levelRange: [1, 10], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    volcano: { petIds: ["fire-god", "fire-guardian", "cute-ape"], levels: [[11, 12], [12, 15], [14, 17], [16, 19], [17, 20], [20, 20]], levelRange: [11, 20], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "mermaid-bay": { petIds: ["water-spirit", "water-shell", "douding-fish", "jade-jellyfish"], levels: [[21, 22], [22, 25], [24, 27], [26, 29], [27, 30], [30, 30]], levelRange: [21, 30], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    academy: { petIds: ["dimo", "platinum-unicorn", "holy-sword-x", "scepter", "handsome-puppet"], levels: [[31, 32], [32, 35], [34, 37], [36, 39], [37, 40], [40, 40]], levelRange: [31, 40], encounterRate: 0.5, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "snow-valley": { petIds: ["snow-shadow-doll", "sundae-sweet", "snow-doll", "velvet-fairy", "blues"], levels: [[41, 42], [42, 45], [44, 47], [46, 49], [47, 50], [50, 50]], levelRange: [41, 50], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "thunder-valley": { petIds: ["kula", "electric-sheep", "timid-eel"], levels: [[51, 52], [52, 55], [54, 57], [56, 59], [57, 60], [60, 60]], levelRange: [51, 60], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "shadow-forest": { petIds: ["bone-dragon", "flower-antelope", "spider", "grass-bug", "black-cat"], levels: [[61, 62], [62, 65], [64, 67], [66, 69], [67, 70], [70, 70]], levelRange: [61, 70], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "dark-swamp": { petIds: ["demon-wolf", "dragon-breath-par", "duoduo-poison", "qiuluo-poison", "spirit-fox"], levels: [[71, 72], [72, 75], [74, 77], [76, 79], [77, 80], [80, 80]], levelRange: [71, 80], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "dragon-realm": { petIds: ["wing-dragon", "bone-dragon", "giant-stone", "scepter"], levels: [[81, 82], [82, 85], [84, 87], [86, 89], [87, 90], [90, 90]], levelRange: [81, 90], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
+    "sky-city": { petIds: ["royal-griffin", "holy-wing-king", "kaka-bird", "wind-shark", "ritual-giant"], levels: [[91, 92], [92, 95], [94, 97], [96, 99], [97, 100], [100, 100]], levelRange: [91, 100], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
   });
 
   // 遇宠模式：只影响“探索时是否碰到野生宠物”，不影响战斗里的捕捉率
@@ -1105,6 +1105,13 @@
   const PET_POOL = Object.freeze(
     PET_DATABASE.length > 0 ? PET_DATABASE : FALLBACK_PET_POOL,
   );
+  // 孵化、刷新、补偿只从普通宠池抽；五行/异色属于活动限定，不从这里产出
+  const NORMAL_PET_POOL = Object.freeze(
+    PET_DATABASE.filter((pet) => {
+      const id = pet?.petId || "";
+      return !id.startsWith("wuxing-") && !id.startsWith("shiny-");
+    }),
+  );
 
   const els = {};
   let state = null;
@@ -1132,6 +1139,10 @@
   let guideStartIndex = 0; // 引导起始步骤（学生端已自动建档，跳过"创建角色"这一步）
   let captureTarget = null; // 当前捕捉目标野生宠物
   let captureLocked = false; // 捕捉判定中：锁住咕噜球，防止连点一次抓多只
+  let captureTimerId = null; // 战斗胜利后等待 3400ms 再打开捕捉窗的定时器
+  let captureCloseTimerId = null; // 捕捉成功/失败后 1500ms 自动关闭的定时器
+  let captureSessionId = 0; // 每次捕捉窗的唯一会话号，旧定时器不得操作新窗
+  let encounterId = 0; // 每次探索的唯一遭遇号，旧捕捉不得串到新战斗
   // 本地存档键：老师端用全班存档，学生登录后切到自己的独立缓存，避免互相覆盖
   let activeStorageKey = STORAGE_KEY;
 
@@ -3293,6 +3304,11 @@
       ? match.stageIndex + 1
       : clampInteger(pet.stage, 1, stageCount);
     const level = clampInteger(pet.level, 1, Number.MAX_SAFE_INTEGER);
+    const expectedHpMax = PET_BASE_HP_MAX + (level - 1) * PET_UPGRADE_HP_GAIN;
+    const storedHpMax = Number(pet.hpMax);
+    const hpMax = Number.isFinite(storedHpMax) && storedHpMax > 0
+      ? Math.max(expectedHpMax, clampInteger(storedHpMax, PET_BASE_HP_MAX, Number.MAX_SAFE_INTEGER))
+      : expectedHpMax;
     const matchedStage = Math.min(
       requestedStage,
       getMaxEvolutionStage(level, stageCount),
@@ -3308,7 +3324,7 @@
       style: sanitizeName(stageData?.style || pet.style || "初始宠物"),
       mark: sanitizeName(stageData?.mark || pet.mark || pet.name.slice(0, 1) || "宠"),
       level,
-      hpMax: clampInteger(pet.hpMax, PET_BASE_HP_MAX, Number.MAX_SAFE_INTEGER),
+      hpMax,
       mpMax: clampInteger(pet.mpMax, PET_BASE_MP_MAX, Number.MAX_SAFE_INTEGER),
       isShiny: !!pet.isShiny || (petTemplate?.petId || "").startsWith("shiny-"),
       // 五行神兽：数据与异色同级，但边框/标识单独一套
@@ -3716,6 +3732,7 @@
     if (!scene || !isSceneUnlocked(scene, profile)) {
       return;
     }
+    cancelCaptureFlow();
     selectedSceneId = scene.id;
     selectedSpotId = null;
     resetScenePlayer();
@@ -3726,6 +3743,7 @@
 
   function switchView(view) {
     currentView = view;
+    if (view !== "scene") cancelCaptureFlow();
     if (view === "world") {
       selectedSpotId = null;
       stopSceneWalk();
@@ -3754,6 +3772,11 @@
     const spotIndex = spot ? spots.findIndex((s) => s.id === spot.id) : -1;
     setSceneResult(`正在${spotName}探索中…`, false, true);
 
+    // 新探索开始：取消上一场还没打开的捕捉，避免捕捉窗串到这一场
+    cancelCaptureFlow();
+    encounterId += 1;
+    const encounterToken = encounterId;
+
     setTimeout(() => {
       const outcome = rollSceneDrop(scene, spot?.exp);
 
@@ -3768,15 +3791,18 @@
       // 补偿跟着实际生效概率走，否则切模式会顺带改变升级速度
       const expComp = wildConfig && profile.pet ? 1 / (1 - encounterRate) : 1;
       const expMult = SCENE_EXP_MULT[scene.id] || 1;
-      let battleWin = true;
+      let wildPet = null;
+      let battleWin = false;
+      let battleDraw = false;
       let lostItem = null;
       let expGained = 0;
 
       if (encounter) {
-        const wildPet = generateWildPet(scene.id, spotIndex);
+        wildPet = generateWildPet(scene.id, spotIndex);
         if (wildPet) {
           const battle = simulateBattle(profile.pet, wildPet);
-          battleWin = battle.win;
+          battleWin = Boolean(battle.win);
+          battleDraw = Boolean(battle.draw);
           showBattleModal(profile.pet, wildPet, battle);
 
           if (battleWin) {
@@ -3784,11 +3810,15 @@
             expGained = 0;
             // 15%概率弹出捕捉窗口（等战斗演出播完再弹，避免两个弹窗叠加）
             if (Math.random() < 0.15 && profile.pets.length < MAX_PETS) {
-              setTimeout(() => {
+              captureTimerId = setTimeout(() => {
+                captureTimerId = null;
+                // 旧遭遇的定时器不得操作新场景/新账号/新战斗
+                if (encounterToken !== encounterId) return;
+                if (getActiveProfile()?.id !== profile.id) return;
                 showCaptureModal(wildPet);
               }, 3400);
             }
-          } else {
+          } else if (!battleDraw) {
             // 打输了：不给经验，50% 概率被抢走一个道具
             expGained = 0;
             const ownedItems = Object.entries(profile.inventory).filter(([, count]) => count > 0);
@@ -3800,34 +3830,39 @@
             }
           }
         } else {
-          expGained = Math.round(outcome.exp * expComp * expMult);
-          profile.exp += expGained;
+          // 配置里没有有效野生宠：空遇敌，不伪造战斗，也不发任何奖励
+          expGained = 0;
         }
       } else {
         expGained = Math.round(outcome.exp * expComp * expMult);
         profile.exp += expGained;
       }
 
-      // 洛克贝产出：每打完一场战斗 +1（不分场景、不分胜负）
-      if (encounter) {
+      const hadBattle = Boolean(encounter && wildPet);
+      // 洛克贝产出：每打完一场真实战斗 +1（不分场景、不分胜负）
+      if (hadBattle) {
         profile.rockbell = (profile.rockbell || 0) + 1;
       }
 
       const eggGranted = grantEggIfEligible(profile);
       const parts = [];
-      if (encounter) {
+      if (hadBattle) {
         parts.push(
           battleWin
             ? `${scene.name}·${spotName}：打败了野生宠物，这场不给经验。`
-            : `${scene.name}·${spotName}：💔 打输了，这场不给经验。`
+            : battleDraw
+              ? `${scene.name}·${spotName}：双方打成平局，这场不给经验。`
+              : `${scene.name}·${spotName}：💔 打输了，这场不给经验。`
         );
+      } else if (encounter) {
+        parts.push(`${scene.name}·${spotName}：没有遇到可战斗的野生宠物，这场没有奖励。`);
       } else {
         parts.push(`${scene.name}·${spotName}：经验 +${expGained}。`);
       }
-      if (encounter) parts.push("洛克贝 +1。");
+      if (hadBattle) parts.push("洛克贝 +1。");
       if (eggGranted) parts.push("首次达标，已自动发放【随机初始宠物蛋】。");
 
-      // 道具掉落：战败不获得
+      // 道具掉落：空遇敌/战败不获得；正常探索和胜利可获得
       let droppedItem = null;
       if (!encounter || battleWin) {
         droppedItem = rollSceneItem(scene, spot);
@@ -3840,7 +3875,7 @@
       }
 
       // 战败：被抢走道具
-      if (encounter && !battleWin && lostItem) {
+      if (hadBattle && !battleWin && !battleDraw && lostItem) {
         parts.push(`💔 被抢走了道具【${lostItem}】！`);
       }
 
@@ -3872,8 +3907,8 @@
         }
       }
 
-      if (encounter && battleWin) {
-        parts.push("战斗胜利！可以趁现在试着抓它。");
+      if (hadBattle && battleWin) {
+        parts.push("战斗胜利！有几率触发捕捉。");
       }
 
       setSceneResult(parts.join(" "), false, false, droppedItem, false);
@@ -3978,7 +4013,7 @@
     if (!profile || !profile.egg.granted || profile.egg.hatched || profile.pet) {
       return;
     }
-    const petTemplate = randomItem(PET_POOL);
+    const petTemplate = randomItem(getNormalPetPool());
     const now = new Date().toISOString();
     profile.pet = createStoredPet(petTemplate, now);
     // 确保pets数组包含该宠物
@@ -4005,7 +4040,7 @@
       return;
     }
 
-    const petTemplate = randomItem(PET_POOL);
+    const petTemplate = randomItem(getNormalPetPool());
     const previousPet = profile.pet;
     profile.pet = createStoredPet(petTemplate, new Date().toISOString(), previousPet, 1);
     profile.rockbell += COMPENSATION_ACTION_POINTS;
@@ -4213,7 +4248,7 @@
     profile.rockbell -= PET_REFRESH_COST;
 
     // 随机新宠物（初始状态）
-    const petTemplate = randomItem(PET_POOL);
+    const petTemplate = randomItem(getNormalPetPool());
     profile.pet = createStoredPet(petTemplate, new Date().toISOString());
 
     // 同步更新pets数组中的第一只宠物
@@ -6279,27 +6314,59 @@
     return TYPE_CHART[type] || { strong: [], weak: [] };
   }
 
+  // 系别倍率：克制 ×1.5，被抵抗 ×0.75，其余 ×1
+  function getTypeMultiplier(attackerType, defenderType) {
+    if (!attackerType || !defenderType) return 1;
+    const info = getTypeInfo(attackerType);
+    if (info.strong.includes(defenderType)) return 1.5;
+    if (info.weak.includes(defenderType)) return 0.75;
+    return 1;
+  }
+
+  function getTypeEffectLabel(mult) {
+    if (mult > 1) return "（克制）";
+    if (mult < 1) return "（被抵抗）";
+    return "";
+  }
+
+  function getPetDisplayName(pet) {
+    const base = pet?.name || "未知宠物";
+    return pet?.nickname ? `${base}（${pet.nickname}）` : base;
+  }
+
+  function getPetRarityPrefix(pet) {
+    if (!pet) return "";
+    if (pet.isWuxing) return "五行·";
+    if (pet.isShiny) return "✨";
+    return "";
+  }
+
   // ===== 战斗系统 =====
   function generateWildPet(sceneId, spotIndex) {
     const config = WILD_PETS[sceneId];
     if (!config) return null;
+    const hasTemplate = (id) => PET_DATABASE.some((p) => p.petId === id);
+    const validPetIds = (Array.isArray(config.petIds) ? config.petIds : []).filter(hasTemplate);
+    const validShinyIds = (Array.isArray(config.shinyPetIds) ? config.shinyPetIds : []).filter(hasTemplate);
     let petId = null;
     let isShiny = false;
     let isWuxing = false;
     // 五行觉醒：活动期内独立 1% 判定，命中后在全地图五只里等概率抽一只
-    if (isWuxingEventActive() && Math.random() < WUXING_EVENT.rate) {
-      petId = WUXING_PET_IDS[Math.floor(Math.random() * WUXING_PET_IDS.length)];
+    const validWuxingIds = WUXING_PET_IDS.filter(hasTemplate);
+    if (isWuxingEventActive() && validWuxingIds.length > 0 && Math.random() < WUXING_EVENT.rate) {
+      petId = validWuxingIds[Math.floor(Math.random() * validWuxingIds.length)];
       isWuxing = true;
     }
     // 判断是否遇到异色稀有宠物（低概率）
-    if (!petId && config.shinyPetIds && config.shinyPetIds.length > 0 && Math.random() < (config.shinyRate || 0.01)) {
-      petId = config.shinyPetIds[Math.floor(Math.random() * config.shinyPetIds.length)];
+    if (!petId && validShinyIds.length > 0 && Math.random() < (config.shinyRate || 0.01)) {
+      petId = validShinyIds[Math.floor(Math.random() * validShinyIds.length)];
       isShiny = true;
     }
-    if (!petId) {
-      // 该场景所有野生宠物等概率出现
-      petId = config.petIds[Math.floor(Math.random() * config.petIds.length)];
+    if (!petId && validPetIds.length > 0) {
+      // 该场景所有有效野生宠物等概率出现；配置里的缺失 ID 不参与抽取
+      petId = validPetIds[Math.floor(Math.random() * validPetIds.length)];
     }
+    if (!petId) return null;
     const template = PET_DATABASE.find((p) => p.petId === petId);
     if (!template) return null;
     // 等级：按探索点的位置取对应等级段，找不到就用场景总段
@@ -6308,6 +6375,7 @@
       (idx >= 0 && Array.isArray(config.levels) && config.levels[idx]) || config.levelRange;
     const level = randomInt(range[0], range[1]);
     const stage = template.stages.find((s) => level >= s.needLevel) || template.stages[0];
+    const stageNumber = Math.max(1, template.stages.indexOf(stage) + 1);
     // 异色/五行宠物基础资质更强（+30%血量，+5攻击，+3防御，+3速度）
     const rareBonus = isShiny || isWuxing;
     const rareHpBonus = rareBonus ? 1.3 : 1;
@@ -6316,6 +6384,7 @@
     const rareSpdBonus = rareBonus ? 3 : 0;
     return {
       petId,
+      stage: stageNumber,
       name: stage.name,
       image: stage.image || null,
       desc: template.desc || "",
@@ -6347,15 +6416,21 @@
 
     log.push(`野生的 ${wildPet.name}（Lv.${wildPet.level}）出现了！`);
 
+    const playerTypeMult = getTypeMultiplier(playerPet.type, wildPet.type);
+    const wildTypeMult = getTypeMultiplier(wildPet.type, playerPet.type);
+
     let playerFirst = playerSpd >= wildPet.speed;
     // 30 回合上限：同级对打能正常分出胜负（20 回合太短，同级也会因为打不完判负）
     let round = 0;
     while (playerHp > 0 && wildHp > 0 && round < 30) {
       round += 1;
       if (playerFirst) {
-        const dmg = Math.max(1, playerAtk - Math.floor(wildPet.defense * 0.5) + randomInt(-2, 2));
+        const dmg = Math.max(
+          1,
+          Math.round((playerAtk - Math.floor(wildPet.defense * 0.5) + randomInt(-2, 2)) * playerTypeMult)
+        );
         wildHp -= dmg;
-        log.push(`${playerPet.name} 发起攻击，造成 ${dmg} 点伤害！`);
+        log.push(`${playerPet.name} 发起攻击，造成 ${dmg} 点伤害！${getTypeEffectLabel(playerTypeMult)}`);
         events.push({
           side: "player",
           dmg,
@@ -6363,9 +6438,12 @@
           wildHp: Math.max(0, wildHp),
         });
         if (wildHp <= 0) break;
-        const wildDmg = Math.max(1, wildPet.attack - Math.floor(playerDef * 0.5) + randomInt(-2, 2));
+        const wildDmg = Math.max(
+          1,
+          Math.round((wildPet.attack - Math.floor(playerDef * 0.5) + randomInt(-2, 2)) * wildTypeMult)
+        );
         playerHp -= wildDmg;
-        log.push(`${wildPet.name} 反击，造成 ${wildDmg} 点伤害！`);
+        log.push(`${wildPet.name} 反击，造成 ${wildDmg} 点伤害！${getTypeEffectLabel(wildTypeMult)}`);
         events.push({
           side: "enemy",
           dmg: wildDmg,
@@ -6373,9 +6451,12 @@
           wildHp: Math.max(0, wildHp),
         });
       } else {
-        const wildDmg = Math.max(1, wildPet.attack - Math.floor(playerDef * 0.5) + randomInt(-2, 2));
+        const wildDmg = Math.max(
+          1,
+          Math.round((wildPet.attack - Math.floor(playerDef * 0.5) + randomInt(-2, 2)) * wildTypeMult)
+        );
         playerHp -= wildDmg;
-        log.push(`${wildPet.name} 抢先攻击，造成 ${wildDmg} 点伤害！`);
+        log.push(`${wildPet.name} 抢先攻击，造成 ${wildDmg} 点伤害！${getTypeEffectLabel(wildTypeMult)}`);
         events.push({
           side: "enemy",
           dmg: wildDmg,
@@ -6383,9 +6464,12 @@
           wildHp: Math.max(0, wildHp),
         });
         if (playerHp <= 0) break;
-        const dmg = Math.max(1, playerAtk - Math.floor(wildPet.defense * 0.5) + randomInt(-2, 2));
+        const dmg = Math.max(
+          1,
+          Math.round((playerAtk - Math.floor(wildPet.defense * 0.5) + randomInt(-2, 2)) * playerTypeMult)
+        );
         wildHp -= dmg;
-        log.push(`${playerPet.name} 反击，造成 ${dmg} 点伤害！`);
+        log.push(`${playerPet.name} 反击，造成 ${dmg} 点伤害！${getTypeEffectLabel(playerTypeMult)}`);
         events.push({
           side: "player",
           dmg,
@@ -6396,12 +6480,15 @@
     }
 
     const win = wildHp <= 0;
+    const draw = !win && playerHp > 0 && wildHp > 0;
     if (win) {
       log.push(`🎉 胜利！野生 ${wildPet.name} 被击败了。`);
+    } else if (draw) {
+      log.push(`⏳ 30 回合结束，双方都还有体力，平局。`);
     } else {
       log.push(`💀 战败...${playerPet.name} 被击败了。`);
     }
-    return { win, log, events };
+    return { win, draw, log, events };
   }
 
   // ===== 战斗演出系统 =====
@@ -6507,12 +6594,15 @@
   function showBattleModal(playerPet, wildPet, battle) {
     if (!els.battleModal) return;
 
+    // 新战斗开始前，关闭上一场可能还开着的捕捉窗并清掉旧捕捉定时器
+    cancelCaptureFlow();
     clearBattleTimers();
     resetBattleStage();
     if (els.battleFx) els.battleFx.replaceChildren();
     if (els.battleLog) els.battleLog.replaceChildren();
 
     const win = Boolean(battle && battle.win);
+    const draw = Boolean(battle && battle.draw);
     const events = Array.isArray(battle?.events) ? battle.events : [];
     const logs = Array.isArray(battle?.log) ? battle.log : [];
 
@@ -6522,22 +6612,30 @@
     const finalWildHp = events.length ? events[events.length - 1].wildHp : enemyMaxHp;
 
     els.battleModal.hidden = false;
-    els.battleTitle.textContent = win ? "⚔️ 战斗胜利！" : "⚔️ 战斗失败…";
+    els.battleTitle.textContent = win ? "⚔️ 战斗胜利！" : draw ? "⏳ 平局" : "⚔️ 战斗失败…";
     els.battleResult.textContent = win
-      ? "打赢了！这场不给经验，可以试着抓它。"
-      : "打输了，这场不给经验，可能被抢走道具。";
-    els.battleResult.className = `battle-result ${win ? "win" : "lose"}`;
+      ? "打赢了！这场不给经验，有几率触发捕捉。"
+      : draw
+        ? "双方都还有体力，这场是平局，不给经验。"
+        : "打输了，这场不给经验，可能被抢走道具。";
+    els.battleResult.className = `battle-result ${win ? "win" : draw ? "draw" : "lose"}`;
 
-    if (els.battlePlayerName) els.battlePlayerName.textContent = playerPet?.name || "我方";
-    if (els.battlePlayerLv) els.battlePlayerLv.textContent = `Lv.${playerPet?.level || 1}`;
+    if (els.battlePlayerName) {
+      els.battlePlayerName.textContent = `${getPetRarityPrefix(playerPet)}${getPetDisplayName(playerPet)}`;
+    }
+    if (els.battlePlayerLv) {
+      els.battlePlayerLv.textContent = `Lv.${playerPet?.level || 1}${playerPet?.type ? ` · ${playerPet.type}` : ""}`;
+    }
     setBattleSprite(els.battlePlayerImage, els.battlePlayerFallback, playerPet?.image);
 
     if (els.battleEnemyName) {
-      els.battleEnemyName.textContent = `${wildPet?.isShiny ? "✨" : ""}野生 ${
-        wildPet?.name || "未知"
+      els.battleEnemyName.textContent = `${getPetRarityPrefix(wildPet)}野生 ${
+        getPetDisplayName(wildPet)
       }`;
     }
-    if (els.battleEnemyLv) els.battleEnemyLv.textContent = `Lv.${wildPet?.level || 1}`;
+    if (els.battleEnemyLv) {
+      els.battleEnemyLv.textContent = `Lv.${wildPet?.level || 1}${wildPet?.type ? ` · ${wildPet.type}` : ""}`;
+    }
     setBattleSprite(els.battleEnemyImage, els.battleEnemyFallback, wildPet?.image);
 
     updateBattleHp(els.battlePlayerHp, els.battlePlayerHpNum, playerMaxHp, playerMaxHp);
@@ -6578,12 +6676,12 @@
 
     // 终局结算演出
     scheduleBattle(() => {
-      updateBattleHp(els.battlePlayerHp, els.battlePlayerHpNum, win ? finalPlayerHp : 0, playerMaxHp);
+      updateBattleHp(els.battlePlayerHp, els.battlePlayerHpNum, win || draw ? finalPlayerHp : 0, playerMaxHp);
       updateBattleHp(els.battleEnemyHp, els.battleEnemyHpNum, win ? 0 : finalWildHp, enemyMaxHp);
       if (win) {
         replayBattleAnimation(els.battlePlayerSide, "is-win");
         replayBattleAnimation(els.battleStage, "is-win-glow");
-      } else {
+      } else if (!draw) {
         replayBattleAnimation(els.battlePlayerSide, "is-lose");
       }
     }, elapsed);
@@ -6763,6 +6861,12 @@
     const isWuxing = petTemplate.petId?.startsWith("wuxing-") || previousPet?.isWuxing;
     // 异色/五行宠物基础资质更强（+30%血量）
     const baseHp = isShiny || isWuxing ? Math.floor(PET_BASE_HP_MAX * 1.3) : PET_BASE_HP_MAX;
+    const level = previousPet?.level || 1;
+    const expectedHpMax = baseHp + (level - 1) * PET_UPGRADE_HP_GAIN;
+    const storedHpMax = Number(previousPet?.hpMax);
+    const hpMax = Number.isFinite(storedHpMax) && storedHpMax > 0
+      ? Math.max(expectedHpMax, storedHpMax)
+      : expectedHpMax;
     return {
       petId: petTemplate.petId || "",
       stage: stageNumber,
@@ -6772,8 +6876,8 @@
       type: stageData.type || petTemplate.type || "未标注",
       style: stageData.style || petTemplate.style || "初始宠物",
       mark: stageData.mark || petTemplate.mark || stageData.name.slice(0, 1) || "宠",
-      level: previousPet?.level || 1,
-      hpMax: previousPet?.hpMax || baseHp,
+      level,
+      hpMax,
       mpMax: previousPet?.mpMax || PET_BASE_MP_MAX,
       isShiny: !!isShiny,
       isWuxing: !!isWuxing,
@@ -6968,10 +7072,6 @@
   function setTeacherMessage(message, warning) {
     els.teacherMessage.textContent = message;
     els.teacherMessage.classList.toggle("warning", warning);
-  }
-
-  function getActiveProfile() {
-    return state.profiles.find((profile) => profile.id === state.selectedId) || null;
   }
 
   // ===== 角色弹窗：左立绘 + 右页签（信息 / 道具 / 衣服） =====
@@ -7477,6 +7577,10 @@
     return list[randomInt(0, list.length - 1)];
   }
 
+  function getNormalPetPool() {
+    return NORMAL_PET_POOL.length > 0 ? NORMAL_PET_POOL : PET_POOL;
+  }
+
   function randomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
@@ -7878,7 +7982,7 @@
   }
 
   function createRandomPet() {
-    const pool = PET_POOL.length > 0 ? PET_POOL : FALLBACK_PET_POOL;
+    const pool = getNormalPetPool().length > 0 ? getNormalPetPool() : FALLBACK_PET_POOL;
     const template = pool[Math.floor(Math.random() * pool.length)];
     const stageData = template.stages?.[0] || template;
     return normalizePet({
@@ -7899,14 +8003,49 @@
   // ============================================
   // 捕捉系统
   // ============================================
+  function cancelPendingCapture() {
+    if (captureTimerId) {
+      clearTimeout(captureTimerId);
+      captureTimerId = null;
+    }
+  }
+
+  function clearCaptureCloseTimer() {
+    if (captureCloseTimerId) {
+      clearTimeout(captureCloseTimerId);
+      captureCloseTimerId = null;
+    }
+  }
+
+  function cancelCaptureFlow() {
+    cancelPendingCapture();
+    clearCaptureCloseTimer();
+    if (captureTarget || (els.captureModal && !els.captureModal.hidden)) {
+      closeCaptureModal();
+    }
+  }
+
   function showCaptureModal(wildPet) {
+    cancelPendingCapture();
+    clearCaptureCloseTimer();
+    captureSessionId += 1;
     captureTarget = wildPet;
     captureLocked = false;
     if (!els.captureModal) return;
 
-    els.capturePetImage.src = wildPet.image || "";
-    els.capturePetImage.onerror = () => { els.capturePetImage.style.display = "none"; };
-    els.capturePetName.textContent = wildPet.name;
+    // 每次打开都先把上一次 404 留下的隐藏状态复位
+    els.capturePetImage.style.display = "";
+    els.capturePetImage.onerror = () => {
+      els.capturePetImage.style.display = "none";
+    };
+    if (wildPet.image) {
+      els.capturePetImage.src = wildPet.image;
+    } else {
+      els.capturePetImage.removeAttribute("src");
+      els.capturePetImage.style.display = "none";
+    }
+    els.capturePetImage.alt = `${wildPet.name || "野生宠物"} 立绘`;
+    els.capturePetName.textContent = getPetDisplayName(wildPet);
     els.capturePetLevel.textContent = `Lv.${wildPet.level}`;
     els.capturePetType.textContent = wildPet.type;
     els.captureResult.textContent = "";
@@ -7931,33 +8070,6 @@
     els.captureModal.hidden = false;
   }
 
-  function renderCaptureBalls() {
-    if (!els.captureBallList) return;
-    els.captureBallList.replaceChildren();
-    const profile = getActiveProfile();
-    if (!profile) return;
-
-    BALL_TYPES.forEach((ball) => {
-      const count = profile.balls?.[ball.id] || 0;
-      const item = document.createElement("div");
-      // 判定中（captureLocked）也一律置灰，避免连点重复投球
-      item.className = `capture-ball-item${count === 0 || captureLocked ? " disabled" : ""}`;
-      item.dataset.ballId = ball.id;
-      item.style.setProperty("--ball-color", ball.color);
-
-      const icon = document.createElement("div");
-      icon.className = "capture-ball-icon";
-      icon.textContent = "⚪";
-
-      const info = document.createElement("div");
-      info.className = "capture-ball-info";
-      info.innerHTML = `<strong>${ball.name}</strong><span>${ball.desc} · 拥有 ${count} 个</span>`;
-
-      item.append(icon, info);
-      els.captureBallList.appendChild(item);
-    });
-  }
-
   function handleCaptureBallClick(event) {
     const item = event.target.closest(".capture-ball-item");
     if (!item || item.classList.contains("disabled")) return;
@@ -7966,7 +8078,8 @@
     const ballId = item.dataset.ballId;
     const ball = BALL_TYPES.find(b => b.id === ballId);
     const profile = getActiveProfile();
-    if (!ball || !profile || !captureTarget) return;
+    const target = captureTarget;
+    if (!ball || !profile || !target) return;
 
     // 宠物栏已满：先提示，不白扣咕噜球
     if (!profile.pets) profile.pets = [];
@@ -7977,6 +8090,7 @@
 
     // 上锁：从此刻起所有咕噜球置灰，直到弹窗关闭才解锁
     captureLocked = true;
+    const session = captureSessionId;
 
     // 消耗咕噜球
     if (!profile.balls) profile.balls = {};
@@ -7985,36 +8099,41 @@
 
     // 计算捕捉成功率（野生宠物等级越高，越难捕捉）
     // 五行咕噜球对五行神兽：固定 80%，不扣等级惩罚
-    const levelPenalty = Math.max(0, (captureTarget.level - 5) * 0.01);
-    const wuxingRate = captureTarget.isWuxing ? ball.catchRateWuxing : null;
+    const levelPenalty = Math.max(0, (target.level - 5) * 0.01);
+    const wuxingRate = target.isWuxing ? ball.catchRateWuxing : null;
     const successRate =
       typeof wuxingRate === "number" ? wuxingRate : Math.max(0.01, ball.catchRate - levelPenalty);
     const success = Math.random() < successRate;
 
     if (success) {
-      // 捕捉成功：宠物降为1级0阶段
+      // 捕捉成功：保留野生宠当前阶段/等级，抓到什么就显示什么
       if (profile.pets.length >= MAX_PETS) {
+        // 正常流程不会走到这里；万一并发写满，把球退回去再提示
+        profile.balls[ballId] = (profile.balls[ballId] || 0) + 1;
         els.captureResult.textContent = `宠物栏已满（最多${MAX_PETS}只），无法捕捉！`;
         return;
       }
       const petCountBefore = profile.pets.length;
+      const capturedStage = Number.isInteger(target.stage) ? target.stage : 1;
+      const capturedLevel = Math.max(1, Number(target.level) || 1);
+      const capturedHpMax = Math.max(
+        PET_BASE_HP_MAX,
+        Number(target.hpMax) || PET_BASE_HP_MAX,
+      );
       const newPet = normalizePet({
-        petId: captureTarget.petId,
-        stage: 1,
-        name: captureTarget.name,
-        image: captureTarget.image,
-        desc: captureTarget.desc,
-        type: captureTarget.type,
-        style: captureTarget.style,
-        level: 1,
+        petId: target.petId,
+        stage: capturedStage,
+        name: target.name,
+        image: target.image,
+        desc: target.desc,
+        type: target.type,
+        style: target.style,
+        level: capturedLevel,
         exp: 0,
         bond: 0,
-        // 异色 / 五行 与野生遇敌同一套资质：1 级基础血量 1.3 倍
-        hpMax: captureTarget.isShiny || captureTarget.isWuxing
-          ? Math.floor(PET_BASE_HP_MAX * 1.3)
-          : PET_BASE_HP_MAX,
-        isShiny: !!captureTarget.isShiny,
-        isWuxing: !!captureTarget.isWuxing,
+        hpMax: capturedHpMax,
+        isShiny: !!target.isShiny,
+        isWuxing: !!target.isWuxing,
         nickname: null,
       });
       profile.pets.push(newPet);
@@ -8022,7 +8141,7 @@
       // 新宠物在最后一页：自动翻到那一页，免得学生以为没抓到
       petTeamPageProfileId = profile.id || "";
       petTeamPage = Math.floor((profile.pets.length - 1) / PETS_PER_PAGE);
-      els.captureResult.textContent = `🎉 捕捉成功！${captureTarget.name} 加入了你的队伍！`;
+      els.captureResult.textContent = `🎉 捕捉成功！${newPet.name} 加入了你的队伍！`;
       saveState("捕捉成功");
 
       // 捕捉到第二只宠物后提示排行榜
@@ -8037,14 +8156,20 @@
         }, 2000);
       }
 
-      setTimeout(() => {
+      clearCaptureCloseTimer();
+      captureCloseTimerId = setTimeout(() => {
+        captureCloseTimerId = null;
+        if (session !== captureSessionId) return;
         closeCaptureModal();
         render();
       }, 1500);
     } else {
-      els.captureResult.textContent = `💨 捕捉失败！${captureTarget.name} 逃跑了...`;
+      els.captureResult.textContent = `💨 捕捉失败！${target.name} 逃跑了...`;
       saveState("捕捉失败");
-      setTimeout(() => {
+      clearCaptureCloseTimer();
+      captureCloseTimerId = setTimeout(() => {
+        captureCloseTimerId = null;
+        if (session !== captureSessionId) return;
         closeCaptureModal();
       }, 1500);
     }
@@ -8052,6 +8177,9 @@
   }
 
   function closeCaptureModal() {
+    cancelPendingCapture();
+    clearCaptureCloseTimer();
+    captureSessionId += 1;
     if (els.captureModal) els.captureModal.hidden = true;
     captureTarget = null;
     captureLocked = false;
