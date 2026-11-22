@@ -2,7 +2,6 @@
   "use strict";
 
   const STORAGE_KEY = "carlosia_phase1_save_v1";
-  const TEACHER_KEY = "teacher2026";
   const MAX_PETS = 6;
   const HATCH_EXP_REQUIREMENT = 120;
   const PET_BASE_HP_MAX = 80;
@@ -12,9 +11,10 @@
   const PET_UPGRADE_HP_GAIN = 10;
   const COMPENSATION_ACTION_POINTS = 2;
 
-  // 老师专用"第二密码"：任何学生账号都能进，学生不知道这个口令。
-  // 每用一次按 2 的次方扣该学生的洛克贝：第 1 次 2，第 2 次 4 … 第 10 次 1024 封顶。
-  const SECOND_PASS = "6985179";
+  // 【安全改造】老师权限码、老师代管口令都不再写在前端。
+  // 前端只把用户输入的字符交给服务端函数核对（teacher_login / teacher_enter），
+  // 核对通过后拿到一张会话门票，前端从此不带任何口令。
+  // 每用一次"老师代管"按 2 的次方扣该学生的洛克贝：第 1 次 2，第 2 次 4 … 第 10 次 1024 封顶。
   const SECOND_PASS_MAX_USES = 10;
 
   // ===== 云端存档（Supabase）=====
@@ -24,8 +24,10 @@
     key: "sb_publishable__dL04pGC3ZNvK8tsIfixvQ_l6p5FOMC",
   };
   const CLOUD_ENABLED = Boolean(CLOUD_CONFIG.url && CLOUD_CONFIG.key);
-  const CLOUD_TABLE = "students";
-  const PASS_BACKUP_KEY = "carlosia_pass_backup_v1";
+  // 【安全改造】会话门票：登录时由服务端函数核对口令后发下来，只活在内存+sessionStorage。
+  // 前端不再保存、不再传输任何口令原文。门票 12 小时过期，刷新即失效。
+  let studentToken = null;
+  let teacherToken = null;
   let cloudSyncTimer = null;
   let cloudSyncBusy = false;
   let cloudSyncQueued = null;
@@ -73,107 +75,77 @@
     }
   }
 
-  function cloudGetStudent(name) {
-    const path = `${CLOUD_TABLE}?name=eq.${encodeURIComponent(
-      name
-    )}&select=name,pass,save,updated_at`;
-    return cloudRequest(path).then((rows) => (rows && rows.length ? rows[0] : null));
-  }
-
-  function cloudGetAllStudents() {
-    return cloudRequest(`${CLOUD_TABLE}?select=name,pass,save,updated_at&order=updated_at.desc`, { timeout: 25000 });
-  }
-
-  function cloudUpsertStudent(name, pass, save) {
-    return cloudRequest(`${CLOUD_TABLE}?on_conflict=name`, {
+  // 调服务端函数（PostgREST 的 /rpc/ 入口）。口令校验、发门票、写入限制都在服务端做
+  function rpcCall(fn, body) {
+    return cloudRequest(`rpc/${fn}`, {
       method: "POST",
-      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify({
-        name,
-        pass,
-        save,
-        updated_at: new Date().toISOString(),
-      }),
+      body: JSON.stringify(body || {}),
+      timeout: 15000,
     });
   }
 
-  // 一键把全班密码改成同一个值（老师控场用）
-  function cloudSetAllPasswords(newPass) {
-    return cloudRequest(`${CLOUD_TABLE}?name=not.is.null`, {
-      method: "PATCH",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({
-        pass: newPass,
-        updated_at: new Date().toISOString(),
-      }),
-    });
+  // 读全班：必须凭门票走服务端函数（返回里不带任何密码字段）。
+  // 【安全改造·第二批】表对匿名已经彻底关门，没门票就直接当"看不到全班"，不再兜底读表
+  function cloudGetAllStudents() {
+    if (!studentToken && !teacherToken) return Promise.resolve([]);
+    const tk = teacherToken || studentToken;
+    return rpcCall("class_roster", { p_token: tk });
   }
 
-  // 统计云端账号密码分布，用来确认"是不是真的全改了"
-  async function cloudPasswordStats() {
-    const rows = await cloudRequest(`${CLOUD_TABLE}?select=name,pass`);
-    const list = rows || [];
-    const counter = {};
-    list.forEach((r) => {
-      const k = String((r && r.pass) || "");
-      counter[k] = (counter[k] || 0) + 1;
-    });
-    return { total: list.length, counter };
-  }
+  // 【安全改造·第二批】写存档已经不允许"按名字直写表"：
+  // 学生只能 student_save（写自己），老师只能 teacher_set_save（凭老师门票）。
+  // 原来的 cloudUpsertStudent / cloudGetStudent 已删除，避免再有人从控制台绕过去。
 
-  // 备份每个人的原密码（锁班前调用）
-  async function cloudBackupPasswords() {
-    const rows = await cloudRequest(`${CLOUD_TABLE}?select=name,pass`);
-    return (rows || []).map((r) => ({ name: r.name, pass: String((r && r.pass) || "") }));
-  }
-
-  // 逐人写回各自密码（只改 pass，不动存档）；并发分批，避免中途卡住
-  async function cloudRestorePasswords(list, onProgress) {
-    let ok = 0;
-    const fails = [];
-    const chunk = 8;
-    for (let i = 0; i < list.length; i += chunk) {
-      const part = list.slice(i, i + chunk);
-      const results = await Promise.all(
-        part.map(async (item) => {
-          try {
-            await cloudRequest(`${CLOUD_TABLE}?name=eq.${encodeURIComponent(item.name)}`, {
-              method: "PATCH",
-              headers: { Prefer: "return=minimal" },
-              body: JSON.stringify({ pass: item.pass }),
-            });
-            return true;
-          } catch (err) {
-            console.warn("恢复密码失败", item.name, err);
-            fails.push(item.name);
-            return false;
-          }
-        })
-      );
-      ok += results.filter(Boolean).length;
-      if (typeof onProgress === "function") {
-        onProgress(Math.min(i + chunk, list.length), list.length);
-      }
+  // 【安全改造】原来这里有一整套"读全表密码 / 改全表密码 / 备份还原"的做法，
+  // 因为密码已不在表里，这些函数全部删除，改成服务端函数：
+  //   teacher_create        老师建号（密码由服务端生成并哈希）
+  //   teacher_reset_pins    一键重置全班密码（返回一次性清单给老师抄）
+  //   class_lock            锁班 = 暂停登录，不再动密码
+  function teacherCreateStudent(name, pin, save) {
+    if (!teacherToken) {
+      return Promise.reject(new Error("没有老师门票，请先进入后台"));
     }
-    return { ok, fails };
+    return rpcCall("teacher_create", {
+      p_token: teacherToken,
+      p_name: name,
+      p_pin: pin || "",
+      p_save: save || {},
+    });
   }
 
-  // 逐人核对：返回还没改对的人
-  async function cloudVerifyPasswords(list) {
-    const rows = await cloudRequest(`${CLOUD_TABLE}?select=name,pass`);
-    const map = new Map();
-    (rows || []).forEach((r) => map.set(r.name, String((r && r.pass) || "")));
-    return list.filter((item) => map.get(item.name) !== String(item.pass || ""));
+  function teacherResetPins() {
+    if (!teacherToken) {
+      return Promise.reject(new Error("没有老师门票，请先进入后台"));
+    }
+    return rpcCall("teacher_reset_pins", { p_token: teacherToken });
   }
 
-  // 把云端返回的一行还原成角色对象
+  function classLock(on) {
+    if (!teacherToken) {
+      return Promise.reject(new Error("没有老师门票，请先进入后台"));
+    }
+    return rpcCall("class_lock", { p_token: teacherToken, p_on: Boolean(on) });
+  }
+
+  function teacherSetSave(name, save) {
+    if (!teacherToken) {
+      return Promise.reject(new Error("没有老师门票，请先进入后台"));
+    }
+    return rpcCall("teacher_set_save", {
+      p_token: teacherToken,
+      p_name: name,
+      p_save: save,
+    });
+  }
+
+  // 把云端返回的一行还原成角色对象（不再有任何 pass 字段）
   function profileFromCloud(row) {
     const raw = row && row.save && typeof row.save === "object" ? row.save : {};
     const profile = Object.assign({}, raw);
     profile.id =
       profile.id || `role_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     profile.name = profile.name || (row && row.name) || "无名训练家";
-    profile.pass = (row && row.pass) || profile.pass || "";
+    delete profile.pass;
     return profile;
   }
 
@@ -182,10 +154,12 @@
     if (!CLOUD_ENABLED || !cloudSyncAllowed || !profile || !profile.name) {
       return;
     }
+    // 存档里不再夹带密码；这里显式剔除，避免旧档案里的残留字段被带上去
+    const save = Object.assign({}, profile);
+    delete save.pass;
     const payload = {
       name: profile.name,
-      pass: String(profile.pass || "").slice(0, 12),
-      save: profile,
+      save,
     };
     cloudSyncQueued = payload;
     if (cloudSyncTimer) {
@@ -204,7 +178,26 @@
     cloudSyncQueued = null;
     cloudSyncBusy = true;
     try {
-      await cloudUpsertStudent(payload.name, payload.pass, payload.save);
+      // 有学生会话门票时走服务端函数（只能写自己那一行）；
+      // 老师端改档走老师门票；两样都没有就不写（表权限已经收紧，直写会被拒）
+      if (studentToken) {
+        const res = await rpcCall("student_save", { p_token: studentToken, p_save: payload.save });
+        if (!res || !res.ok) {
+          throw new Error((res && res.code) || "save_rejected");
+        }
+      } else if (teacherToken) {
+        const res = await rpcCall("teacher_set_save", {
+          p_token: teacherToken,
+          p_name: payload.name,
+          p_save: payload.save,
+        });
+        if (!res || !res.ok) {
+          throw new Error((res && res.code) || "teacher_save_rejected");
+        }
+      } else {
+        setSaveStatus("仅本地存档（未登录云端）");
+        return;
+      }
       setSaveStatus("已同步云端");
     } catch (err) {
       console.warn("云端同步失败", err);
@@ -834,7 +827,6 @@
     ],
   });
   const MARKET_STORAGE_KEY = "carlosia_market_v1";
-  const MARKET_TABLE = "market_listings";
   const MARKET_FEE_RATE = 0.2; // 卖家手续费 1/5，向上取整
   function marketFee(price) {
     return Math.ceil(Number(price || 0) * MARKET_FEE_RATE);
@@ -1021,13 +1013,33 @@
   }
 
   // 老师登录：进后台，并把云端全班数据拉下来（拉不到就继续用本地）
+  // 【安全改造】权限码交给服务端核对，核对通过拿老师门票；源码里不再出现任何口令原文
   async function handleLogin(event) {
     event.preventDefault();
     const code = els.teacherCode.value.trim();
-    if (code !== TEACHER_KEY) {
+    if (!code) {
+      els.loginError.hidden = false;
+      return;
+    }
+    let res = null;
+    if (CLOUD_ENABLED && location.protocol !== "file:") {
+      try {
+        res = await rpcCall("teacher_login", { p_code: code });
+      } catch (err) {
+        console.warn("老师登录请求失败", err);
+        els.loginError.hidden = false;
+        return;
+      }
+    }
+    // 离线（file://）时没有服务端，保留本机备课用的放行方式：本地不需要联网也能进后台
+    const offlineOk = location.protocol === "file:";
+    if (!offlineOk && (!res || !res.ok)) {
       els.loginError.hidden = false;
       els.teacherCode.value = "";
       return;
+    }
+    if (res && res.ok) {
+      teacherToken = res.token;
     }
     teacherUnlocked = true;
     els.loginError.hidden = true;
@@ -1093,43 +1105,51 @@
       showStudentError("请先填写名字");
       return;
     }
-    const useSecondPass = pass === SECOND_PASS;
-    if (!useSecondPass && !/^\d{4}$/.test(pass)) {
-      showStudentError("密码要是 4 位数字");
+    // 4~6 位纯数字 = 学生自己的密码；其它长度 = 老师代管口令（交给服务端核对，前端不认识它）
+    const isPin = /^\d{4,6}$/.test(pass);
+    if (!isPin && !pass) {
+      showStudentError("请填写密码");
       return;
     }
     showStudentError("");
     els.studentLoginBtn.disabled = true;
     const oldLabel = els.studentLoginBtn.textContent;
-    els.studentLoginBtn.textContent = "正在连接…";
+    els.studentLoginBtn.textContent = "正在验证…";
     try {
-      let row = await cloudGetStudent(name);
-      if (!row) {
-        if (useSecondPass) {
-          showStudentError("没这个账号，先让老师登记一下");
-          return;
+      let res = null;
+      if (isPin) {
+        // 1) 服务端校验密码（连错 5 次锁 60 秒），通过后发一张 12 小时门票
+        res = await rpcCall("student_login", { p_name: name, p_pin: pass });
+        if (res && !res.ok && res.code === "no_user") {
+          // 2) 没这个账号：自动建档也走服务端（不再由前端直接往表里插）
+          const fresh = buildNewProfile(name, pass);
+          res = await rpcCall("student_register", {
+            p_name: name,
+            p_pin: pass,
+            p_save: fresh,
+          });
         }
-        const profile = buildNewProfile(name, pass);
-        await cloudUpsertStudent(name, pass, profile);
-        row = { name, pass, save: profile };
-      } else if (!useSecondPass && String(row.pass || "").trim() !== pass) {
-        showStudentError("密码不对，再试一次");
+      } else {
+        // 老师代管：用权限码进某个孩子的账号，服务端核对并扣费
+        res = await rpcCall("teacher_enter", { p_code: pass, p_name: name });
+      }
+
+      if (!res || !res.ok) {
+        const code = res && res.code;
+        if (code === "bad_pin") showStudentError("密码不对，再试一次");
+        else if (code === "locked") showStudentError(`试错太多，请等 ${res.seconds || 60} 秒再试`);
+        else if (code === "class_locked") showStudentError("老师已暂停全班登录，等老师说开始");
+        else if (code === "exists") showStudentError("这个名字已经有人用了，换个名字或找老师");
+        else if (code === "bad_pin_format") showStudentError("密码要 4~6 位数字");
+        else if (code === "no_user") showStudentError("没这个账号，先让老师登记一下");
+        else if (code === "bad_code") showStudentError("老师的码不对");
+        else showStudentError("登录没通过，检查名字和密码");
         return;
       }
-      const profile = profileFromCloud(row);
-      // 老师用第二密码进来：每次按 2 的次方扣洛克贝（学生自己的密码本来就是这个口令时不扣）
-      if (useSecondPass && String(row.pass || "").trim() !== SECOND_PASS) {
-        const used = clampInteger(profile.secondPassUses, 0, SECOND_PASS_MAX_USES);
-        const nextUses = Math.min(used + 1, SECOND_PASS_MAX_USES);
-        const cost = Math.pow(2, nextUses);
-        profile.rockbell = Math.max(0, (Number(profile.rockbell) || 0) - cost);
-        profile.secondPassUses = nextUses;
-        try {
-          await cloudUpsertStudent(name, row.pass || profile.pass, profile);
-        } catch (err) {
-          console.warn("第二密码扣费写回云端失败", err);
-        }
-      }
+
+      // 门票只留在内存，不落盘、不写进存档
+      studentToken = res.token || null;
+      const profile = profileFromCloud({ name, save: res.save, updated_at: res.updated_at });
       state.profiles = [profile];
       state.selectedId = profile.id;
       // 学生端用独立缓存键，不碰老师电脑上的全班存档
@@ -1933,7 +1953,6 @@
     return {
       id: `role_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       name,
-      pass: pass || "",
       gender: "male",
       hp: 0,
       mp: 0,
@@ -2814,7 +2833,7 @@
           ? profile.id
           : `role_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       name: sanitizeName(profile?.name || "未命名角色"),
-      pass: typeof profile?.pass === "string" ? profile.pass : "",
+      // 【安全改造】存档里不再保留 pass
       gender: profile?.gender === "female" ? "female" : "male",
       hp: clampInteger(profile?.hp, 0, Number.MAX_SAFE_INTEGER),
       mp: clampInteger(profile?.mp, 0, Number.MAX_SAFE_INTEGER),
@@ -3086,10 +3105,11 @@
   }
 
   // 市场存在云端：全班共用一个市场，谁上架谁都能看见、都能买
+  // 【安全改造·第二批】读市场走服务端函数，卖家名字由服务端掩码（王*智），不再露真名
   async function loadMarketFromCloud() {
     if (!CLOUD_ENABLED) return marketState;
     try {
-      const rows = await cloudRequest(`${MARKET_TABLE}?select=*&order=listed_at.desc`);
+      const rows = await rpcCall("market_list", {});
       marketState.listings = Array.isArray(rows) ? rows.map(rowToListing) : [];
       saveMarket();
     } catch (error) {
@@ -3111,7 +3131,7 @@
   }
 
   // 上架道具（写入云端共享市场，全班可见）
-  // price 由学生自己在"我要卖"页面输入；不填或填错时回退到参考价
+  // 【安全改造·第二批】扣背包、建上架都在服务端一次做完，前端只发意图
   async function listItem(itemId, customPrice) {
     const profile = getActiveProfile();
     if (!profile) return { ok: false, msg: "请先选择角色。" };
@@ -3124,85 +3144,63 @@
       Number.isFinite(raw) && raw > 0
         ? Math.min(99999, Math.max(2, Math.floor(raw)))
         : Math.max(2, getItemPrice(itemId));
-    const listing = {
-      id: `list_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      sellerId: profile.id,
-      sellerName: profile.name,
-      itemId,
-      itemName: itemDef.name,
-      price,
-      listedAt: new Date().toISOString(),
-    };
     if (CLOUD_ENABLED) {
+      if (!studentToken) return { ok: false, msg: "会话已过期，请重新登录。" };
       try {
-        await cloudRequest(MARKET_TABLE, {
-          method: "POST",
-          headers: { Prefer: "return=minimal" },
-          body: JSON.stringify({
-            id: listing.id,
-            seller_id: listing.sellerId,
-            seller_name: listing.sellerName,
-            item_id: listing.itemId,
-            item_name: listing.itemName,
-            price: listing.price,
-          }),
+        const res = await rpcCall("market_add", {
+          p_token: studentToken,
+          p_item_id: itemId,
+          p_item_name: itemDef.name,
+          p_price: price,
         });
+        if (!res || !res.ok) {
+          const codes = {
+            no_item: "背包里没有这个道具了",
+            no_session: "会话已过期，请重新登录",
+            bad_price: "价格不合适",
+          };
+          return { ok: false, msg: codes[res && res.code] || "上架失败，请重试。" };
+        }
       } catch (error) {
         console.error("上架到云端市场失败", error);
         return { ok: false, msg: "上架失败，请检查网络后重试。" };
       }
     }
+    // 服务端已扣掉一个，本地跟着扣
     profile.inventory[itemId] = count - 1;
     if (profile.inventory[itemId] <= 0) delete profile.inventory[itemId];
-    marketState.listings.push(listing);
-    saveMarket();
+    await loadMarketFromCloud();
     saveState("已上架");
     return { ok: true, msg: `已上架【${itemDef.name}】，售价 ${price} 洛克贝。` };
   }
 
-  // 下架道具（同时从云端市场撤下）
+  // 下架道具（服务端校验"是不是你的"，再把道具退回背包）
   async function unlistItem(listingId) {
     const profile = getActiveProfile();
     if (!profile) return { ok: false, msg: "请先选择角色。" };
-    const idx = marketState.listings.findIndex((l) => l.id === listingId);
-    if (idx < 0) return { ok: false, msg: "该上架不存在。" };
-    const listing = marketState.listings[idx];
+    const listing = marketState.listings.find((l) => l.id === listingId);
+    if (!listing) return { ok: false, msg: "该上架不存在。" };
     if (listing.sellerId !== profile.id) return { ok: false, msg: "只能下架自己的道具。" };
     if (CLOUD_ENABLED) {
+      if (!studentToken) return { ok: false, msg: "会话已过期，请重新登录。" };
       try {
-        await cloudRequest(
-          `${MARKET_TABLE}?id=eq.${encodeURIComponent(listingId)}&seller_id=eq.${encodeURIComponent(
-            profile.id
-          )}`,
-          { method: "DELETE", headers: { Prefer: "return=minimal" } }
-        );
+        const res = await rpcCall("market_cancel", { p_token: studentToken, p_id: listingId });
+        if (!res || !res.ok) {
+          return { ok: false, msg: res && res.code === "not_mine" ? "只能下架自己的道具。" : "下架失败，请重试。" };
+        }
       } catch (error) {
         console.error("下架失败", error);
         return { ok: false, msg: "下架失败，请检查网络后重试。" };
       }
     }
     profile.inventory[listing.itemId] = (profile.inventory[listing.itemId] || 0) + 1;
-    marketState.listings.splice(idx, 1);
+    marketState.listings = marketState.listings.filter((l) => l.id !== listingId);
     saveMarket();
     saveState("已下架");
     return { ok: true, msg: `已下架【${listing.itemName}】，已退回背包。` };
   }
 
-  // 给卖家加洛克贝（卖家云端的存档一起更新）
-  async function addRockbellToSeller(sellerName, amount) {
-    if (!sellerName || !amount) return;
-    try {
-      const row = await cloudGetStudent(sellerName);
-      if (!row || !row.save) return;
-      const save = Object.assign({}, row.save);
-      save.rockbell = (save.rockbell || 0) + amount;
-      await cloudUpsertStudent(row.name, row.pass, save);
-    } catch (error) {
-      console.warn("给卖家结算洛克贝失败", error);
-    }
-  }
-
-  // 购买道具（云端共享市场，买家卖家都能实时同步）
+  // 购买道具（服务端一次事务：抢锁、扣钱、给道具、给卖家结算）
   async function buyItem(listingId) {
     const profile = getActiveProfile();
     if (!profile) return { ok: false, msg: "请先选择角色。" };
@@ -3211,38 +3209,69 @@
     if (listing.sellerId === profile.id) return { ok: false, msg: "不能购买自己上架的道具。" };
     if (profile.rockbell < listing.price) return { ok: false, msg: `洛克贝不足，需要 ${listing.price} 洛克贝。` };
 
-    // 先抢下云端这条商品，避免两个同学同时买同一件
+    const fee = marketFee(listing.price);
+    const sellerReceive = Math.max(0, listing.price - fee);
+
     if (CLOUD_ENABLED) {
-      let removed = null;
+      if (!studentToken) return { ok: false, msg: "会话已过期，请重新登录。" };
+      let res = null;
       try {
-        removed = await cloudRequest(
-          `${MARKET_TABLE}?id=eq.${encodeURIComponent(listingId)}`,
-          { method: "DELETE", headers: { Prefer: "return=representation" } }
-        );
+        res = await rpcCall("market_buy", { p_token: studentToken, p_id: listingId });
       } catch (error) {
         console.error("购买失败", error);
         return { ok: false, msg: "购买失败，请检查网络后重试。" };
       }
-      if (!Array.isArray(removed) || removed.length === 0) {
-        marketState.listings = marketState.listings.filter((l) => l.id !== listingId);
-        saveMarket();
-        return { ok: false, msg: "手慢了，这件道具已经被别人买走。" };
+      if (!res || !res.ok) {
+        if (res && res.code === "gone") {
+          await loadMarketFromCloud();
+          return { ok: false, msg: "手慢了，这件道具已经被别人买走。" };
+        }
+        if (res && res.code === "poor") return { ok: false, msg: "洛克贝不足。" };
+        if (res && res.code === "self") return { ok: false, msg: "不能购买自己上架的道具。" };
+        return { ok: false, msg: "购买失败，请重试。" };
       }
+      // 服务端已经扣过钱、结算过卖家，这里只把本地界面刷新成服务端的真实存档
+      await refreshSelfSave();
+      await loadMarketFromCloud();
+      saveState("购买已存档");
+      return {
+        ok: true,
+        msg: `购买成功！获得【${listing.itemName}】，花费 ${listing.price} 洛克贝。卖家 ${listing.sellerName} 到手 ${sellerReceive} 洛克贝（手续费 ${fee}）。`,
+      };
     }
 
+    // 本地离线模式：没有服务端，就按原逻辑在本地算
     profile.rockbell -= listing.price;
     profile.inventory[listing.itemId] = (profile.inventory[listing.itemId] || 0) + 1;
-    // 手续费 = 成交价的 1/5，向上取整，从卖家到手里扣
-    const fee = marketFee(listing.price);
-    const sellerReceive = Math.max(0, listing.price - fee);
-    await addRockbellToSeller(listing.sellerName, sellerReceive);
     marketState.listings = marketState.listings.filter((l) => l.id !== listingId);
     saveMarket();
     saveState("购买已存档");
     return {
       ok: true,
-      msg: `购买成功！获得【${listing.itemName}】，花费 ${listing.price} 洛克贝。卖家 ${listing.sellerName} 到手 ${sellerReceive} 洛克贝（手续费 ${fee}）。`,
+      msg: `购买成功！获得【${listing.itemName}】，花费 ${listing.price} 洛克贝。`,
     };
+  }
+
+  // 服务端改过我的存档（买道具扣钱）之后，把最新存档拉回来覆盖本地
+  async function refreshSelfSave() {
+    if (!studentToken) return;
+    try {
+      const res = await rpcCall("class_roster", { p_token: studentToken });
+      const rows = Array.isArray(res) ? res : [];
+      const me = getActiveProfile();
+      if (!me) return;
+      const row = rows.find((r) => r && r.name === me.name);
+      if (!row || !row.save) return;
+      const fresh = profileFromCloud(row);
+      // 只覆盖服务端说了算的数值，其他本地内容保持不动
+      me.rockbell = fresh.rockbell;
+      me.inventory = fresh.inventory;
+      me.pets = fresh.pets;
+      me.pet = fresh.pet;
+      state.profiles = state.profiles.map((p) => (p.id === me.id ? me : p));
+    } catch (err) {
+      console.warn("拉回自己的最新存档失败", err);
+    }
   }
 
   function handleCreateProfile(event) {
@@ -3870,17 +3899,33 @@
     render();
   }
 
-  function handleTeacherLogin(event) {
+  // 游戏内「老师后台」解锁：同样走服务端核对权限码
+  async function handleTeacherLogin(event) {
     event.preventDefault();
-    if (els.teacherKey.value.trim() === TEACHER_KEY) {
-      teacherUnlocked = true;
-      els.teacherKey.value = "";
-      document.body.classList.add("is-teacher-mode");
-      setTeacherMessage("后台权限已开启。", false);
-      render();
+    const code = els.teacherKey.value.trim();
+    if (!code) {
+      setTeacherMessage("请输入权限码。", true);
       return;
     }
-    setTeacherMessage("权限码错误。", true);
+    if (CLOUD_ENABLED && location.protocol !== "file:") {
+      try {
+        const res = await rpcCall("teacher_login", { p_code: code });
+        if (!res || !res.ok) {
+          setTeacherMessage("权限码错误。", true);
+          return;
+        }
+        teacherToken = res.token;
+      } catch (err) {
+        console.warn("老师后台解锁失败", err);
+        setTeacherMessage("连不上云端，稍后再试。", true);
+        return;
+      }
+    }
+    teacherUnlocked = true;
+    els.teacherKey.value = "";
+    document.body.classList.add("is-teacher-mode");
+    setTeacherMessage("后台权限已开启。", false);
+    render();
   }
 
   function handleTeacherLogout() {
@@ -3926,11 +3971,16 @@
     }
     let ok = 0;
     const fails = [];
+    const pins = [];
     setExportMessage(`正在上传 0 / ${profiles.length} …`);
     for (const profile of profiles) {
       try {
-        profile.pass = "1234";
-        await cloudUpsertStudent(profile.name, "1234", profile);
+        // 【安全改造】交给服务端建号：密码由服务端随机生成并哈希，返回一次明文给老师抄
+        const res = await teacherCreateStudent(profile.name, "", profile);
+        if (!res || !res.ok) {
+          throw new Error((res && res.code) || "create_failed");
+        }
+        if (res.pin) pins.push({ name: profile.name, pin: res.pin });
         ok += 1;
       } catch (err) {
         console.warn("上传失败", profile.name, err);
@@ -3943,12 +3993,32 @@
     } catch (err) {
       console.warn("保存本地失败", err);
     }
+    if (pins.length) {
+      // 密码只在这里出现一次，之后服务端也拿不回原文
+      downloadPinList(pins, "卡罗西亚_建号密码清单");
+    }
     setExportMessage(
-      `完成：成功 ${ok} 人${fails.length ? `，失败 ${fails.length} 人（${fails.join("、")}）` : ""}，密码统一 1234`
+      `完成：成功 ${ok} 人${fails.length ? `，失败 ${fails.length} 人（${fails.join("、")}）` : ""}${
+        pins.length ? "，每人一个独立随机密码，清单已下载（只此一次）" : ""
+      }`
     );
     if (els.pushAllToCloud) {
       els.pushAllToCloud.disabled = false;
     }
+  }
+
+  // 把"名字 + 密码"清单导成文本文件（只给老师自己保管，不上传任何地方）
+  function downloadPinList(list, title) {
+    const lines = list.map((x) => `${x.name}\t${x.pin}`);
+    const text = `${title}\n生成时间：${new Date().toLocaleString()}\n共 ${list.length} 人\n\n姓名\t密码\n` + lines.join("\n");
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `${title}_${stamp}.txt`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
 
   // 老师后台：把全班存档导出成 JSON 文件（备份用）
@@ -3969,8 +4039,6 @@
     setExportMessage(`已导出 ${(state.profiles || []).length} 个学生`);
   }
 
-  const LOCK_PASS = "6985179";
-
   function lockMsgBox() {
     return document.getElementById("lockMessage");
   }
@@ -3984,146 +4052,93 @@
     setTeacherMessage(text, Boolean(isError));
   }
 
-  function readPassBackup() {
-    try {
-      const raw = localStorage.getItem(PASS_BACKUP_KEY);
-      if (!raw) return null;
-      const data = JSON.parse(raw);
-      if (!data || !Array.isArray(data.list) || !data.list.length) return null;
-      return data;
-    } catch (err) {
-      console.warn("读取密码备份失败", err);
-      return null;
-    }
-  }
-
-  function writePassBackup(list) {
-    const data = { at: new Date().toISOString(), count: list.length, list };
-    try {
-      localStorage.setItem(PASS_BACKUP_KEY, JSON.stringify(data));
-    } catch (err) {
-      console.warn("保存密码备份失败", err);
-    }
-    return data;
-  }
-
-  // 老师后台：锁住全班（先备份每人原密码，再统一改成 6985179）
+  // 【安全改造】原来的"锁班"是：把全班密码统一改成同一个口令，要还原就得先把原密码存一份在本地。
+  // 这条路的代价是全班密码在老师电脑上以明文躺着一份。现在改成：锁班只是暂停登录，
+  // 服务端一个开关而已，谁都不用改密码，也就不需要备份。
   async function lockAllPasswords() {
-    if (!CLOUD_ENABLED) {
-      setLockMessage("云端未配置，无法操作", true);
+    if (!CLOUD_ENABLED || location.protocol === "file:") {
+      setLockMessage("离线模式不控制登录，无需锁班", true);
+      return;
+    }
+    if (!teacherToken) {
+      setLockMessage("请先进入老师后台（需要权限码）", true);
+      return;
+    }
+    if (!confirm("暂停全班登录？\n已经在游戏里的同学不受影响，只是新登录会被告知「等老师说开始」。")) {
       return;
     }
     try {
-      setLockMessage("正在检查当前状态…");
-      const stats = await cloudPasswordStats();
-      const backup = readPassBackup();
-      const alreadyLocked =
-        stats.total > 0 && (stats.counter[LOCK_PASS] || 0) === stats.total;
-      if (alreadyLocked && backup) {
-        setLockMessage(
-          `ℹ️ 现在已经是锁住状态，备份里有 ${backup.count} 人的原密码，直接点「恢复各自原密码」即可`
-        );
+      setLockMessage("正在暂停登录…");
+      const res = await classLock(true);
+      if (!res || !res.ok) {
+        setLockMessage("暂停失败，请检查网络后重试", true);
         return;
       }
-      if (
-        !confirm(
-          `确定锁住全班吗？\n会先备份 ${stats.total} 个人的当前密码，再统一改成 ${LOCK_PASS}。\n之后可以随时点「恢复各自原密码」。`
-        )
-      ) {
-        return;
-      }
-      setLockMessage("正在备份原密码…");
-      const list = await cloudBackupPasswords();
-      writePassBackup(list);
-      setLockMessage(`已备份 ${list.length} 人原密码，正在改成 ${LOCK_PASS}…`);
-      await cloudSetAllPasswords(LOCK_PASS);
-      const after = await cloudPasswordStats();
-      const locked = after.counter[LOCK_PASS] || 0;
-      if (locked === after.total) {
-        setLockMessage(`✅ 已锁住：${after.total} 个账号密码全部为 ${LOCK_PASS}（原密码已备份）`);
-      } else {
-        setLockMessage(
-          `⚠️ 部分未成功：${after.total} 个账号中 ${locked} 个已锁，还有 ${
-            after.total - locked
-          } 个没改到`,
-          true
-        );
-      }
+      setLockMessage("✅ 已暂停全班登录。要恢复就点「恢复全班登录」。");
     } catch (err) {
       setLockMessage(`❌ 失败：${err.message || err}`, true);
     }
   }
 
-  // 老师后台：恢复各自原密码
+  // 恢复登录（不再涉及任何密码还原）
   async function restoreAllPasswords() {
-    if (!CLOUD_ENABLED) {
-      setLockMessage("云端未配置，无法操作", true);
+    if (!CLOUD_ENABLED || location.protocol === "file:") {
+      setLockMessage("离线模式无需解锁", true);
       return;
     }
-    const backup = readPassBackup();
-    if (!backup) {
-      setLockMessage(
-        "⚠️ 这台电脑上没找到密码备份，无法恢复原密码。请先「导出密码备份」找回，或手工重设。",
-        true
-      );
+    if (!teacherToken) {
+      setLockMessage("请先进入老师后台（需要权限码）", true);
+      return;
+    }
+    try {
+      setLockMessage("正在恢复登录…");
+      const res = await classLock(false);
+      if (!res || !res.ok) {
+        setLockMessage("恢复失败，请检查网络后重试", true);
+        return;
+      }
+      setLockMessage("✅ 已恢复全班登录。");
+    } catch (err) {
+      setLockMessage(`❌ 失败：${err.message || err}`, true);
+    }
+  }
+
+  // 重置全班密码：服务端给每人随机生成 6 位码并哈希，原文只回一次，导出成清单给老师
+  async function exportPassBackup() {
+    if (!CLOUD_ENABLED || location.protocol === "file:") {
+      setLockMessage("离线模式没有云端账号可重置", true);
+      return;
+    }
+    if (!teacherToken) {
+      setLockMessage("请先进入老师后台（需要权限码）", true);
       return;
     }
     if (
       !confirm(
-        `确定恢复 ${backup.count} 个人的原密码吗？\n备份时间：${new Date(
-          backup.at
-        ).toLocaleString()}`
+        "重置全班密码？\n每个人会拿到一个新的 6 位随机密码，旧密码立即失效。\n清单只给一次，请存好。"
       )
     ) {
       return;
     }
     try {
-      let done = 0;
-      const total = backup.count;
-      setLockMessage(`正在逐人恢复（共 ${total} 人）…`);
-      let result = await cloudRestorePasswords(backup.list, (n) => {
-        done = n;
-        setLockMessage(`正在恢复 ${n} / ${total} …`);
-      });
-      // 逐人核对，把没改对的再补一次
-      let bad = await cloudVerifyPasswords(backup.list);
-      if (bad.length) {
-        setLockMessage(`核对发现 ${bad.length} 人未生效，正在补写…`);
-        result = await cloudRestorePasswords(bad);
-        bad = await cloudVerifyPasswords(backup.list);
+      setLockMessage("正在重置并生成清单…");
+      const res = await teacherResetPins();
+      if (!res || !res.ok) {
+        setLockMessage(`重置失败：${(res && res.code) || "未知原因"}`, true);
+        return;
       }
-      if (!bad.length) {
-        setLockMessage(`✅ 已恢复：${total} 个人都换回了各自原密码`);
-      } else {
-        setLockMessage(
-          `⚠️ 还有 ${bad.length} 人没改回去（${bad
-            .map((x) => x.name)
-            .join("、")}），可再点一次「恢复」重试`,
-          true
-        );
+      const list = Array.isArray(res.list) ? res.list : [];
+      if (!list.length) {
+        setLockMessage("没有可重置的账号", true);
+        return;
       }
+      downloadPinList(list, "卡罗西亚_全班新密码");
+      setLockMessage(
+        `✅ 已重置 ${list.length} 人的密码，清单已下载。旧密码全部作废，请把清单存到只有你能看到的地方。`
+      );
     } catch (err) {
       setLockMessage(`❌ 失败：${err.message || err}`, true);
     }
-  }
-
-  // 老师后台：导出密码备份文件（换电脑/清缓存前的保险）
-  function exportPassBackup() {
-    const backup = readPassBackup();
-    if (!backup) {
-      setLockMessage("⚠️ 本机没有密码备份可导出", true);
-      return;
-    }
-    const data = JSON.stringify(backup, null, 2);
-    const blob = new Blob([data], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const stamp = new Date().toISOString().slice(0, 10);
-    a.href = url;
-    a.download = `卡罗西亚_密码备份_${stamp}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    setLockMessage(`已导出 ${backup.count} 人的密码备份`);
   }
 
   function handlePullStudent() {
@@ -4210,7 +4225,16 @@
       return;
     }
     try {
-      await cloudUpsertStudent(profile.name, profile.pass || "1234", profile);
+      if (teacherToken) {
+        // 老师门票：服务端允许改任意学生的存档，但改不了密码
+        const res = await teacherSetSave(profile.name, profile);
+        if (!res || !res.ok) {
+          throw new Error((res && res.code) || "teacher_save_failed");
+        }
+      } else {
+        setTeacherMessage("没拿到老师门票，改动只存在本机；请重新进后台再试。", true);
+        return;
+      }
       setTeacherMessage(`已同步云端：${profile.name}（孩子需重新登录才生效）`, false);
     } catch (err) {
       console.warn("同步云端失败", err);
@@ -4513,7 +4537,7 @@
     info.className = "teacher-detail-info";
     const rows = [
       ["名字", profile.name],
-      ["密码", profile.pass || "—"],
+      ["密码", "由系统保管（看不到）"],
       ["洛克贝", profile.rockbell],
       ["经验", profile.exp],
       ["宠物", `${(profile.pets || []).length} / 6`],
@@ -5059,7 +5083,7 @@
         buyBtn.className = "primary-button shop-buy-btn";
         buyBtn.dataset.action = "buy";
         buyBtn.dataset.listingId = listing.id;
-        buyBtn.disabled = profile.exp < listing.price;
+        buyBtn.disabled = profile.rockbell < listing.price;
         buyBtn.textContent = "购买";
         card.appendChild(buyBtn);
       } else {
@@ -6179,7 +6203,7 @@
     const powerEl = document.getElementById("powerValue");
     const rows = [
       ["姓名", profile.name || "—"],
-      ["密码", profile.pass || "—"],
+      ["密码", "由系统保管（看不到）"],
       ["称号", roleTitleOf(profile)],
       ["等级", "Lv." + (profile.level || 1)],
       ["洛克贝", String(profile.rockbell ?? 0)],
@@ -6260,11 +6284,11 @@
         (() => {
           const tip = document.createElement("span");
           tip.className = "role-pass-tip";
-          tip.textContent = "新密码要 4 位数字（比如 1234）";
+          tip.textContent = "新密码要 4~6 位数字（比如 5678）";
           const input = document.createElement("input");
           input.type = "text";
           input.inputMode = "numeric";
-          input.maxLength = 4;
+          input.maxLength = 6;
           input.className = "role-pass-input";
           input.placeholder = "输入新密码";
           const ok = document.createElement("button");
@@ -6284,20 +6308,28 @@
             const p = getActiveProfile();
             if (!p) return;
             const value = (input.value || "").trim();
-            if (!/^\d{4}$/.test(value)) {
-              showToast("密码不对", "要填 4 位数字，比如 1234", "warning");
+            if (!/^\d{4,6}$/.test(value)) {
+              showToast("密码不对", "要填 4~6 位数字，比如 5678", "warning");
+              return;
+            }
+            if (!studentToken) {
+              showToast("先重新登录", "会话已过期，重新登录后再改密码", "warning");
               return;
             }
             ok.disabled = true;
             ok.textContent = "保存中…";
-            p.pass = value;
-            p.passChangeUsed = true;
             try {
-              await cloudUpsertStudent(p.name, value, p);
-              showToast("密码已更新", "以后用新密码 " + value + " 登录。这次改密码机会已经用完啦。", "success", 6000);
+              // 【安全改造】新密码直接交给服务端写进哈希列，前端不保留原文
+              const res = await rpcCall("set_pin", { p_token: studentToken, p_new: value });
+              if (!res || !res.ok) {
+                throw new Error((res && res.code) || "set_pin_failed");
+              }
+              p.passChangeUsed = true;
+              saveState("密码已更新");
+              showToast("密码已更新", "以后用新密码登录。这次改密码机会已经用完啦。", "success", 6000);
             } catch (err) {
-              console.warn("改密码写回云端失败", err);
-              showToast("已经改好了", "本机记下了，联网后会自动同步到云端。", "warning");
+              console.warn("改密码失败", err);
+              showToast("改密码失败", "网络不好或会话过期，稍后再试", "warning");
             }
             render();
             renderRoleModal();
@@ -7308,7 +7340,14 @@
     if (CLOUD_ENABLED) {
       for (const profile of changed) {
         try {
-          await cloudUpsertStudent(profile.name, profile.pass, profile);
+          if (teacherToken) {
+            const res = await teacherSetSave(profile.name, profile);
+            if (!res || !res.ok) {
+              throw new Error((res && res.code) || "teacher_save_failed");
+            }
+          } else {
+            throw new Error("no_teacher_session");
+          }
         } catch (error) {
           console.warn(`发奖写回云端失败：${profile.name}`, error);
         }
