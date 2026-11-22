@@ -420,7 +420,7 @@
 <body>
 
 <div class="topbar">
-  <button class="home" id="btnHome" title="回到题库列表">← 题库</button>
+  <button class="home" id="btnHome" title="回到题单">← 题单</button>
   <span class="crumb" id="crumb">题单：C++ 入门 › <b>1-1 A+B 问题</b></span>
   <div class="right">
     <button class="coin" id="btnCoin">🪙 128</button>
@@ -2746,6 +2746,7 @@ function renderProblem(id) {
     ta.setSelectionRange(5, 5);
     repaint();
   }
+  if (p.ybt) { try { localStorage.setItem('studypage.last', 'ybt' + p.ybt); } catch (e) {} }
   document.title = p.title + ' - 编程练习';
 }
 
