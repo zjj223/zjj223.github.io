@@ -1063,6 +1063,44 @@
     "sky-city": { petIds: ["royal-griffin", "holy-wing-king", "mini-liwu", "bean-dragon", "mecha-shell"], levels: [[91, 92], [92, 95], [94, 97], [96, 99], [97, 100], [100, 100]], levelRange: [91, 100], encounterRate: 0.65, shinyPetIds: ["shiny-pink-star", "shiny-snow-doll", "shiny-demon-wolf"], shinyRate: 0.01 },
   });
 
+  // 遇宠模式：只影响“探索时是否碰到野生宠物”，不影响战斗里的捕捉率
+  const MAX_ENCOUNTER_RATE = 0.95; // 最高 95%，避免 100% 必遇导致经验补偿出现除零
+  const ENCOUNTER_MODES = Object.freeze({
+    normal: Object.freeze({
+      label: "正常",
+      fullLabel: "正常模式",
+      icon: "⚖️",
+      multiplier: 1,
+      desc: "野生宠物按场景原概率出现",
+    }),
+    rage: Object.freeze({
+      label: "狂暴",
+      fullLabel: "狂暴模式",
+      icon: "🔥",
+      multiplier: 2,
+      desc: "遇宠概率翻倍，最多 95%",
+    }),
+    quiet: Object.freeze({
+      label: "安静",
+      fullLabel: "安静模式",
+      icon: "🌙",
+      multiplier: 0.5,
+      desc: "遇宠概率减半",
+    }),
+  });
+  const ENCOUNTER_MODE_ORDER = Object.freeze(["normal", "rage", "quiet"]);
+
+  function getEncounterModeKey(profile) {
+    const key = profile && profile.encounterMode;
+    return ENCOUNTER_MODES[key] ? key : "normal";
+  }
+
+  function getEffectiveEncounterRate(baseRate, profile) {
+    const mode = ENCOUNTER_MODES[getEncounterModeKey(profile)];
+    const scaled = (Number(baseRate) || 0) * mode.multiplier;
+    return Math.min(MAX_ENCOUNTER_RATE, Math.max(0, scaled));
+  }
+
   const PET_DATABASE = Array.isArray(PET_DATA.petDatabase) ? PET_DATA.petDatabase : [];
   const PET_POOL = Object.freeze(
     PET_DATABASE.length > 0 ? PET_DATABASE : FALLBACK_PET_POOL,
@@ -3022,6 +3060,9 @@
       const inv = document.getElementById("sceneInventory");
       if (inv) inv.classList.toggle("open");
     });
+
+    // 遇宠模式：一个按钮循环切换 正常 → 狂暴 → 安静 → 正常
+    document.getElementById("sceneEncounterModeBtn")?.addEventListener("click", cycleSceneEncounterMode);
   }
 
   function loadState() {
@@ -3189,6 +3230,8 @@
         profile?.likesSent && typeof profile.likesSent === "object" ? profile.likesSent : {},
       // 收到的赞（展示用，打开面板时按全班记录重新算）
       likedCount: Math.max(0, Number(profile?.likedCount) || 0),
+      // 遇宠模式：normal 正常 / rage 狂暴 / quiet 安静（只影响探索遇敌概率）
+      encounterMode: getEncounterModeKey(profile),
       // 五行觉醒活动：最近一次弹出主题提醒的日期（YYYY-MM-DD），每天只弹一次
       wuxingNoticeDate:
         typeof profile?.wuxingNoticeDate === "string" ? profile.wuxingNoticeDate : "",
@@ -3704,6 +3747,8 @@
     }
     // 探索不再消耗洛克贝：孩子可自由探索，洛克贝只用于消费（孵化、换宠、咕噜球、计时加速）
     isExploring = true;
+    // 探索判定进行中先锁住遇宠模式，避免同一次探索中途换挡
+    updateSceneEncounterModeButton(profile);
     const spotName = spot ? spot.name : "探索";
     const spots = SCENE_SPOTS[scene.id] || [];
     const spotIndex = spot ? spots.findIndex((s) => s.id === spot.id) : -1;
@@ -3716,9 +3761,12 @@
       // 新手引导那一次探索不遇敌：先让孩子熟悉「探索→拿经验」这个循环，别一上手就碰上输掉战斗的弹窗
       const guideSoftExplore = profile.guideStage === 1 && guideV2StepIndex === 4 && !guideV2ReviewMode;
       const wildConfig = WILD_PETS[scene.id];
-      const encounter = !guideSoftExplore && wildConfig && profile.pet && Math.random() < wildConfig.encounterRate;
+      // 遇宠模式在这里生效：狂暴 ×2、正常 ×1、安静 ×0.5，单次探索上限 95%
+      const encounterRate = getEffectiveEncounterRate(wildConfig?.encounterRate, profile);
+      const encounter = !guideSoftExplore && wildConfig && profile.pet && Math.random() < encounterRate;
       // 遇敌了就不给经验，所以把经验补偿到"没遇敌"的那几次探索上，总量不变
-      const expComp = wildConfig && profile.pet ? 1 / (1 - (wildConfig.encounterRate || 0)) : 1;
+      // 补偿跟着实际生效概率走，否则切模式会顺带改变升级速度
+      const expComp = wildConfig && profile.pet ? 1 / (1 - encounterRate) : 1;
       const expMult = SCENE_EXP_MULT[scene.id] || 1;
       let battleWin = true;
       let lostItem = null;
@@ -5465,10 +5513,76 @@
     });
   }
 
+  function updateSceneEncounterTips(profile) {
+    const scene = getScene(selectedSceneId);
+    const wildCfg = scene ? WILD_PETS[scene.id] : null;
+    if (!wildCfg) return;
+    const pct = Math.round(getEffectiveEncounterRate(wildCfg.encounterRate, profile) * 100);
+    document.querySelectorAll("#sceneSpotList .spot-tip-enc .spot-tip-text").forEach((el) => {
+      el.textContent = `遇敌概率 ${pct}%`;
+    });
+  }
+
+  function updateSceneEncounterModeButton(profile) {
+    const btn = document.getElementById("sceneEncounterModeBtn");
+    if (!btn) return;
+    const key = getEncounterModeKey(profile);
+    const mode = ENCOUNTER_MODES[key];
+    const scene = getScene(selectedSceneId);
+    const wildCfg = scene ? WILD_PETS[scene.id] : null;
+    const pct = wildCfg
+      ? Math.round(getEffectiveEncounterRate(wildCfg.encounterRate, profile) * 100)
+      : null;
+    const nextKey =
+      ENCOUNTER_MODE_ORDER[(ENCOUNTER_MODE_ORDER.indexOf(key) + 1) % ENCOUNTER_MODE_ORDER.length];
+    const nextMode = ENCOUNTER_MODES[nextKey];
+
+    btn.className = `scene-mode-btn mode-${key}`;
+    btn.textContent = pct === null
+      ? `${mode.icon} ${mode.label}`
+      : `${mode.icon} ${mode.label} ${pct}%`;
+    btn.disabled = isExploring;
+    const detail = pct === null ? "" : `，本场景遇敌概率 ${pct}%`;
+    btn.title = `${mode.fullLabel}：${mode.desc}${detail}。点击切换为「${nextMode.fullLabel}」`;
+    btn.setAttribute(
+      "aria-label",
+      `遇宠模式：${mode.fullLabel}${detail}。点击切换为${nextMode.fullLabel}`,
+    );
+  }
+
+  function cycleSceneEncounterMode() {
+    const profile = getActiveProfile();
+    if (!profile || isExploring) return;
+    const currentKey = getEncounterModeKey(profile);
+    const nextKey =
+      ENCOUNTER_MODE_ORDER[
+        (ENCOUNTER_MODE_ORDER.indexOf(currentKey) + 1) % ENCOUNTER_MODE_ORDER.length
+      ];
+    profile.encounterMode = nextKey;
+    saveState(`遇宠模式：${ENCOUNTER_MODES[nextKey].fullLabel}`);
+
+    const scene = getScene(selectedSceneId);
+    const wildCfg = scene ? WILD_PETS[scene.id] : null;
+    const basePct = wildCfg ? Math.round((wildCfg.encounterRate || 0) * 100) : null;
+    const nowPct = wildCfg
+      ? Math.round(getEffectiveEncounterRate(wildCfg.encounterRate, profile) * 100)
+      : null;
+
+    updateSceneEncounterModeButton(profile);
+    updateSceneEncounterTips(profile);
+    setSceneResult(
+      nowPct === null
+        ? `已切换为${ENCOUNTER_MODES[nextKey].fullLabel}`
+        : `${ENCOUNTER_MODES[nextKey].icon} ${ENCOUNTER_MODES[nextKey].fullLabel}：本场景遇敌概率 ${basePct}% → ${nowPct}%`,
+    );
+  }
+
   function renderSceneInner(profile) {
     const scene = getScene(selectedSceneId);
     if (!scene) return;
     els.sceneInnerTitle.textContent = scene.name;
+    // 顶栏遇宠模式按钮：显示当前模式 + 本场景实际遇敌概率
+    updateSceneEncounterModeButton(profile);
 
     // 场景舞台：真实底图 + 训练师 + 宠物 + 六个探索点
     els.sceneAtmosphere.replaceChildren();
@@ -5533,19 +5647,19 @@
         (wildCfg && wildCfg.levelRange) ||
         [1, 1];
       const dropPct = Math.round((spotIndex === 4 ? 0.7 : ITEM_DROP_CHANCE) * 100);
-      const encPct = Math.round(((wildCfg && wildCfg.encounterRate) || 0) * 100);
+      const encPct = Math.round(getEffectiveEncounterRate(wildCfg?.encounterRate, profile) * 100);
 
       const spotTip = document.createElement("span");
       spotTip.className = `spot-tip${xy[1] < 34 ? " is-below" : ""}${
         xy[0] < 22 ? " is-left" : xy[0] > 78 ? " is-right" : ""
       }`;
       [
-        ["🐾", `野生宠物 Lv.${lvRange[0]}-${lvRange[1]}`],
-        ["⚔️", `遇敌概率 ${encPct}%`],
-        ["🎁", `道具概率 ${dropPct}%`],
-      ].forEach(([icon, text]) => {
+        ["🐾", `野生宠物 Lv.${lvRange[0]}-${lvRange[1]}`, ""],
+        ["⚔️", `遇敌概率 ${encPct}%`, "spot-tip-enc"],
+        ["🎁", `道具概率 ${dropPct}%`, ""],
+      ].forEach(([icon, text, rowClass]) => {
         const row = document.createElement("span");
-        row.className = "spot-tip-row";
+        row.className = `spot-tip-row${rowClass ? ` ${rowClass}` : ""}`;
         const iconEl = document.createElement("span");
         iconEl.className = "spot-tip-icon";
         iconEl.textContent = icon;
