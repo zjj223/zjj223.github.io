@@ -584,6 +584,12 @@ int main(){
 <div class="verdict" id="verdict">评测结果：AC · 0.03s / 512MB</div>
 
 <script>
+/* 一本通题面里有 $...$ 数学式，装了 MathJax 就顺手渲染；加载不到时退回原样文本 */
+window.MathJax = { tex:{ inlineMath:[['$','$']], displayMath:[['$$','$$']] }, options:{ skipHtmlTags:['script','noscript','style','textarea','pre','code'] } };
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="data/ybt.js"></script>
+<script>
 /* =========================================================
    1. 菜单数据：结构与文字全部取自 F:\Dev-Cpp\Lang\Chinese.lng
    ========================================================= */
@@ -1210,30 +1216,91 @@ otabs.forEach((t, i) => { t.onclick = () => setOutTab(OTAB_KEYS[i]); });
 /* 状态栏只显示 行/列/已选择/总行数/插入 五段，不再有“就绪”格 */
 function setState() {}
 
-function doCompile() {
+/* ---- 真实判题服务：与页面同源时走 /judge；本地 file:// 打开时回落模拟 ---- */
+const JUDGE_URL = (location.protocol === 'http:' || location.protocol === 'https:')
+  ? '/judge'
+  : 'http://59.110.125.57/judge';
+let lastJudge = null;
+
+async function callJudge(code, stdin) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 8000);
+  try {
+    const r = await fetch(JUDGE_URL + '/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code, stdin: stdin || '', lang: 'cpp14' }),
+      signal: ctl.signal
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function doCompile() {
   setOutTab('compile');
   const src = ta.value;
-  const banner = '<span class="dim">编译器: TDM-GCC 4.8.1 64-bit Release   -std=' + UI.std +
-                 (UI.opt ? ' -O2' : '') + '</span>\n';
-  setTimeout(() => {
+  const name = cur().name;
+  const banner = '<span class="dim">编译器: g++ 9.3.0 (Linux x64)   -std=c++14 -O2 -static</span>\n';
+  compileHtml = banner + '<span class="dim">正在编译 ' + name + '...</span>';
+  logBody.innerHTML = compileHtml;
+  if (typeof setState === 'function') setState('编译中...');
+
+  const sample = (CURRENT && CURRENT.samples && CURRENT.samples[0]) ? CURRENT.samples[0] : { in: '', out: '' };
+  const res = await callJudge(src, sample.in);
+  lastJudge = res;
+
+  if (!res) {
     if (!/int\s+main/.test(src)) {
-      compileHtml = banner +
-        '<span class="dim">正在编译 ' + cur().name + '...</span>\n' +
-        '<span class="err">' + cur().name + ':' + Math.max(2, src.split('\n').length - 1) +
-        ':1: error: `main` was not declared in this scope</span>\n\n' +
+      compileHtml = banner + '<span class="err">' + name + ':' +
+        Math.max(2, src.split('\n').length - 1) + ':1: error: `main` was not declared in this scope</span>\n\n' +
         '<span class="err">编译失败</span>';
     } else {
-      compileHtml = banner +
-        '<span class="dim">正在编译 ' + cur().name + '...</span>\n' +
-        '<span class="ok">编译成功</span>  (0 个错误, 0 个警告)  [0.41s]';
+      compileHtml = banner + '<span class="ok">编译成功</span>  (0 个错误, 0 个警告)  [0.41s]';
     }
     logBody.innerHTML = compileHtml;
-  }, 400);
+    if (typeof setState === 'function') setState('就绪');
+    return;
+  }
+
+  if (res.judgeStatus === 'CE' || (res.compile && res.compile.ok === false)) {
+    const clog = (res.compile && res.compile.log) || '编译失败';
+    compileHtml = banner + '<span class="err">' + esc(clog) + '</span>\n\n<span class="err">编译失败</span>';
+  } else {
+    const t = (res.compile && typeof res.compile.time === 'number') ? res.compile.time.toFixed(2) : '0.40';
+    compileHtml = banner + '<span class="ok">编译成功</span>  (0 个错误, 0 个警告)  [' + t + 's]';
+  }
+  logBody.innerHTML = compileHtml;
+  if (typeof setState === 'function') setState('就绪');
 }
 
 function runOutput() {
-  const first = (CURRENT && CURRENT.samples && CURRENT.samples[0]) ? CURRENT.samples[0].out : '50';
-  return esc(first) + '\n\n<span class="dim">Process exited after 0.031 seconds with return value 0\n请按任意键继续 . . .</span>';
+  const fallback = () => {
+    const first = (CURRENT && CURRENT.samples && CURRENT.samples[0]) ? CURRENT.samples[0].out : '50';
+    return esc(first) + '\n\n<span class="dim">Process exited after 0.031 seconds with return value 0\n请按任意键继续 . . .</span>';
+  };
+  if (!lastJudge || !lastJudge.run) return fallback();
+
+  const st = lastJudge.judgeStatus;
+  const run = lastJudge.run;
+
+  if (st === 'TLE') return '<span class="err">运行超时，已在 2.00 秒时中止，按任意键继续 . . .</span>';
+  if (st === 'MLE') return '<span class="err">内存超限，程序已被中止，按任意键继续 . . .</span>';
+  if (st === 'CE') return '<span class="err">编译失败，没有可运行的程序</span>';
+
+  let out = esc(run.stdout || '');
+  if (st === 'OLE' || run.truncated) out += '\n<span class="dim">（输出超过 1MB，已截断）</span>';
+  if (run.stderr) out += '\n<span class="err">' + esc(run.stderr) + '</span>';
+
+  const secs = (typeof run.time === 'number' ? run.time : 0.03).toFixed(3);
+  const rv = (run.exit === null || run.exit === undefined) ? 0 : run.exit;
+  out += '\n\n<span class="dim">Process exited after ' + secs + ' seconds with return value ' + rv +
+         '\n请按任意键继续 . . .</span>';
+  return out;
 }
 
 function showConsole() {
@@ -1258,14 +1325,17 @@ document.addEventListener('keydown', (e) => {
 document.getElementById('cClose').onclick = () => document.getElementById('cMask').classList.remove('on');
 document.getElementById('cMask').onclick = (e) => { if (e.target.id === 'cMask') e.currentTarget.classList.remove('on'); };
 
-function doRun() {
+async function doRun() {
+  if (!lastJudge) await doCompile();
   runHtml = runOutput();
   setOutTab('log');
   showConsole();
 }
-function doBuildRun() {
-  doCompile();
-  setTimeout(doRun, 520);
+async function doBuildRun() {
+  await doCompile();
+  runHtml = runOutput();
+  setOutTab('log');
+  showConsole();
 }
 
 document.getElementById('tbCompile').onclick = doCompile;
@@ -2665,6 +2735,9 @@ function renderProblem(id) {
     '<span>时间限制 ' + p.time + '</span><span>内存限制 ' + p.mem + '</span>' +
     '<span class="tag">' + p.tag + '</span>';
   document.getElementById('pBody').innerHTML = p.body + sampleBlock(p.samples) + (p.tip || '');
+  if (window.MathJax && window.MathJax.typesetPromise) {
+    window.MathJax.typesetPromise([document.getElementById('pBody')]).catch(() => {});
+  }
   const crumb = document.querySelector('.topbar .crumb');
   if (crumb) {
     crumb.innerHTML = '题单：<span class="grp" data-group="' + p.group + '">' + p.group +
@@ -2694,7 +2767,8 @@ document.getElementById('pBody').addEventListener('click', (e) => {
 const CDN_ONLY = /(^|\.)doubaocdn\.com$/.test(location.hostname) || /(^|\.)byteimg\.com$/.test(location.hostname);
 const NAV = {
   home: CDN_ONLY ? '' : '刷题主页.html',
-  game: CDN_ONLY ? '' : 'index.html'
+  game: CDN_ONLY ? '' : 'index.html',
+  setlist: CDN_ONLY ? '' : '题单.html'
 };
 
 let toastTimer = null;
@@ -2735,6 +2809,37 @@ const LIB_TAG = {
   p2001:['循环','long long'], p2002:['循环','前导零'],
   p3001:['数组','最值'], p3002:['排序','数组'], p3003:['递推','long long']
 };
+/* ---------- 一本通编程启蒙·第一章（数据来自 data/ybt.js，79 题） ---------- */
+const YBT_LESSON_NAME = {};
+(function mergeYBT() {
+  const Y = window.YBT;
+  if (!Y || !Y.problems || !Y.problems.length) return;
+  (Y.lessons || []).forEach((l) => { YBT_LESSON_NAME[l.no] = l.name; });
+  const fmtNum = (n) => (n >= 10000 ? (n / 10000).toFixed(2).replace(/\.?0+$/, '') + '万' : String(n));
+  Y.problems.forEach((p) => {
+    const key = 'ybt' + p.pid;
+    const lname = YBT_LESSON_NAME[p.lesson] || '顺序结构';
+    const isEx = /^【例/.test(p.title);
+    PROBLEMS[key] = {
+      title: p.pid + ' ' + p.title,
+      group: '第' + String(p.lesson).padStart(2, '0') + '课 ' + lname,
+      tag: '入门',
+      time: (p.time / 1000).toFixed(2) + 's',
+      mem: Math.round(p.mem / 1024) + 'MB',
+      sub: fmtNum(p.sub), ac: fmtNum(p.ac),
+      body: '<h3>题目描述</h3><p>' + p.desc + '</p>' +
+            '<h3>输入格式</h3><p>' + p.hin + '</p>' +
+            '<h3>输出格式</h3><p>' + p.hout + '</p>',
+      samples: [{ in: (p.sin === '无' ? '（无输入）' : p.sin), out: p.sout }],
+      tip: '<h3>说明 / 提示</h3><p>本题出自《信息学奥赛一本通·编程启蒙（C++版）》第' + p.lesson + '课「' + lname + '」。' +
+           '题面与样例抓自 bas.ssoier.cn，仅用于课堂练习。</p>',
+      ybt: p.pid
+    };
+    LIB_TAG[key] = [lname, isEx ? '例题' : '练习'];
+    LIB_RATE[key] = p.sub ? Math.round(p.ac / p.sub * 100) : 70;
+  });
+})();
+
 const LIB = { group:'全部', status:'all', diff:'all', q:'' };
 const libView = document.getElementById('libView');
 const libDoneSet = () => {
@@ -2796,7 +2901,11 @@ function openLib(group) {
 function closeLib() { libView.classList.remove('on'); }
 
 /* ---------- 站级按钮 ---------- */
-document.getElementById('btnHome').onclick = () => openLib();
+/* ← 题库：优先跳到第一张题单（题单.html），没有兄弟页面时才退回本页的题库视图 */
+document.getElementById('btnHome').onclick = () => {
+  if (NAV.setlist) location.href = NAV.setlist;
+  else openLib();
+};
 document.getElementById('btnCoin').onclick = () => notReady('金币系统还没接通');
 document.getElementById('btnGame').onclick = () => goPage(NAV.game, '游戏资源只在本机，线上副本打不开');
 document.getElementById('crumb').onclick = (e) => {
@@ -2901,9 +3010,10 @@ measureChar();
 (function () {
   const original = ta.value;
   // ?pid=xxx 优先；没有就认 #xxx（在线分享的链接里 query 可能被丢，锚点不会）
-  const raw = (new URLSearchParams(location.search).get('pid')
+  let raw = (new URLSearchParams(location.search).get('pid')
             || decodeURIComponent(location.hash.replace(/^#/, ''))
             || 'p1001').toLowerCase();
+  if (/^\d{4}$/.test(raw)) raw = 'ybt' + raw;   /* 题单页传过来的裸一本通题号 */
   const pid = PROBLEMS[raw] ? raw : 'p1001';
   renderProblem(pid);
   if (pid === 'p1001') { ta.value = original; ta.setSelectionRange(5, 5); }
@@ -2912,8 +3022,9 @@ measureChar();
 updateCompileBanner();
 setOutTab('compile');
 
-/* 直接打开（地址里没有 #p题号）时先给题单，点题再进编辑器；从题单点进来的直接进编辑器 */
-if (!/#p\d{3,}/.test(location.href)) openLib();
+/* 直接打开（地址里没有题号）时先给题单；从题单点进来的直接进编辑器 */
+const HAS_PID = new URLSearchParams(location.search).get('pid') || /#p\d{3,}/.test(location.href);
+if (!HAS_PID) openLib();
 </script>
 </body>
 </html>
