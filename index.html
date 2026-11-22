@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>俊杰侃信奥</title>
-    <link rel="stylesheet" href="./styles.css?v=20261122z59" />
+    <link rel="stylesheet" href="./styles.css?v=20261122z60" />
   </head>
   <body>
     <!-- 账号 / 后台登录界面 -->
@@ -15,7 +15,6 @@
 
         <div class="login-tabs">
           <button type="button" class="login-tab is-active" data-login-mode="student">账号登录</button>
-          <button type="button" class="login-tab" data-login-mode="register">账号注册</button>
           <button type="button" class="login-tab" data-login-mode="teacher">后台登录</button>
         </div>
 
@@ -40,28 +39,6 @@
           <button type="submit" class="login-button" id="studentLoginBtn">登录</button>
         </form>
         <p id="studentLoginError" class="login-error" hidden>登录信息有误，请重试</p>
-
-        <form id="registerForm" class="login-form" hidden>
-          <input
-            id="registerName"
-            type="text"
-            maxlength="12"
-            autocomplete="off"
-            placeholder="取一个账号名（和老师约好）"
-            required
-          />
-          <input
-            id="registerPass"
-            type="text"
-            inputmode="numeric"
-            maxlength="6"
-            autocomplete="off"
-            placeholder="设 4~6 位数字密码"
-            required
-          />
-          <button type="submit" class="login-button" id="registerBtn">注册账号</button>
-        </form>
-        <p id="registerError" class="login-error" hidden>注册失败，请重试</p>
 
         <div id="studentLanding" hidden>
           <p class="landing-hello" id="landingHello">你好，同学</p>
@@ -493,6 +470,29 @@
               </div>
               <div id="exportMessage" class="teacher-message"></div>
             </div>
+            <div class="student-account-section">
+              <label class="field">
+                <span>👤 学生账号管理</span>
+                <span class="field-hint">学生不能自己注册，只能由老师在这里建号；新生第一次登录前必须先建号</span>
+              </label>
+              <label class="field">
+                <span>学生姓名</span>
+                <input id="newStudentName" type="text" maxlength="12" autocomplete="off" placeholder="1~12 个字，和课堂点名一致" />
+              </label>
+              <label class="field">
+                <span>密码（可留空）</span>
+                <input id="newStudentPin" type="text" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="留空则由系统生成 6 位随机密码" />
+              </label>
+              <div class="teacher-actions">
+                <button id="createStudentAccount" class="primary-button" type="button">创建学生账号</button>
+                <button id="kickSelectedStudent" class="danger-button" type="button">强制退出选中学生</button>
+              </div>
+              <div id="createStudentResult" class="teacher-message"></div>
+              <div class="teacher-actions">
+                <button id="copyCreatedPin" class="ghost-button" type="button" hidden>复制密码</button>
+                <button id="downloadCreatedPin" class="ghost-button" type="button" hidden>下载密码清单</button>
+              </div>
+            </div>
             <div class="account-lock-section">
               <label class="field">
                 <span>🔒 上课时间控制</span>
@@ -726,9 +726,9 @@
       </div>
     </div>
 
-    <script src="./assets/vendor/supabase.js?v=20261122z59"></script>
-    <script src="./data/petConfig.js?v=20261122z59"></script>
-    <script src="./app.js?v=20261122z59"></script>
+    <script src="./assets/vendor/supabase.js?v=20261122z60"></script>
+    <script src="./data/petConfig.js?v=20261122z60"></script>
+    <script src="./app.js?v=20261122z60"></script>
 
   <!-- 新手引导：手指引导 + 功能卡 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
