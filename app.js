@@ -2289,6 +2289,10 @@
     els.studentPass = document.getElementById("studentPass");
     els.studentLoginBtn = document.getElementById("studentLoginBtn");
     els.studentLoginError = document.getElementById("studentLoginError");
+    els.registerForm = document.getElementById("registerForm");
+    els.registerName = document.getElementById("registerName");
+    els.registerPass = document.getElementById("registerPass");
+    els.registerBtn = document.getElementById("registerBtn");
     els.pushAllToCloud = document.getElementById("pushAllToCloud");
     els.exportAllSaves = document.getElementById("exportAllSaves");
     els.exportMessage = document.getElementById("exportMessage");
@@ -2437,21 +2441,21 @@
     els.sceneInventory = document.getElementById("sceneInventory");
   }
 
-  // ===== 登录外壳：学生 / 家长 / 老师三个入口，学生多一层「开始游戏 / 学习台」选择页 =====
+  // ===== 登录外壳：账号登录 / 账号注册 / 后台登录，学生多一层「开始游戏 / 学习台」选择页 =====
   function setLoginMode(mode) {
     document.querySelectorAll("[data-login-mode]").forEach((btn) => {
       btn.classList.toggle("is-active", btn.dataset.loginMode === mode);
     });
     const studentForm = document.getElementById("studentLoginForm");
-    const parentForm = document.getElementById("parentLoginForm");
+    const registerForm = document.getElementById("registerForm");
     const teacherForm = document.getElementById("loginForm");
     const landing = document.getElementById("studentLanding");
     // 三个表单同一时间只放一个，切换时落地页和所有提示一起复位
     if (studentForm) studentForm.hidden = mode !== "student";
-    if (parentForm) parentForm.hidden = mode !== "parent";
+    if (registerForm) registerForm.hidden = mode !== "register";
     if (teacherForm) teacherForm.hidden = mode !== "teacher";
     if (landing) landing.hidden = true;
-    ["studentLoginError", "loginError", "parentNotice", "landingNotice"].forEach((id) => {
+    ["studentLoginError", "registerError", "loginError", "landingNotice"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.hidden = true;
     });
@@ -2463,7 +2467,7 @@
     const tabs = document.querySelector(".login-tabs");
     if (!landing) return;
     if (tabs) tabs.hidden = true;
-    ["studentLoginForm", "parentLoginForm", "loginForm", "studentLoginError", "parentNotice", "landingNotice"].forEach((id) => {
+    ["studentLoginForm", "registerForm", "loginForm", "studentLoginError", "registerError", "landingNotice"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.hidden = true;
     });
@@ -2521,7 +2525,7 @@
   function reopenHome() {
     const tabs = document.querySelector(".login-tabs");
     if (tabs) tabs.hidden = true;
-    ["studentLoginForm", "studentLoginError", "parentNotice", "landingNotice", "parentLoginForm", "loginForm"].forEach((id) => {
+    ["studentLoginForm", "studentLoginError", "registerError", "landingNotice", "registerForm", "loginForm"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.hidden = true;
     });
@@ -2530,15 +2534,72 @@
     els.loginView.classList.remove("hidden");
   }
 
-  // 家长端这一版只是界面占位：不查云端、不发请求、不碰存档
-  function handleParentLogin(event) {
+  // 账号注册：名字 + 4~6 位数字密码，走服务端建档（和登录里"自动建档"是同一条链路）
+  async function handleRegister(event) {
     event.preventDefault();
-    const child = (document.getElementById("parentChildName").value || "").trim();
-    const code = (document.getElementById("parentBindCode").value || "").trim();
-    const notice = document.getElementById("parentNotice");
-    if (!notice) return;
-    notice.textContent = !child || !code ? "请先填写孩子名字和绑定码" : "家长端暂未开放";
-    notice.hidden = false;
+    if (!CLOUD_ENABLED) {
+      showRegisterError("云端未配置，暂时只能本地玩");
+      return;
+    }
+    const name = (els.registerName.value || "").trim().slice(0, 12);
+    const pass = (els.registerPass.value || "").trim();
+    if (!name) {
+      showRegisterError("请先填一个账号名");
+      return;
+    }
+    if (!/^\d{4,6}$/.test(pass)) {
+      showRegisterError("密码要 4~6 位数字");
+      return;
+    }
+    showRegisterError("");
+    els.registerBtn.disabled = true;
+    const oldLabel = els.registerBtn.textContent;
+    els.registerBtn.textContent = "正在注册…";
+    try {
+      const fresh = buildNewProfile(name, pass);
+      const res = await rpcCall("student_register", {
+        p_name: name,
+        p_pin: pass,
+        p_save: fresh,
+      });
+      if (!res || !res.ok) {
+        const code = res && res.code;
+        if (code === "exists") showRegisterError("这个名字已经有人用了，换一个");
+        else if (code === "bad_pin_format") showRegisterError("密码要 4~6 位数字");
+        else if (code === "class_locked") showRegisterError("老师已暂停全班登录，等老师说开始");
+        else if (code === "bad_pin") showRegisterError("密码不对，再试一次");
+        else showRegisterError("注册没通过，稍后再试");
+        return;
+      }
+      studentToken = res.token || null;
+      const profile = profileFromCloud({ name, save: res.save, updated_at: res.updated_at });
+      state.profiles = [profile];
+      state.selectedId = profile.id;
+      activeStorageKey = `${STORAGE_KEY}_cloud_${name}`;
+      cloudSyncAllowed = true;
+      guideStartIndex = 1;
+      normalizeState();
+      pendingEvolution = null;
+      try {
+        localStorage.setItem(activeStorageKey, JSON.stringify(state));
+      } catch (err) {
+        console.warn("写本地缓存失败", err);
+      }
+      showStudentLanding(profile.name);
+    } catch (err) {
+      console.error("账号注册失败", err);
+      showRegisterError("连不上云端，检查网络后再试");
+    } finally {
+      els.registerBtn.disabled = false;
+      els.registerBtn.textContent = oldLabel;
+    }
+  }
+
+  function showRegisterError(message) {
+    const el = document.getElementById("registerError");
+    if (!el) return;
+    el.textContent = message || "";
+    el.hidden = !message;
   }
 
   // 切换账号：重载回登录页，顺手把本地缓存落一次，避免刚打的几秒进度丢在内存里
@@ -2556,12 +2617,12 @@
     if (els.studentLoginForm) {
       els.studentLoginForm.addEventListener("submit", handleStudentLogin);
     }
-    // 学生 / 家长 / 老师三个入口来回切，统一走 setLoginMode，保证只露一个表单
+    // 账号登录 / 账号注册 / 后台登录三个入口来回切，统一走 setLoginMode，保证只露一个表单
     document.querySelectorAll("[data-login-mode]").forEach((btn) => {
       btn.addEventListener("click", () => setLoginMode(btn.dataset.loginMode));
     });
-    const parentForm = document.getElementById("parentLoginForm");
-    if (parentForm) parentForm.addEventListener("submit", handleParentLogin);
+    const registerForm = document.getElementById("registerForm");
+    if (registerForm) registerForm.addEventListener("submit", handleRegister);
     const startGameBtn = document.getElementById("btnStartGame");
     if (startGameBtn) startGameBtn.addEventListener("click", enterGame);
     const studyRoomBtn = document.getElementById("btnStudyRoom");
