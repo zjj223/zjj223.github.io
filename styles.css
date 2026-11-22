@@ -1794,6 +1794,86 @@ button:focus-visible {
 }
 
 /* ===== 宠物栏 ===== */
+/* 分页条：数量 + 第几页 + 圆点页码 + 上一页/下一页 */
+.pet-team-pager {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 4px 0 10px;
+  padding: 7px 10px;
+  border: 1px dashed #d8c9a8;
+  border-radius: 10px;
+  background: rgba(255, 252, 244, 0.75);
+}
+
+.pet-team-pager-info {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  font-size: 12px;
+  color: #8a7657;
+}
+
+.pet-team-pager-ctrl {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.pet-page-btn {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid #d8c9a8;
+  border-radius: 8px;
+  background: #fffdf6;
+  color: #6b5a3e;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pet-page-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pet-page-dots {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.pet-page-dot {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid #d8c9a8;
+  border-radius: 7px;
+  background: #fffdf6;
+  color: #6b5a3e;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pet-page-dot.active {
+  border-color: #e0a020;
+  background: linear-gradient(180deg, #ffd76a, #f5b93b);
+  color: #4a3208;
+  font-weight: 700;
+}
+
 .pet-team-list {
   display: flex;
   gap: 10px;
