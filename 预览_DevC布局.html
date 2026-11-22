@@ -582,7 +582,7 @@ int main(){
 <div class="verdict" id="verdict">评测结果：AC · 0.03s / 512MB</div>
 
 <script>
-/* 一本通题面里有 $...$ 数学式，装了 MathJax 就顺手渲染；加载不到时退回原样文本 */
+/* 题面里有 $...$ 数学式，装了 MathJax 就顺手渲染；加载不到时退回原样文本 */
 window.MathJax = { tex:{ inlineMath:[['$','$']], displayMath:[['$$','$$']] }, options:{ skipHtmlTags:['script','noscript','style','textarea','pre','code'] } };
 </script>
 <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -2767,7 +2767,7 @@ const CDN_ONLY = /(^|\.)doubaocdn\.com$/.test(location.hostname) || /(^|\.)bytei
 const NAV = {
   home: CDN_ONLY ? '' : '刷题主页.html',
   game: CDN_ONLY ? '' : 'index.html',
-  setlist: CDN_ONLY ? '' : '题单.html'
+  setlist: CDN_ONLY ? '' : '学习台.html'
 };
 
 let toastTimer = null;
@@ -2808,7 +2808,7 @@ const LIB_TAG = {
   p2001:['循环','long long'], p2002:['循环','前导零'],
   p3001:['数组','最值'], p3002:['排序','数组'], p3003:['递推','long long']
 };
-/* ---------- 一本通编程启蒙·第一章（数据来自 data/ybt.js，79 题） ---------- */
+/* ---------- 题库数据（data/ybt.js，79 题） ---------- */
 const YBT_LESSON_NAME = {};
 (function mergeYBT() {
   const Y = window.YBT;
@@ -2831,7 +2831,7 @@ const YBT_LESSON_NAME = {};
             '<h3>输出格式</h3><p>' + p.hout + '</p>',
       samples: [{ in: (p.sin === '无' ? '（无输入）' : p.sin), out: p.sout }],
       tip: '',
-      srcNote: '题面 一本通 · 第' + p.lesson + '课',
+      srcNote: '',
       ybt: p.pid
     };
     LIB_TAG[key] = [lname, isEx ? '例题' : '练习'];
@@ -3012,7 +3012,7 @@ measureChar();
   let raw = (new URLSearchParams(location.search).get('pid')
             || decodeURIComponent(location.hash.replace(/^#/, ''))
             || 'p1001').toLowerCase();
-  if (/^\d{4}$/.test(raw)) raw = 'ybt' + raw;   /* 题单页传过来的裸一本通题号 */
+  if (/^\d{4}$/.test(raw)) raw = 'ybt' + raw;   /* 题单传过来的裸题号 */
   const pid = PROBLEMS[raw] ? raw : 'p1001';
   renderProblem(pid);
   if (pid === 'p1001') { ta.value = original; ta.setSelectionRange(5, 5); }
