@@ -7684,6 +7684,62 @@ body {
   background: rgba(24, 20, 14, 0.46) !important;
 }
 
+/* 遇宠模式按钮：和道具胶囊并排放在顶栏右侧 */
+#sceneView .scene-topbar-actions {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-left: auto !important;
+}
+
+#sceneView .scene-topbar-actions .scene-bag-btn {
+  margin-left: 0 !important;
+}
+
+#sceneView .scene-mode-btn {
+  flex: 0 0 auto !important;
+  padding: 8px 13px !important;
+  border: 2px solid rgba(255, 255, 255, 0.72) !important;
+  border-radius: var(--r-pill) !important;
+  background: rgba(24, 20, 14, 0.3) !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  font-family: inherit !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) !important;
+  transition: background 140ms ease, border-color 140ms ease !important;
+}
+
+#sceneView .scene-mode-btn.mode-normal {
+  border-color: rgba(255, 255, 255, 0.72) !important;
+  background: rgba(24, 20, 14, 0.34) !important;
+}
+
+#sceneView .scene-mode-btn.mode-rage {
+  border-color: #ffb26b !important;
+  background: rgba(166, 53, 20, 0.62) !important;
+  color: #fff3df !important;
+}
+
+#sceneView .scene-mode-btn.mode-quiet {
+  border-color: #a7d8ff !important;
+  background: rgba(26, 62, 106, 0.58) !important;
+  color: #ecf8ff !important;
+}
+
+#sceneView .scene-mode-btn:hover {
+  filter: brightness(1.12);
+}
+
+#sceneView .scene-mode-btn:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+}
+
 /* 道具抽屉：默认收起，点胶囊从底部滑出 */
 #sceneView #sceneInventory {
   position: fixed !important;
