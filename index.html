@@ -3,21 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>卡罗西亚大陆</title>
-    <link rel="stylesheet" href="./styles.css?v=20261122z54" />
+    <title>俊杰侃信奥</title>
+    <link rel="stylesheet" href="./styles.css?v=20261122z55" />
   </head>
   <body>
-    <!-- 老师登录界面 -->
+    <!-- 账号 / 后台登录界面 -->
     <div id="loginView" class="login-view">
       <div class="login-card">
         <div class="login-logo">🌟</div>
-        <h1 class="login-title">卡罗西亚大陆</h1>
-        <p class="login-subtitle">课堂养成游戏</p>
+        <h1 class="login-title">俊杰侃信奥</h1>
+        <p class="login-subtitle">信奥课堂练习平台</p>
 
         <div class="login-tabs">
-          <button type="button" class="login-tab is-active" data-login-mode="student">学生登录</button>
-          <button type="button" class="login-tab" data-login-mode="parent">家长登录</button>
-          <button type="button" class="login-tab" data-login-mode="teacher">老师入口</button>
+          <button type="button" class="login-tab is-active" data-login-mode="student">账号登录</button>
+          <button type="button" class="login-tab" data-login-mode="register">账号注册</button>
+          <button type="button" class="login-tab" data-login-mode="teacher">后台登录</button>
         </div>
 
         <form id="studentLoginForm" class="login-form">
@@ -26,7 +26,7 @@
             type="text"
             maxlength="12"
             autocomplete="off"
-            placeholder="你的名字（和老师约好的那个）"
+            placeholder="账号名（和老师约好的那个）"
             required
           />
           <input
@@ -38,9 +38,31 @@
             placeholder="4~6 位数字密码"
             required
           />
-          <button type="submit" class="login-button" id="studentLoginBtn">开始游戏</button>
+          <button type="submit" class="login-button" id="studentLoginBtn">登录</button>
         </form>
         <p id="studentLoginError" class="login-error" hidden>登录信息有误，请重试</p>
+
+        <form id="registerForm" class="login-form" hidden>
+          <input
+            id="registerName"
+            type="text"
+            maxlength="12"
+            autocomplete="off"
+            placeholder="取一个账号名（和老师约好）"
+            required
+          />
+          <input
+            id="registerPass"
+            type="text"
+            inputmode="numeric"
+            maxlength="6"
+            autocomplete="off"
+            placeholder="设 4~6 位数字密码"
+            required
+          />
+          <button type="submit" class="login-button" id="registerBtn">注册账号</button>
+        </form>
+        <p id="registerError" class="login-error" hidden>注册失败，请重试</p>
 
         <div id="studentLanding" hidden>
           <p class="landing-hello" id="landingHello">你好，同学</p>
@@ -56,28 +78,21 @@
           <input
             id="teacherCode"
             type="password"
-            placeholder="请输入老师权限码"
+            placeholder="请输入后台权限码"
             autocomplete="off"
             required
           />
-          <button type="submit" class="login-button">进入老师后台</button>
+          <button type="submit" class="login-button">进入后台</button>
         </form>
         <p id="loginError" class="login-error" hidden>权限码错误，请重试</p>
-
-        <form id="parentLoginForm" class="login-form" hidden>
-          <input id="parentChildName" type="text" maxlength="12" placeholder="孩子的名字" autocomplete="off" />
-          <input id="parentBindCode" type="text" inputmode="numeric" maxlength="6" placeholder="6 位绑定码" autocomplete="off" />
-          <button type="submit" class="login-button">查看孩子学习情况</button>
-        </form>
-        <p id="parentNotice" class="login-hint" hidden></p>
       </div>
     </div>
 
     <div class="app-shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">第一阶段课堂养成</p>
-          <h1>卡罗西亚大陆</h1>
+          <p class="eyebrow">课堂练习</p>
+          <h1>俊杰侃信奥</h1>
         </div>
         <div class="topbar-actions">
           <button type="button" id="btnBackHome" class="topbar-home" hidden>🏠 学习台</button>
@@ -362,7 +377,7 @@
 
         <aside class="panel teacher-panel" aria-labelledby="teacherTitle">
           <div class="panel-heading">
-            <h2 id="teacherTitle">老师后台</h2>
+            <h2 id="teacherTitle">后台管理</h2>
           </div>
 
           <form id="teacherLogin" class="teacher-login">
@@ -702,7 +717,7 @@
 
     <script src="./assets/vendor/supabase.js?v=20261122z54"></script>
     <script src="./data/petConfig.js?v=20261122z54"></script>
-    <script src="./app.js?v=20261122z54"></script>
+    <script src="./app.js?v=20261122z55"></script>
 
   <!-- 新手引导：手指引导 + 功能卡 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
