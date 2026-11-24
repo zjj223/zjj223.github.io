@@ -214,22 +214,24 @@
 <script src="data/catalog.js"></script>
 <script>
 const C = window.CATALOG || { chapters: [] };
-const CH = (C.chapters && C.chapters[0]) || { name: '顺序结构', lessons: [] };
+const GROUPS = C.chapters || [];
 const ALL = [];
-CH.lessons.forEach((l) => (l.problems || []).forEach((p) => { p.lesson = l.no; ALL.push(p); }));
+GROUPS.forEach((g, gi) => (g.lessons || []).forEach((l) => (l.problems || []).forEach((p) => {
+  p._g = gi; p._l = l.no; p._les = l; ALL.push(p);
+})));
 
 const DONE_KEY = 'studypage.done';
 const doneSet = () => { try { return new Set(JSON.parse(localStorage.getItem(DONE_KEY) || '[]')); } catch (e) { return new Set(); } };
 const pidOf = (p) => 'ybt' + p.pid;
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const nameOf = (t) => String(t).replace(/^【例[0-9.]+】/, '').replace(/^练[0-9.]+/, '').trim();
 const pad = (n) => String(n).padStart(2, '0');
 const wan = (n) => (n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + '万' : String(n || 0));
 const CDN_ONLY = /(^|\.)doubaocdn\.com$/.test(location.hostname) || /(^|\.)byteimg\.com$/.test(location.hostname);
 const NAV = { work: CDN_ONLY ? '' : '预览_DevC布局.html', login: CDN_ONLY ? '' : 'index.html' };
 
-const state = { status: 'all', kind: 'all', view: 'list', lesson: 'all', page: 1, q: '' };
+const state = { status: 'all', kind: 'all', view: 'list', g: 0, l: 'all', page: 1, q: '' };
 const PAGE_SIZE = 20;
+const collapsed = new Set();
 
 function readName() {
   const q = new URLSearchParams(location.search).get('name');
@@ -263,18 +265,20 @@ const openProblem = (id) => { if (!NAV.work) return toast('线上副本没有做
 document.getElementById('whoName').textContent = readName();
 document.getElementById('navCount').textContent = ALL.length + ' 题';
 
-/* 左栏目录树：章节 → 节（点某一课只看那一课） */
+/* 左栏：大类 → 节，逐组可折叠 */
 function buildTree() {
   const t = document.getElementById('tree');
-  t.innerHTML = '<div class="ch">' +
-    '<button class="chnode"><span class="car">▾</span><span>' + esc(CH.name) + '</span><span class="n">' + ALL.length + '</span></button>' +
-    '<div class="les" id="lesList">' + CH.lessons.filter((l) => (l.problems || []).length).map((l) =>
-      '<button data-lesson="' + l.no + '" title="' + esc(l.kp || '') + '">' +
-      '<span class="ln">' + pad(l.no) + '</span><span>' + esc(l.name) + '</span>' +
-      '<span class="n">' + l.problems.length + '</span></button>').join('') + '</div>' +
-    '</div>';
+  t.innerHTML = GROUPS.map((g, gi) => {
+    const n = g.lessons.reduce((a, l) => a + l.problems.length, 0);
+    const open = !collapsed.has(gi);
+    const les = g.lessons.filter((l) => (l.problems || []).length).map((l) =>
+      '<button data-g="' + gi + '" data-l="' + l.no + '">' +
+      '<span>' + esc(l.name) + '</span><span class="n">' + l.problems.length + '</span></button>').join('');
+    return '<button class="chnode gnode" data-g="' + gi + '"><span class="car">' + (open ? '▾' : '▸') + '</span>' +
+      '<span>' + esc(g.name) + '</span><span class="n">' + n + '</span></button>' +
+      '<div class="les' + (open ? '' : ' hide') + '" data-list="' + gi + '">' + les + '</div>';
+  }).join('');
 }
-buildTree();
 
 function switchView(v) {
   state.view = v;
@@ -286,15 +290,19 @@ function switchView(v) {
 function paintMenu() {
   const list = state.view === 'list';
   document.querySelectorAll('#menu > button[data-view]').forEach((b) => {
-    b.classList.toggle('on', b.dataset.view === 'guide' ? !list : (list && state.lesson === 'all'));
+    b.classList.toggle('on', b.dataset.view === 'guide' ? !list : (list && state.g === 'all'));
   });
-  document.querySelectorAll('.les button[data-lesson]').forEach((b) => {
-    b.classList.toggle('on', list && Number(b.dataset.lesson) === state.lesson);
+  document.querySelectorAll('.les button[data-g]').forEach((b) => {
+    b.classList.toggle('on', list && state.g !== 'all' && Number(b.dataset.g) === state.g && String(state.l) === b.dataset.l);
+  });
+  document.querySelectorAll('button.gnode').forEach((b) => {
+    b.classList.toggle('on', list && state.g !== 'all' && Number(b.dataset.g) === state.g);
   });
 }
 
-function pickLesson(no) {
-  state.lesson = (state.lesson === no) ? 'all' : no;
+function pickLesson(gi, no) {
+  if (state.g === gi && String(state.l) === String(no)) { state.l = 'all'; }
+  else { state.g = gi; state.l = no; }
   state.page = 1;
   switchView('list');
   paintMenu();
@@ -303,51 +311,71 @@ function pickLesson(no) {
 }
 
 document.getElementById('menu').addEventListener('click', (e) => {
-  const ch = e.target.closest('button.chnode');
-  if (ch) {
-    const les = document.getElementById('lesList');
-    const hide = les.classList.toggle('hide');
-    ch.querySelector('.car').textContent = hide ? '▸' : '▾';
-    if (hide) { state.lesson = 'all'; switchView('list'); renderStats(); render(); }
+  const node = e.target.closest('button.gnode');
+  if (node) {
+    const gi = Number(node.dataset.g);
+    if (collapsed.has(gi)) collapsed.delete(gi); else collapsed.add(gi);
+    const box = document.querySelector('.les[data-list="' + gi + '"]');
+    if (box) box.classList.toggle('hide', collapsed.has(gi));
+    const car = node.querySelector('.car');
+    if (car) car.textContent = collapsed.has(gi) ? '▸' : '▾';
+    if (state.g === gi && state.l !== 'all') { state.g = gi; state.l = 'all'; state.page = 1; renderStats(); render(); paintMenu(); }
     return;
   }
   const v = e.target.closest('button[data-view]');
-  if (v) { state.lesson = 'all'; state.page = 1; switchView(v.dataset.view); renderStats(); render(); return; }
-  const l = e.target.closest('button[data-lesson]');
-  if (l) pickLesson(Number(l.dataset.lesson));
+  if (v) { state.g = 'all'; state.l = 'all'; state.page = 1; switchView(v.dataset.view); renderStats(); render(); return; }
+  const l = e.target.closest('button[data-l]');
+  if (l) pickLesson(Number(l.dataset.g), Number(l.dataset.l));
 });
 
+function scopePool() {
+  if (state.g === 'all') return ALL;
+  const g = GROUPS[state.g];
+  if (!g) return [];
+  const les = g.lessons.filter((l) => state.l === 'all' || l.no === state.l);
+  return les.reduce((a, l) => a.concat(l.problems), []);
+}
+
 function renderStats() {
-  const pool = state.lesson === 'all' ? ALL : ALL.filter((p) => p.lesson === state.lesson);
+  const pool = scopePool();
   const done = doneSet();
   const ok = pool.filter((p) => done.has(pidOf(p))).length;
   const pct = pool.length ? Math.round(ok / pool.length * 100) : 0;
   document.getElementById('listBar').style.width = pct + '%';
   document.getElementById('listPct').textContent = pct + '% · ' + ok + '/' + pool.length;
-  const les = CH.lessons.find((l) => l.no === state.lesson);
-  document.getElementById('listTitle').textContent = state.lesson === 'all' ? 'C++ 题单' : '第' + pad(state.lesson) + '课';
-  document.getElementById('listSub').textContent = state.lesson === 'all'
-    ? CH.name + ' · ' + ALL.length + ' 题'
-    : esc(les ? les.name : '') + ' · ' + pool.length + ' 题';
+  const g = GROUPS[state.g];
+  document.getElementById('listTitle').textContent = state.g === 'all' ? 'C++ 题单' : (g ? g.name : '题单');
+  const les = g ? g.lessons.find((l) => l.no === state.l) : null;
+  document.getElementById('listSub').textContent = state.g === 'all'
+    ? GROUPS.length + ' 组 · ' + ALL.length + ' 题'
+    : (les ? les.name + ' · ' + pool.length + ' 题' : g.lessons.length + ' 节 · ' + pool.length + ' 题');
 }
 
 function poolFlat() {
   const done = doneSet();
   const out = [];
-  CH.lessons.forEach((l) => {
-    if (state.lesson !== 'all' && l.no !== state.lesson) return;
-    (l.problems || []).forEach((p) => {
-      if (state.status === 'done' && !done.has(pidOf(p))) return;
-      if (state.status === 'todo' && done.has(pidOf(p))) return;
-      if (state.kind !== 'all' && p.kind !== state.kind) return;
-      if (state.q) {
-        const q = state.q.toLowerCase();
-        if (!(String(p.pid).includes(q) || String(p.title).toLowerCase().includes(q))) return;
-      }
-      out.push({ p: p, les: l });
+  GROUPS.forEach((g, gi) => {
+    if (state.g !== 'all' && gi !== state.g) return;
+    g.lessons.forEach((l) => {
+      if (state.g !== 'all' && state.l !== 'all' && l.no !== state.l) return;
+      (l.problems || []).forEach((p) => {
+        if (state.status === 'done' && !done.has(pidOf(p))) return;
+        if (state.status === 'todo' && done.has(pidOf(p))) return;
+        if (state.kind !== 'all' && p.kind !== state.kind) return;
+        if (state.q) {
+          const q = state.q.toLowerCase();
+          if (!(String(p.pid).includes(q) || String(p.title).toLowerCase().includes(q))) return;
+        }
+        out.push({ p: p, les: l, g: g });
+      });
     });
   });
   return out;
+}
+
+function headLabel(g, l) {
+  if (g.id === 'ch0') return '第' + pad(l.no) + '课 ' + esc(l.name);
+  return esc(g.name) + ' · ' + esc(l.name);
 }
 
 function render() {
@@ -359,22 +387,19 @@ function render() {
   if (state.page < 1) state.page = 1;
   const slice = flat.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE);
 
-  /* 把当前页的题重新按课分组 */
   const groups = [];
   slice.forEach((it) => {
-    const g = groups[groups.length - 1];
-    if (g && g.les.no === it.les.no) g.items.push(it.p);
-    else groups.push({ les: it.les, items: [it.p] });
+    const last = groups[groups.length - 1];
+    if (last && last.g.id === it.g.id && last.les.no === it.les.no) last.items.push(it.p);
+    else groups.push({ g: it.g, les: it.les, items: [it.p] });
   });
 
-  let seq = (state.page - 1) * PAGE_SIZE;
-  document.getElementById('rows').innerHTML = groups.length ? groups.map((g) => {
+  document.getElementById('rows').innerHTML = groups.length ? groups.map((gr) => {
     const head = '<tr class="grp"><td colspan="6">' +
-      '<span class="gh">第' + pad(g.les.no) + '课 ' + esc(g.les.name) + '</span>' +
-      '<span class="gk">' + esc(g.les.kp || '') + '</span>' +
-      '<span class="gn">' + g.items.length + ' 题</span></td></tr>';
-    const rows = g.items.map((p) => {
-      seq++;
+      '<span class="gh">' + headLabel(gr.g, gr.les) + '</span>' +
+      '<span class="gk">' + esc(gr.les.kp || '') + '</span>' +
+      '<span class="gn">' + gr.items.length + ' 题</span></td></tr>';
+    const rows = gr.items.map((p) => {
       const ok = done.has(pidOf(p));
       return '<tr data-id="' + pidOf(p) + '"' + (p.open === false ? ' class="closed"' : ' tabindex="0"') + '>' +
         '<td class="st">' + (ok ? '<span class="mk">✓</span>' : '<span class="mk blank">·</span>') + '</td>' +
@@ -442,9 +467,12 @@ document.getElementById('rows').addEventListener('keydown', (e) => {
 document.getElementById('btnCoin').onclick = () => toast('金币系统还没接通');
 document.getElementById('btnOut').onclick = (e) => { if (!NAV.login) { e.preventDefault(); toast('登录页只在本机'); } };
 
-/* 直达：#guide 自学事项，#lesson-05 只看第05课 */
-const m = /^#lesson-(\d{1,2})$/.exec(location.hash);
-if (m) state.lesson = Number(m[1]);
+/* 直达：#guide 自学事项；#g3 第三组；#lesson-05 兼容旧链接 */
+const mg = /^#g(\d+)$/.exec(location.hash);
+if (mg) { state.g = Number(mg[1]); state.l = 'all'; }
+const ml = /^#lesson-(\d{1,2})$/.exec(location.hash);
+if (ml) { state.g = 0; state.l = Number(ml[1]); }
+buildTree();
 paintMenu();
 renderStats();
 render();
