@@ -1138,6 +1138,7 @@
   let currentGuideStep = 0; // 当前引导步骤
   let guideStartIndex = 0; // 引导起始步骤（学生端已自动建档，跳过"创建角色"这一步）
   let captureTarget = null; // 当前捕捉目标野生宠物
+  let captureOwnerProfileId = null; // 捕捉窗所属角色，切角色时必须关闭
   let captureLocked = false; // 捕捉判定中：锁住咕噜球，防止连点一次抓多只
   let captureTimerId = null; // 战斗胜利后等待 3400ms 再打开捕捉窗的定时器
   let captureCloseTimerId = null; // 捕捉成功/失败后 1500ms 自动关闭的定时器
@@ -2677,6 +2678,7 @@
     const pets = WUXING_PET_IDS.map((id) => PET_DATABASE.find((p) => p.petId === id)).filter(Boolean);
     overlay.innerHTML = `
       <div class="modal wuxing-notice-modal" role="dialog" aria-modal="true" aria-label="五行觉醒活动">
+        <button type="button" class="wuxing-notice-close" data-wx-act="close" aria-label="关闭">✕</button>
         <div class="wuxing-notice-kicker">限时活动 ${WUXING_EVENT.start} — ${WUXING_EVENT.end}</div>
         <h3 class="wuxing-notice-title">🌌 五行觉醒</h3>
         <p class="wuxing-notice-desc">大陆上流窜了五只五行宠物——<b>金、木、水、火、土</b>。它们在寒假之前频繁现身，请尽情进行捕捉吧！</p>
@@ -2699,6 +2701,10 @@
       </div>`;
     document.body.appendChild(overlay);
     overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) {
+        overlay.remove();
+        return;
+      }
       const btn = event.target.closest("[data-wx-act]");
       if (!btn) return;
       const act = btn.dataset.wxAct;
@@ -2888,6 +2894,42 @@
     els.rankTabOutfit?.addEventListener("click", () => showRank("outfit"));
     els.rankModal?.addEventListener("click", (e) => {
       if (e.target === els.rankModal) els.rankModal.hidden = true;
+    });
+    // 全局 ESC / Tab：关闭最上层弹窗，并把焦点留在弹窗内
+    document.addEventListener("keydown", (event) => {
+      const top = Array.from(document.querySelectorAll(".modal-overlay"))
+        .filter((m) => !m.hidden && m.style.display !== "none")
+        .pop();
+      if (!top) return;
+      if (event.key === "Escape") {
+        if (top.id === "battleModal") return;
+        if (top.id === "captureModal") {
+          closeCaptureModal();
+        } else if (top.id === "wuxingNoticeModal") {
+          top.remove();
+        } else {
+          top.hidden = true;
+        }
+        event.preventDefault();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusables = Array.from(
+        top.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')
+      ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (!top.contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     });
     els.createForm.addEventListener("submit", handleCreateProfile);
     els.profileList.addEventListener("click", handleProfileSelect);
@@ -3166,7 +3208,7 @@
     // 宠物栏：所有宠物 + 出战下标
     // 【修复】原来这里写死 clamp 到 0~2，导致第 4、5、6 只永远选不上出战（一存档就被改回第 3 只）
     const petList = Array.isArray(profile?.pets)
-      ? profile.pets.map(normalizePet).filter(Boolean)
+      ? profile.pets.map(normalizePet).filter(Boolean).slice(0, MAX_PETS)
       : (pet ? [pet] : []);
     const petIndex = clampInteger(profile?.activePetIndex, 0, Math.max(0, petList.length - 1));
 
@@ -3929,6 +3971,9 @@
   function handleSpotExplore(event) {
     const button = event.target.closest("[data-spot-id]");
     if (!button || button.disabled || isExploring) return;
+    // 战斗演出尚未结束或捕捉窗仍开着时，先不让再点探索，避免叠窗/双扣体力
+    if ((els.battleModal && !els.battleModal.hidden) || Date.now() < battleCloseAt) return;
+    if (els.captureModal && !els.captureModal.hidden) return;
     const scene = getScene(selectedSceneId);
     const spots = SCENE_SPOTS[scene?.id] || [];
     const spot = spots.find((s) => s.id === button.dataset.spotId);
@@ -4818,6 +4863,9 @@
     renderTeacherPanel();
 
     const profile = getActiveProfile();
+    if (captureOwnerProfileId && (!profile || profile.id !== captureOwnerProfileId)) {
+      cancelCaptureFlow();
+    }
     els.emptyState.hidden = Boolean(profile);
     els.gameView.hidden = !profile;
     if (!profile) {
@@ -6508,6 +6556,13 @@
 
   function setBattleSprite(imgEl, fallbackEl, src) {
     if (imgEl) {
+      imgEl.onerror = () => {
+        imgEl.style.display = "none";
+        if (fallbackEl) fallbackEl.hidden = false;
+      };
+      imgEl.onload = () => {
+        if (fallbackEl) fallbackEl.hidden = true;
+      };
       if (src) {
         imgEl.src = src;
         imgEl.style.display = "";
@@ -6520,13 +6575,14 @@
   }
 
   function updateBattleHp(fillEl, numEl, hp, maxHp) {
-    const safeMax = Math.max(1, maxHp);
-    const ratio = Math.max(0, Math.min(1, hp / safeMax));
+    const safeMax = Math.max(1, Number.isFinite(Number(maxHp)) ? Number(maxHp) : 1);
+    const safeHp = Number.isFinite(Number(hp)) ? Number(hp) : 0;
+    const ratio = Math.max(0, Math.min(1, safeHp / safeMax));
     if (fillEl) {
       fillEl.style.width = `${(ratio * 100).toFixed(2)}%`;
       fillEl.classList.toggle("is-low", ratio <= 0.3);
     }
-    if (numEl) numEl.textContent = `${Math.max(0, Math.round(hp))}/${safeMax}`;
+    if (numEl) numEl.textContent = `${Math.max(0, Math.round(safeHp))}/${Math.round(safeMax)}`;
   }
 
   function replayBattleAnimation(el, className) {
@@ -7721,7 +7777,12 @@
       img.src = pet.image || "";
       img.alt = pet.name;
       img.className = "pet-team-img";
-      img.onerror = () => { img.style.display = "none"; };
+      img.onerror = () => {
+        img.style.display = "none";
+        if (!header.querySelector(".pet-mark")) {
+          header.insertBefore(createPetMark(pet), nameDiv);
+        }
+      };
 
       const nameDiv = document.createElement("div");
       nameDiv.className = "pet-team-meta";
@@ -8030,6 +8091,7 @@
     clearCaptureCloseTimer();
     captureSessionId += 1;
     captureTarget = wildPet;
+    captureOwnerProfileId = getActiveProfile()?.id || null;
     captureLocked = false;
     if (!els.captureModal) return;
 
@@ -8182,6 +8244,7 @@
     captureSessionId += 1;
     if (els.captureModal) els.captureModal.hidden = true;
     captureTarget = null;
+    captureOwnerProfileId = null;
     captureLocked = false;
   }
 
@@ -9082,15 +9145,25 @@
       error: "❌"
     };
 
-    toast.innerHTML = `
-      <span class="toast-icon">${icons[type] || icons.info}</span>
-      <div class="toast-content">
-        <div class="toast-title">${title}</div>
-        <div class="toast-message">${message}</div>
-      </div>
-      <button class="toast-close" type="button">×</button>
-      <div class="toast-progress"></div>
-    `;
+    const iconEl = document.createElement("span");
+    iconEl.className = "toast-icon";
+    iconEl.textContent = icons[type] || icons.info;
+    const contentEl = document.createElement("div");
+    contentEl.className = "toast-content";
+    const titleEl = document.createElement("div");
+    titleEl.className = "toast-title";
+    titleEl.textContent = String(title ?? "");
+    const messageEl = document.createElement("div");
+    messageEl.className = "toast-message";
+    messageEl.textContent = String(message ?? "");
+    contentEl.append(titleEl, messageEl);
+    const closeEl = document.createElement("button");
+    closeEl.className = "toast-close";
+    closeEl.type = "button";
+    closeEl.textContent = "×";
+    const progressEl = document.createElement("div");
+    progressEl.className = "toast-progress";
+    toast.append(iconEl, contentEl, closeEl, progressEl);
 
     container.appendChild(toast);
 
