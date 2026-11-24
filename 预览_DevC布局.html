@@ -587,6 +587,7 @@ window.MathJax = { tex:{ inlineMath:[['$','$']], displayMath:[['$$','$$']] }, op
 </script>
 <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script src="data/ybt.js"></script>
+<script src="data/pset.js"></script>
 <script>
 /* =========================================================
    1. 菜单数据：结构与文字全部取自 F:\Dev-Cpp\Lang\Chinese.lng
@@ -2839,6 +2840,33 @@ const YBT_LESSON_NAME = {};
   });
 })();
 
+(function mergePSET() {
+  const P = window.PSET;
+  if (!P) return;
+  const fmtNum = (n) => (n >= 10000 ? (n / 10000).toFixed(2).replace(/\.?0+$/, '') + '万' : String(n));
+  Object.keys(P).forEach((pid) => {
+    const p = P[pid];
+    const key = 'ybt' + pid;
+    if (PROBLEMS[key]) return;
+    PROBLEMS[key] = {
+      title: pid + ' ' + p.title,
+      group: p.group || '未分类',
+      tag: '入门',
+      time: (p.time / 1000).toFixed(2) + 's',
+      mem: Math.round(p.mem / 1024) + 'MB',
+      sub: fmtNum(p.sub), ac: fmtNum(p.ac),
+      body: '<h3>题目描述</h3><p>' + (p.desc || '（暂无题面）') + '</p>' +
+            '<h3>输入格式</h3><p>' + (p.hin || '无') + '</p>' +
+            '<h3>输出格式</h3><p>' + (p.hout || '无') + '</p>',
+      samples: [{ in: (p.sin || '（无输入）'), out: (p.sout || '（无输出）') }],
+      tip: '',
+      srcNote: '',
+      ybt: +pid
+    };
+    LIB_TAG[key] = [p.group || '', /【例/.test(p.title) ? '例题' : '练习'];
+    LIB_RATE[key] = p.sub ? Math.round(p.ac / p.sub * 100) : 60;
+  });
+})();
 const LIB = { group:'全部', status:'all', diff:'all', q:'' };
 const libView = document.getElementById('libView');
 const libDoneSet = () => {
