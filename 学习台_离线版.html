@@ -85,11 +85,11 @@
   tbody tr[data-id]:hover{background:#f4f8ff}
   tbody td{padding:8px 14px;border-bottom:1px solid #f1f4f9;vertical-align:middle}
   tbody tr:last-child td{border-bottom:0}
-  .st{width:46px;text-align:center}
+  .st{text-align:center}
   .st .dot{display:inline-block;width:15px;height:15px;border-radius:50%;border:1.5px dashed #d6dcea}
   .st .done{width:17px;height:17px;border-radius:50%;background:var(--ok);color:#fff;
     font-size:11px;line-height:17px;display:inline-block;text-align:center}
-  .idx{width:46px;color:#a9b2c4;font-variant-numeric:tabular-nums;font-size:12px;text-align:center}
+  .idx{color:#a9b2c4;font-variant-numeric:tabular-nums;font-size:12.5px}
   .id{width:66px;color:#98a2b8;font-variant-numeric:tabular-nums;font-size:12.5px}
   .ttl{color:var(--blue);font-weight:500;font-size:13.5px}
   tbody tr[data-id]:hover .ttl{text-decoration:underline}
@@ -97,6 +97,31 @@
   .arrow{color:#b9c2d6;text-align:right;width:30px}
   tbody tr[data-id]:hover .arrow{color:var(--blue)}
   .empty{padding:36px 0;text-align:center;color:#b0b8c8;font-size:13px}
+
+  /* 列宽按 15/15/40/15/15 分 */
+  th.w-st{width:15%}.th.w-id{width:15%}.th.w-ttl{width:40%}.th.w-ac{width:15%}.th.w-sub{width:14%}
+  thead th{background:#eceffa;color:#5a6480}
+  tbody tr:nth-child(odd){background:#f6f8fd}
+  tbody tr.grp:nth-child(odd){background:#f8fafd}
+  .st .mk{display:inline-block;width:15px;font-size:14px;line-height:1;color:#52c41a;font-weight:700;text-align:center}
+  .st .mk.blank{color:#dfe4ee;font-weight:400}
+
+  /* 分页 + 搜索（放表格下方） */
+  .pager{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:10px}
+  .pgbar{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .pg{border:1px solid var(--line);background:#fff;color:#5a6480;font:inherit;font-size:12.5px;
+    padding:4px 10px;border-radius:6px;cursor:pointer;min-width:30px}
+  .pg:hover:not(:disabled){border-color:#c3cfec;color:var(--blue)}
+  .pg.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .pg:disabled{opacity:.45;cursor:default}
+  .pginfo{font-size:12px;color:var(--dim);margin-left:4px}
+  .pgsearch{margin-left:auto;display:flex;gap:6px}
+  .pgsearch input{border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:inherit;
+    font-size:12.5px;width:170px;outline:none}
+  .pgsearch input:focus{border-color:#c3cfec}
+  .pgsearch button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:6px 12px;
+    font:inherit;font-size:12.5px;color:#5a6480;cursor:pointer}
+  .pgsearch button:hover{border-color:#c3cfec;color:var(--blue)}
 
   /* 节标题行 */
   tr.grp td{background:#f8fafd;border-bottom:1px solid var(--line);padding:9px 14px}
@@ -201,10 +226,12 @@
 
       <div class="table">
         <table>
-          <thead><tr><th class="st">状态</th><th class="idx">序号</th><th class="id">题号</th><th>题目</th><th class="num-col">通过</th><th class="num-col">提交</th><th class="arrow"></th></tr></thead>
+          <thead><tr><th class="st w-st">通过标记</th><th class="idx w-id">题号</th><th class="w-ttl">题目名称</th><th class="num-col w-ac">通过人数</th><th class="num-col w-sub">提交总数</th><th class="arrow"></th></tr></thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
+
+      <div class="pager" id="pager"></div>
     </div>
   </div>
 </div>
@@ -2312,7 +2339,8 @@ const wan = (n) => (n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + '�
 const CDN_ONLY = /(^|\.)doubaocdn\.com$/.test(location.hostname) || /(^|\.)byteimg\.com$/.test(location.hostname);
 const NAV = { work: CDN_ONLY ? '' : '预览_DevC布局.html', login: CDN_ONLY ? '' : 'index.html' };
 
-const state = { status: 'all', kind: 'all', view: 'list', lesson: 'all' };
+const state = { status: 'all', kind: 'all', view: 'list', lesson: 'all', page: 1, q: '' };
+const PAGE_SIZE = 20;
 
 function readName() {
   const q = new URLSearchParams(location.search).get('name');
@@ -2442,6 +2470,7 @@ function paintMenu() {
 
 function pickLesson(no) {
   state.lesson = (state.lesson === no) ? 'all' : no;
+  state.page = 1;
   switchView('list');
   paintMenu();
   renderStats();
@@ -2458,7 +2487,7 @@ document.getElementById('menu').addEventListener('click', (e) => {
     return;
   }
   const v = e.target.closest('button[data-view]');
-  if (v) { state.lesson = 'all'; switchView(v.dataset.view); renderStats(); render(); return; }
+  if (v) { state.lesson = 'all'; state.page = 1; switchView(v.dataset.view); renderStats(); render(); return; }
   const l = e.target.closest('button[data-lesson]');
   if (l) pickLesson(Number(l.dataset.lesson));
 });
@@ -2477,43 +2506,92 @@ function renderStats() {
     : esc(les ? les.name : '') + ' · ' + pool.length + ' 题';
 }
 
+function poolFlat() {
+  const done = doneSet();
+  const out = [];
+  CH.lessons.forEach((l) => {
+    if (state.lesson !== 'all' && l.no !== state.lesson) return;
+    (l.problems || []).forEach((p) => {
+      if (state.status === 'done' && !done.has(pidOf(p))) return;
+      if (state.status === 'todo' && done.has(pidOf(p))) return;
+      if (state.kind !== 'all' && p.kind !== state.kind) return;
+      if (state.q) {
+        const q = state.q.toLowerCase();
+        if (!(String(p.pid).includes(q) || String(p.title).toLowerCase().includes(q))) return;
+      }
+      out.push({ p: p, les: l });
+    });
+  });
+  return out;
+}
+
 function render() {
   const done = doneSet();
-  const groups = CH.lessons
-    .filter((l) => state.lesson === 'all' || l.no === state.lesson)
-    .map((l) => ({
-      les: l,
-      items: (l.problems || []).filter((p) => {
-        if (state.status === 'done' && !done.has(pidOf(p))) return false;
-        if (state.status === 'todo' && done.has(pidOf(p))) return false;
-        if (state.kind !== 'all' && p.kind !== state.kind) return false;
-        return true;
-      })
-    }))
-    .filter((g) => g.items.length);
+  const flat = poolFlat();
+  const total = flat.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (state.page > pages) state.page = pages;
+  if (state.page < 1) state.page = 1;
+  const slice = flat.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE);
 
+  /* 把当前页的题重新按课分组 */
+  const groups = [];
+  slice.forEach((it) => {
+    const g = groups[groups.length - 1];
+    if (g && g.les.no === it.les.no) g.items.push(it.p);
+    else groups.push({ les: it.les, items: [it.p] });
+  });
+
+  let seq = (state.page - 1) * PAGE_SIZE;
   document.getElementById('rows').innerHTML = groups.length ? groups.map((g) => {
-    const head = '<tr class="grp"><td colspan="7">' +
+    const head = '<tr class="grp"><td colspan="6">' +
       '<span class="gh">第' + pad(g.les.no) + '课 ' + esc(g.les.name) + '</span>' +
       '<span class="gk">' + esc(g.les.kp || '') + '</span>' +
       '<span class="gn">' + g.items.length + ' 题</span></td></tr>';
-    const rows = g.items.map((p, i) => {
+    const rows = g.items.map((p) => {
+      seq++;
       const ok = done.has(pidOf(p));
       return '<tr data-id="' + pidOf(p) + '"' + (p.open === false ? ' class="closed"' : ' tabindex="0"') + '>' +
-        '<td class="st">' + (ok ? '<span class="done">✓</span>' : '<span class="dot"></span>') + '</td>' +
-        '<td class="idx">' + (i + 1) + '</td>' +
-        '<td class="id">' + p.pid + '</td>' +
+        '<td class="st">' + (ok ? '<span class="mk">✓</span>' : '<span class="mk blank">·</span>') + '</td>' +
+        '<td class="idx">' + p.pid + '</td>' +
         '<td><span class="ttl">' + esc(p.title) + '</span></td>' +
         '<td class="num-col">' + wan(p.ac) + '</td>' +
         '<td class="num-col">' + wan(p.sub) + '</td>' +
         '<td class="arrow">›</td></tr>';
     }).join('');
     return head + rows;
-  }).join('') : '<tr><td colspan="7"><div class="empty">没有符合条件的题目</div></td></tr>';
+  }).join('') : '<tr><td colspan="6"><div class="empty">没有符合条件的题目</div></td></tr>';
+
+  renderPager(total, pages);
 }
+
+function renderPager(total, pages) {
+  const box = document.getElementById('pager');
+  if (!total) { box.innerHTML = ''; return; }
+  const p = state.page;
+  const btn = (label, to, dis, on) => '<button class="pg' + (on ? ' on' : '') + '" data-p="' + to + '"' +
+    (dis ? ' disabled' : '') + '>' + label + '</button>';
+  let bar = btn('首页', 1, p === 1, false) + btn('⇐', p - 1, p === 1, false);
+  const a = Math.max(1, p - 1), b = Math.min(pages, p + 1);
+  for (let i = a; i <= b; i++) bar += btn(i, i, false, i === p);
+  bar += btn('⇒', p + 1, p === pages, false) + btn('尾页', pages, p === pages, false);
+  bar += '<span class="pginfo">共 ' + total + ' 题 · 第 ' + p + '/' + pages + ' 页</span>';
+  box.innerHTML = '<div class="pgbar">' + bar + '</div>' +
+    '<div class="pgsearch"><input id="qInput" placeholder="题号或题目名称" value="' + esc(state.q) + '">' +
+    '<button id="qBtn">搜索</button><button id="qClear">清空</button></div>';
+  document.getElementById('qBtn').onclick = () => { state.q = document.getElementById('qInput').value.trim(); state.page = 1; render(); };
+  document.getElementById('qClear').onclick = () => { state.q = ''; state.page = 1; render(); };
+  document.getElementById('qInput').onkeydown = (e) => { if (e.key === 'Enter') { state.q = e.currentTarget.value.trim(); state.page = 1; render(); } };
+}
+
+document.getElementById('pager').addEventListener('click', (e) => {
+  const b = e.target.closest('.pg'); if (!b || b.disabled) return;
+  state.page = Number(b.dataset.p); render();
+});
 
 document.getElementById('tabs').addEventListener('click', (e) => {
   const b = e.target.closest('.tab'); if (!b) return;
+  state.page = 1;
   if (b.dataset.s) {
     state.status = b.dataset.s;
     document.querySelectorAll('#tabs .tab[data-s]').forEach((x) => x.classList.toggle('on', x === b));
