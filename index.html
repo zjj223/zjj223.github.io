@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>俊杰侃信奥</title>
-    <link rel="stylesheet" href="./styles.css?v=20261122z62" />
+    <link rel="stylesheet" href="./styles.css?v=20261124a" />
   </head>
   <body>
     <!-- 账号 / 后台登录界面 -->
@@ -12,6 +12,7 @@
       <div class="login-card">
         <div class="login-logo">🌟</div>
         <h1 class="login-title">俊杰侃信奥</h1>
+        <p class="login-subtitle">C++ 练习题单 · 在线编译评测</p>
 
         <div class="login-tabs">
           <button type="button" class="login-tab is-active" data-login-mode="student">账号登录</button>
@@ -43,8 +44,8 @@
         <div id="studentLanding" hidden>
           <p class="landing-hello" id="landingHello">你好，同学</p>
           <div class="landing-actions">
-            <button type="button" id="btnStartGame" class="login-button">开始游戏</button>
-            <button type="button" id="btnStudyRoom" class="login-button is-ghost">学习台</button>
+            <button type="button" id="btnStudyRoom" class="login-button">进入学习台</button>
+            <button type="button" id="btnStartGame" class="login-button is-ghost">打开养成小游戏</button>
           </div>
           <p class="login-hint" id="landingNotice" hidden></p>
           <button type="button" id="btnSwitchAccount" class="login-link">切换账号</button>
@@ -61,6 +62,8 @@
           <button type="submit" class="login-button">进入后台</button>
         </form>
         <p id="loginError" class="login-error" hidden>权限码错误，请重试</p>
+        <p class="site-desc">本站用于 C++ 编程练习与在线编译评测，供个人学习使用。</p>
+        <p class="icp"><a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">京ICP备________号</a></p>
       </div>
     </div>
 
