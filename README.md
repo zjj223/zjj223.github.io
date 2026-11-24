@@ -18,6 +18,7 @@ assets/outfits/     人物时装立绘 480×640 透明 PNG（boy-*/girl-*）
 assets/boxworld/    新手装 sprite
 assets/vendor/      第三方库（supabase.js，多人可见的实时通道）
 tools/              数值自测脚本（Python，不参与线上运行）
+启动上课游戏.cmd    校园网拦截 Supabase 时用的 HTTP/3 启动器
 ```
 
 发布新版时把 `index.html` 里四处 `?v=` 一起加版本号（styles.css / supabase.js / petConfig.js / app.js，如 `?v=20261121z47`），否则浏览器会用旧缓存，改了 CSS 也看不到效果。
@@ -257,7 +258,7 @@ tools/              数值自测脚本（Python，不参与线上运行）
 
 | 项目 | 值 | 常量 |
 |---|---|---|
-| 宠物上限 | 6 | `MAX_PETS` |
+| 宠物上限 | 30 | `MAX_PETS` |
 | 孵蛋门槛 | 经验 120 | `HATCH_EXP_REQUIREMENT` |
 | 重抽宠物 | 50 洛克贝 | `PET_REFRESH_COST` |
 | 每周奖励 | 20 / 15 / 10 / 5 | `publishRankReward` |
@@ -271,6 +272,7 @@ tools/              数值自测脚本（Python，不参与线上运行）
 
 ## 已知限制
 
+- 部分校园网会重置 `*.supabase.co` 的 TLS 连接，表现为「连不上云端」。此时用根目录的 `启动上课游戏.cmd` 打开（强制 HTTP/3），登录和存档可恢复；多人互相看见仍会退回单人模式。原理与验证见 `artifacts/网络限制与HTTP3启动_20261122.md`。
 - 点赞额度、天数按设备日期算，学生改系统时间可以多刷。
 - 被赞数不是实时推送，别人点完你这边要重新打开榜/面板才更新。
 - 时装榜目前多数人只有新手装 1 套，排序没有区分度，等大家买了才有差别。
