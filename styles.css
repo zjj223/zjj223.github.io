@@ -9535,7 +9535,118 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
 }
 
 
-/* ===== 五行觉醒主题弹窗 ===== */
+/* ===== v20261125 窄屏弹窗修复 ===== */
+.rank-modal {
+  width: min(420px, calc(100vw - 24px));
+  max-width: min(520px, calc(100vw - 24px));
+}
+
+.wuxing-notice-modal {
+  position: relative;
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.wuxing-notice-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 215, 90, .55);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .24);
+  color: #ffd75e;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.battle-modal {
+  max-height: calc(100dvh - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-height: 560px) {
+  .wuxing-notice-modal {
+    padding: 12px 16px 10px;
+  }
+  .wuxing-notice-kicker {
+    font-size: 10px;
+    padding: 2px 9px;
+    margin-bottom: 6px;
+  }
+  .wuxing-notice-title {
+    margin-bottom: 4px;
+    font-size: 20px;
+  }
+  .wuxing-notice-desc {
+    margin-bottom: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .wuxing-notice-pets {
+    gap: 4px;
+    margin: 2px 0 6px;
+  }
+  .wuxing-notice-pet {
+    padding: 3px 2px 2px;
+  }
+  .wuxing-notice-pet img {
+    height: 54px;
+    width: auto;
+    max-width: 100%;
+    aspect-ratio: auto;
+    margin: 0 auto;
+  }
+  .wuxing-notice-pet figcaption {
+    font-size: 10px;
+  }
+  .wuxing-notice-tip {
+    margin: 0 0 6px;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  .wuxing-notice-actions {
+    gap: 6px;
+  }
+  .wuxing-btn {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+
+  .battle-modal {
+    padding: 10px 12px;
+  }
+  .battle-header {
+    margin-bottom: 4px;
+  }
+  .battle-header strong {
+    font-size: 1rem;
+  }
+  .battle-stage {
+    min-height: 112px;
+    padding: 6px 8px;
+    margin-bottom: 4px;
+  }
+  .battle-sprite-wrap,
+  .battle-sprite {
+    width: 54px;
+    height: 54px;
+  }
+  .battle-log {
+    max-height: 36px;
+    font-size: 11px;
+    line-height: 1.35;
+    padding: 4px 6px;
+  }
+  .battle-result {
+    font-size: 12px;
+  }
+}
+
 .wuxing-notice-overlay {
   z-index: 1200;
   background: radial-gradient(900px 600px at 50% 20%, rgba(60, 46, 12, .85) 0%, rgba(6, 9, 16, .92) 70%);
@@ -9684,4 +9795,25 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
     overflow-y: auto;
     margin: 0 auto;
   }
+}
+/* v20261125 矮屏压缩：覆盖前面基础样式 */
+@media (max-height: 560px) {
+  .wuxing-notice-modal { padding: 12px 16px 10px; }
+  .wuxing-notice-kicker { font-size: 10px; padding: 2px 9px; margin-bottom: 6px; }
+  .wuxing-notice-title { margin-bottom: 4px; font-size: 20px; }
+  .wuxing-notice-desc { margin-bottom: 6px; font-size: 12px; line-height: 1.5; }
+  .wuxing-notice-pets { gap: 4px; margin: 2px 0 6px; }
+  .wuxing-notice-pet { padding: 3px 2px 2px; }
+  .wuxing-notice-pet img { height: 54px; width: auto; max-width: 100%; aspect-ratio: auto; margin: 0 auto; }
+  .wuxing-notice-pet figcaption { font-size: 10px; }
+  .wuxing-notice-tip { margin: 0 0 6px; font-size: 11px; line-height: 1.4; }
+  .wuxing-notice-actions { gap: 6px; }
+  .wuxing-btn { padding: 7px 10px; font-size: 12px; }
+  .battle-modal { padding: 10px 12px; }
+  .battle-header { margin-bottom: 4px; }
+  .battle-header strong { font-size: 1rem; }
+  .battle-stage { min-height: 112px; padding: 6px 8px; margin-bottom: 4px; }
+  .battle-sprite-wrap, .battle-sprite { width: 54px; height: 54px; }
+  .battle-log { max-height: 36px; font-size: 11px; line-height: 1.35; padding: 4px 6px; }
+  .battle-result { font-size: 12px; }
 }
