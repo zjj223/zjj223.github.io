@@ -5,12 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>俊杰侃信奥 · 比赛</title>
 <link rel="stylesheet" href="nav.css?v=20261126a">
+<link rel="stylesheet" href="paper.css?v=20261126d">
 <style>
-  .empty{padding:40px 0;text-align:center;color:#b0b8c8;font-size:13px}
-  .tabbar{display:flex;gap:8px;margin-bottom:14px}
-  .tb{border:1px solid #e3e8f2;background:#fff;color:#5a6480;font:inherit;font-size:12.5px;
-    padding:6px 14px;border-radius:7px;cursor:pointer}
-  .tb.on{background:#2947c9;border-color:#2947c9;color:#fff}
+  .tabbar{display:flex;gap:8px;margin:0 0 18px}
+  .tb{border:1px solid var(--ik-rule);background:var(--ik-paper);color:var(--ik-ink2);
+    font:inherit;font-size:12.5px;padding:6px 15px;border-radius:2px;cursor:pointer;letter-spacing:.02em}
+  .tb:hover{border-color:var(--ik-navy);color:var(--ik-navy)}
+  .tb.on{background:var(--ik-navy);border-color:var(--ik-navy);color:#fff;font-weight:600}
+  .empty{padding:22px 0 24px}
+  .gap{height:18px}
+  .soon .ct{color:#8A6A16}
 </style>
 </head>
 <body>
@@ -27,19 +31,20 @@
     <button class="tb">已结束</button>
   </div>
 
-  <div class="card">
-    <h2>进行中的比赛</h2>
-    <div class="empty">暂无进行中的比赛</div>
-  </div>
+  <section class="card">
+    <div class="hd"><b>进行中</b><span>0 场</span></div>
+    <div class="empty">暂无进行中的比赛。第一场俊杰月赛开放后会出现在这里。</div>
+  </section>
 
-  <div class="card" style="margin-top:16px">
-    <h2>即将开始</h2>
+  <div class="gap"></div>
+
+  <section class="card soon">
+    <div class="hd"><b>即将开始</b><span>1 场</span></div>
     <a class="rowlink" href="俊杰月赛.html">
       <span class="nm">俊杰月赛 · 第 1 场</span>
-      <span class="pill warn">未开放</span>
-      <span class="ar">›</span>
+      <span class="ct">未开放</span>
     </a>
-  </div>
+  </section>
 </div>
 
 <div class="foot"><a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">京ICP备________号</a></div>
