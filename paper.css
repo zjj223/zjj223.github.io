@@ -1,0 +1,99 @@
+/* ============================================================
+   全站墨纸皮肤（子页面共用）
+   跟首页 首页.html / home.css 同一套 token 与规矩：
+   灰底白纸、1px 墨线、2px 方角、零阴影、宋体大标题、朱砂只做记号
+   ============================================================ */
+:root{
+  --ik-ground:#EBECEA;
+  --ik-paper:#FFFFFF;
+  --ik-paper2:#F8F6EE;
+  --ik-ink:#14171C;
+  --ik-ink2:#575D69;
+  --ik-ink3:#8D939E;
+  --ik-rule:#D6D8D4;
+  --ik-rule2:#E8EAE6;
+  --ik-navy:#17265A;
+  --ik-seal:#A8322A;
+  --ik-serif:Georgia,"Songti SC","SimSun","STSong",serif;
+  --ik-sans:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  --ik-kai:KaiTi,"STKaiti",serif;
+}
+
+/* ---------- 顶栏 ---------- */
+.nav{background:var(--ik-paper);border-bottom:1px solid var(--ik-rule)}
+.nav-logo{color:var(--ik-ink);letter-spacing:.06em}
+.nav-logo i{border-radius:1px;background:var(--ik-navy);font-size:11px;width:22px;height:22px}
+.nav-item{color:var(--ik-ink2);border-bottom-width:2px;font-size:13px}
+.nav-item:hover{color:var(--ik-navy);background:transparent}
+.nav-item.on{color:var(--ik-navy);border-bottom-color:var(--ik-seal);background:transparent;font-weight:600}
+.nav-user{color:var(--ik-navy);border-radius:1px}
+.nav-user:hover{background:#F2F3EE}
+.nav-coin{border-radius:1px}
+
+/* ---------- 页面骨架 ---------- */
+body{background:var(--ik-ground);color:var(--ik-ink);font:14px/1.65 var(--ik-sans);margin:0}
+.page{max-width:1180px;margin:0 auto;padding:26px 18px 10px}
+.page{box-sizing:border-box}
+.page *{box-sizing:border-box}
+.page h1{position:relative;margin:0 0 6px;padding-left:16px;font-family:var(--ik-serif);
+  font-size:30px;font-weight:700;letter-spacing:.06em;line-height:1.35;color:var(--ik-ink)}
+.page h1:before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;background:var(--ik-seal)}
+.page .sub{margin:0 0 22px;font-size:12.5px;color:var(--ik-ink2);letter-spacing:.02em}
+
+/* ---------- 卡片 ---------- */
+.page .card{background:var(--ik-paper);border:1px solid var(--ik-rule);border-radius:2px;
+  box-shadow:none;padding:18px 20px}
+.page .card h2{margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--ik-rule);
+  font-size:13.5px;font-weight:700;letter-spacing:.02em;display:flex;align-items:baseline;gap:8px}
+.page .card h2 .pill{margin-left:auto}
+
+/* 卡头（与首页同一个 .hd 写法） */
+.hd{display:flex;align-items:baseline;gap:8px;padding-bottom:7px;border-bottom:1px solid var(--ik-rule);
+  margin-bottom:12px}
+.hd b{font-size:13.5px;font-weight:700;letter-spacing:.02em;color:var(--ik-ink)}
+.hd span{font-size:11.5px;color:var(--ik-ink3);font-weight:400}
+.hd span+span{margin-left:6px}
+.hd em{margin-left:auto;font-style:normal;font-size:12px;font-weight:600;color:var(--ik-navy);
+  font-variant-numeric:tabular-nums}
+
+/* ---------- 按钮 ---------- */
+.btn{border-radius:2px;background:var(--ik-navy);font-size:13px;font-weight:600;
+  padding:8px 18px;letter-spacing:.02em;border:1px solid var(--ik-navy)}
+.btn:hover{background:#0F1B42;border-color:#0F1B42}
+.btn.ghost{background:transparent;border:1px solid #C2C6CE;color:var(--ik-ink2)}
+.btn.ghost:hover{border-color:var(--ik-navy);color:var(--ik-navy);background:transparent}
+
+/* ---------- 行链接 ---------- */
+.rowlink{border-bottom:1px solid var(--ik-rule2);padding:10px 2px;color:var(--ik-ink);font-size:13px}
+.rowlink:last-child{border-bottom:0}
+.rowlink:hover{color:var(--ik-navy)}
+.rowlink .nm{font-size:13px}
+.rowlink .ct{color:var(--ik-ink3);font-size:12px;font-variant-numeric:tabular-nums}
+.rowlink .ar{color:#C2C6CE;font-size:12px}
+
+/* ---------- 进度：一条墨线 ---------- */
+.bar{height:3px;background:var(--ik-rule2);border-radius:0;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ik-navy);border-radius:0;transition:width .4s}
+
+/* ---------- 小标签：描边方角 ---------- */
+.pill{border-radius:1px;background:transparent;border:1px solid var(--ik-rule);
+  color:var(--ik-ink3);padding:2px 7px;font-size:11px;letter-spacing:.04em}
+.pill.warn{border-color:#D9C79A;color:#8A6A16;background:#FBF6E8}
+.pill.ok{border-color:#BFD9C6;color:#2A6A45;background:#F1F7F2}
+
+/* ---------- 空态：给方向，不卖惨 ---------- */
+.empty{color:var(--ik-ink3);font-size:12.5px;letter-spacing:.02em}
+
+/* ---------- 页脚 ---------- */
+.foot a{color:#9A9E9A}
+.foot a:hover{color:var(--ik-ink2)}
+
+/* ---------- 通用分区标题 ---------- */
+.sechd{display:flex;align-items:baseline;gap:8px;margin:26px 0 12px}
+.sechd b{font-family:var(--ik-serif);font-size:18px;font-weight:700;letter-spacing:.06em}
+.sechd span{font-size:12px;color:var(--ik-ink3)}
+
+@media (max-width:900px){
+  .page h1{font-size:24px}
+  .page{padding:20px 14px 8px}
+}
