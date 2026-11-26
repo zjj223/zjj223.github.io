@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>俊杰侃信奥 · 练习题库</title>
+<link rel="stylesheet" href="nav.css?v=20261126a">
+<style>
+  .gcard{padding:18px 20px}
+  .gcard .gh{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+  .gcard .gh b{font-size:16px}
+  .gcard .gh span{color:#98a2b8;font-size:12.5px}
+  .gcard .gh em{margin-left:auto;font-style:normal;color:#2947c9;font-size:12.5px;font-weight:600}
+  .gcard .bar{margin:8px 0 6px}
+  .les{display:block}
+  .gcard .rowlink{padding:8px 4px}
+  .gcard .rowlink .nm{font-size:12.5px}
+</style>
+</head>
+<body>
+
+<div class="nav" data-page="lib"><div class="nav-in" id="navIn"></div></div>
+
+<div class="page">
+  <h1>练习题库</h1>
+  <p class="sub" id="sub">按大类排列章节，点章名直接进入题单</p>
+  <div class="cardgrid" id="grid" style="grid-template-columns:repeat(auto-fill,minmax(360px,1fr))"></div>
+</div>
+
+<div class="foot"><a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">京ICP备________号</a></div>
+
+<script src="data/catalog.js?v=20261124b"></script>
+<script src="nav.js?v=20261126a"></script>
+<script>
+(function () {
+  var C = window.CATALOG || { chapters: [] };
+  var GROUPS = C.chapters || [];
+  var done = new Set();
+  try { done = new Set(JSON.parse(localStorage.getItem('studypage.done') || '[]')); } catch (e) {}
+  var ALLN = 0, LESN = 0;
+  GROUPS.forEach(function (g) { (g.lessons || []).forEach(function (l) { ALLN += (l.problems || []).length; if ((l.problems || []).length) LESN++; }); });
+  document.getElementById('sub').textContent = GROUPS.length + ' 大类 · ' + LESN + ' 章 · ' + ALLN + ' 题 · 点章名直接进入题单';
+
+  var nm = new URLSearchParams(location.search).get('name');
+  var suffix = nm ? '&name=' + encodeURIComponent(nm) : '';
+
+  document.getElementById('grid').innerHTML = GROUPS.map(function (g) {
+    var n = (g.lessons || []).reduce(function (a, l) { return a + (l.problems || []).length; }, 0);
+    var ok = (g.lessons || []).reduce(function (a, l) { return a + (l.problems || []).filter(function (p) { return done.has('ybt' + p.pid); }).length; }, 0);
+    var pct = n ? Math.round(ok / n * 100) : 0;
+    var rows = (g.lessons || []).filter(function (l) { return (l.problems || []).length; }).map(function (l) {
+      var ln = (l.problems || []).length;
+      var lok = (l.problems || []).filter(function (p) { return done.has('ybt' + p.pid); }).length;
+      return '<a class="rowlink" href="学习台.html?g=' + g.id + '&l=' + l.no + suffix + '">' +
+        '<span class="nm">' + l.name + '</span>' +
+        '<span class="ct">' + (lok ? lok + '/' : '') + ln + '</span>' +
+        (lok === ln && ln ? '<span class="ct" style="color:#1a9c4f">✓</span>' : '') +
+        '<span class="ar">›</span></a>';
+    }).join('');
+    return '<div class="card gcard">' +
+      '<div class="gh"><b>' + g.name + '</b><span>' + (g.lessons || []).length + ' 节 · ' + n + ' 题</span><em>' + pct + '%</em></div>' +
+      '<div class="bar"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="les">' + rows + '</div>' +
+      '</div>';
+  }).join('');
+})();
+</script>
+</body>
+</html>
