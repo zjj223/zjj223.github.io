@@ -267,6 +267,7 @@
       return '<a class="cat" href="练习题库.html">' +
         '<span class="no">' + (k + 1 < 10 ? '0' : '') + (k + 1) + '</span>' +
         '<span class="mid"><b>' + g.name + '</b><span>' + len + ' 节</span></span>' +
+        '<span class="ld"></span>' +
         '<span class="right">' + n + ' 题<em>' + (ok ? '通过 ' + ok + '，' + p + '%' : '未开始') + '</em></span></a>';
     }).join('');
   })();
