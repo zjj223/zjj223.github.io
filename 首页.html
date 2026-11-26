@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>俊杰侃信奥 · C++ 练习题单与在线编译评测</title>
+<title>俊杰侃信奥｜C++ 题单与在线评测</title>
 <link rel="stylesheet" href="nav.css?v=20261126a">
 <link rel="stylesheet" href="home.css?v=20261126a">
 </head>
@@ -19,26 +19,23 @@
       <section class="card hero" id="hero">
         <div class="slides">
           <div class="slide s1 on">
-            <div class="kicker">C++ 练习题单 · 在线编译评测</div>
             <h2>俊杰侃信奥</h2>
-            <p id="heroSub">从输出、输入到排序、搜索、动态规划，1367 道题按章节排好</p>
+            <p id="heroSub">1367 道 C++ 题按章节排好，从输出格式一直练到动态规划。选一道，今天就开始。</p>
             <div class="acts">
               <a class="btn" href="学习台.html">开始刷题</a>
               <a class="btn ghost" href="练习题库.html">浏览题库</a>
             </div>
           </div>
           <div class="slide s2">
-            <span class="tag">筹备中</span>
-            <div class="kicker">每月一场</div>
+            <span class="tag">还没开赛</span>
             <h2>俊杰月赛</h2>
-            <p>限时 2 小时，ABC 三档难度，赛后三天出题解，题目随后并入题库。</p>
+            <p>每月一场，限时两小时，ABC 三档难度。赛后三天出题解，题目随后并入题库。</p>
             <div class="acts">
-              <a class="btn" style="background:#fff;color:#2947c9" href="俊杰月赛.html">看看赛制</a>
+              <a class="btn" href="俊杰月赛.html">看看赛制</a>
             </div>
           </div>
           <div class="slide s3">
-            <div class="kicker">题库总览</div>
-            <h2 id="heroCats">8 大类 · 44 章 · 1367 题</h2>
+            <h2 id="heroCats">题库</h2>
             <div class="nums">
               <div><b id="heroLes">44</b><span>章</span></div>
               <div><b id="heroPro">1367</b><span>题</span></div>
@@ -55,7 +52,7 @@
       <!-- D. 问题跳转 + J. 今日幸运签 -->
       <div class="row2">
         <section class="card jump" id="jump">
-          <div class="hd"><b>问题跳转</b><span>输题号直达</span></div>
+          <div class="hd"><b>问题跳转</b><span>输题号直接进那道题</span></div>
           <input id="jumpPid" placeholder="例：1002" maxlength="4" inputmode="numeric" autocomplete="off">
           <div class="bts">
             <button class="btn" id="btnJump" type="button">跳转</button>
@@ -66,7 +63,7 @@
 
         <section class="card luck" id="luck">
           <span class="seal">签</span>
-          <div class="hd"><b>今日幸运签</b><span>摇一支签 · 今天刷哪章</span></div>
+          <div class="hd"><b>今日幸运签</b><span>今天先做哪一章</span></div>
           <div id="luckBox"></div>
           <div class="luck-dots" id="luckDots"></div>
         </section>
@@ -90,10 +87,7 @@
 
       <!-- E. 近期比赛 -->
       <section class="card">
-        <div class="hd" style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
-          <b style="font-size:15.5px">近期比赛</b>
-          <span style="font-size:11.5px;color:#9aa3b2">站内赛</span>
-        </div>
+        <div class="hd"><b>近期比赛</b><span>站内赛</span></div>
         <div id="matches"></div>
       </section>
     </aside>
@@ -102,19 +96,16 @@
   <!-- K. 网站信箱（通栏） -->
   <div class="mailbar" id="mailbar" style="margin:16px 0">
     <div class="env" aria-hidden="true">
-      <svg viewBox="0 0 64 48" width="64" height="48">
-        <defs><linearGradient id="evg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#eff4ff"/><stop offset="1" stop-color="#d8e4ff"/>
-        </linearGradient></defs>
-        <rect x="1" y="1" width="62" height="46" rx="6" fill="url(#evg)" stroke="#c7d6f6"/>
-        <path d="M2 4 L32 26 L62 4" fill="none" stroke="#b6c8ef" stroke-width="1.6"/>
-        <path d="M2 44 L24 24 M62 44 L40 24" fill="none" stroke="#cbd9f5" stroke-width="1.2"/>
+      <svg viewBox="0 0 56 42">
+        <rect x="1" y="1" width="54" height="40" fill="none" stroke="#17265A" stroke-width="1.2"/>
+        <path d="M1 3 L28 23 L55 3" fill="none" stroke="#17265A" stroke-width="1.2"/>
+        <path d="M1 39 L20 21 M55 39 L36 21" fill="none" stroke="#17265A" stroke-width="1" opacity=".45"/>
       </svg>
       <span class="dot"></span>
     </div>
     <div class="mtxt">
       <b>网站信箱</b>
-      <p>想让站里加什么功能？哪道题题面有问题？哪里用着别扭？<br>写进来就行，匿名也可以，只有站长能看到。</p>
+      <p>想加什么功能、哪道题题面有错、哪一步用着别扭，都写进来。匿名也可以，只有站长能看到。</p>
     </div>
     <button class="btn-w" id="btnWrite" type="button">✎ 写一封</button>
     <div class="mform" id="mform">
@@ -123,7 +114,7 @@
         <textarea id="mBody" placeholder="想让站里加什么？哪道题题面有问题？" maxlength="240"></textarea>
         <button class="btn-s" id="btnSend" type="button">寄出</button>
       </div>
-      <div class="mfoot"><span class="cnt" id="mCnt">0/200 · 只有站长能看到</span></div>
+      <div class="mfoot"><span class="cnt" id="mCnt">0/200 字，只有站长能看到</span></div>
     </div>
   </div>
 
@@ -131,25 +122,20 @@
     <div class="main">
       <!-- F. 题库总览 -->
       <section class="card">
-        <div class="hd" style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
-          <b style="font-size:15.5px">题库总览</b>
-          <span style="font-size:11.5px;color:#9aa3b2">按大类 · 点哪张进哪一类</span>
-        </div>
+        <div class="hd"><b>题库总览</b><span>点一行就能进这一类</span></div>
         <div class="cats" id="cats"></div>
       </section>
 
       <!-- G. 做题记录 -->
       <section class="card chart">
-        <div class="hd"><b>做题记录</b><span>近 14 天通过题数 · 右为累积</span></div>
+        <div class="hd"><b>做题记录</b><span>柱是每天通过几道，线是累计</span></div>
         <div id="chartBox"></div>
       </section>
     </div>
     <aside class="side">
       <!-- H. 本站公告 -->
       <section class="card">
-        <div class="hd" style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
-          <b style="font-size:15.5px">本站公告</b>
-        </div>
+        <div class="hd"><b>本站公告</b><span>更新在这</span></div>
         <div id="notice"></div>
       </section>
     </aside>
@@ -161,9 +147,9 @@
 <button class="fab" id="fab" type="button" title="回到顶部 / 常见问题">↑</button>
 <div class="fab-tip" id="fabTip">
   <b>常见问题</b>
-  · 怎么算通过：做完题回来点通过标记<br>
-  · 题目打不开：先看网络，再刷新一次<br>
-  · 评测怎么用：写代码 → 提交 → 看结果
+  怎么算通过：做完题回来点「通过」<br>
+  题目打不开：先看网络，再刷新一次<br>
+  评测怎么用：写代码，提交，看结果
 </div>
 
 <script src="data/catalog.js?v=20261124b"></script>
@@ -173,3 +159,5 @@
 <script src="home.js?v=20261126a"></script>
 </body>
 </html>
+
+
