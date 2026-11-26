@@ -684,6 +684,32 @@
   const ITEM_DROP_CHANCE = 0.18;
   const BOND_NAME_UNLOCK_LEVEL = 3;
 
+  // ===== 今日委托 / 场景首领（第一批扩展玩法） =====
+  // 数值全部集中在这里，后续调平衡只改常量。
+  const DAILY_QUEST_COUNT = 3;
+  const DAILY_QUEST_ALL_BONUS = 20;
+  const DAILY_QUEST_WEEK_DAYS = 5;
+  const DAILY_QUEST_WEEK_BONUS = 60;
+  const DAILY_QUEST_DEFS = Object.freeze({
+    explore3: { id: "explore3", type: "explore", target: 3, title: "探索 3 次", icon: "🧭", coin: 10, item: true },
+    battle2: { id: "battle2", type: "battle", target: 2, title: "战斗 2 场", icon: "⚔️", coin: 10, item: true },
+    catch1: { id: "catch1", type: "catch", target: 1, title: "捕捉 1 只宠物", icon: "🪄", coin: 10, item: true },
+    list1: { id: "list1", type: "list", target: 1, title: "上架 1 件道具", icon: "🏪", coin: 10, item: true },
+    buyball1: { id: "buyball1", type: "buy_ball", target: 1, title: "买 1 个咕噜球", icon: "🔮", coin: 10, item: true },
+    like1: { id: "like1", type: "like", target: 1, title: "给同学点 1 个赞", icon: "👍", coin: 10, item: true },
+    spot5: { id: "spot5", type: "spot5", target: 1, title: "探索第 5 个探索点", icon: "🌟", coin: 10, item: true },
+    explore5: { id: "explore5", type: "explore", target: 5, title: "探索 5 次", icon: "🐾", coin: 10, item: true },
+  });
+  const SCENE_BOSS_MAX_ATTEMPTS = 3;
+  const SCENE_BOSS_LEVEL_BONUS = 5;
+  const SCENE_BOSS_HP_MULT = 1.8;
+  const SCENE_BOSS_ATK_MULT = 1.2;
+  const SCENE_BOSS_DEF_MULT = 1.2;
+  const SCENE_BOSS_FIRST_COIN = 40;
+  const SCENE_BOSS_FIRST_ITEM = 2;
+  const SCENE_BOSS_REPEAT_COIN = 10;
+  const SCENE_BOSS_REPEAT_ITEM = 1;
+
   const SCENE_ITEMS = Object.freeze({
     grassland: [
       {
@@ -2168,6 +2194,15 @@
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 
+  // 本周一日期（YYYY-MM-DD）：周奖励按自然周重置，周一 0 点换周
+  function getWeekKey(date = new Date()) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const offset = (d.getDay() + 6) % 7; // 周一=0，周日=6
+    d.setDate(d.getDate() - offset);
+    return dayKeyOf(d);
+  }
+
   // 今日点赞额度：{ day, power, wealth, outfit }，跨天自动重置
   function getLikeQuota(profile) {
     const day = dayKeyOf();
@@ -2418,6 +2453,7 @@
     if (!me.likesSent || typeof me.likesSent !== "object") me.likesSent = {};
     me.likesSent[targetName] = (Number(me.likesSent[targetName]) || 0) + 1;
     me.rockbell = (Number(me.rockbell) || 0) + LIKE_REWARD;
+    recordQuestProgress(me, "like", 1);
     saveState(`给 ${targetName} 点了赞`);
     showCoinGain(LIKE_REWARD, me.rockbell);
 
@@ -3288,6 +3324,12 @@
       // 五行觉醒活动：最近一次弹出主题提醒的日期（YYYY-MM-DD），每天只弹一次
       wuxingNoticeDate:
         typeof profile?.wuxingNoticeDate === "string" ? profile.wuxingNoticeDate : "",
+      // 今日委托：跨天重建，跨周重置周进度（旧账号缺失时首次访问自动创建）
+      dailyQuest:
+        profile?.dailyQuest && typeof profile.dailyQuest === "object" ? profile.dailyQuest : null,
+      // 场景首领：按场景记录探索点访问与本消费次数
+      sceneProgress:
+        profile?.sceneProgress && typeof profile.sceneProgress === "object" ? profile.sceneProgress : {},
     };
   }
 
@@ -3566,6 +3608,7 @@
     // 服务端已扣掉一个，本地跟着扣
     profile.inventory[itemId] = count - 1;
     if (profile.inventory[itemId] <= 0) delete profile.inventory[itemId];
+    recordQuestProgress(profile, "list", 1);
     await loadMarketFromCloud();
     saveState("已上架");
     return { ok: true, msg: `已上架【${itemDef.name}】，售价 ${price} 洛克贝。` };
@@ -3881,6 +3924,12 @@
       }
 
       const hadBattle = Boolean(encounter && wildPet);
+      // 今日委托进度：每完成一次探索都算；第 5 点、发生战斗单独记
+      recordQuestProgress(profile, "explore", 1);
+      if (spotIndex === 4) recordQuestProgress(profile, "spot5", 1);
+      if (hadBattle) recordQuestProgress(profile, "battle", 1);
+      // 场景首领解锁：记录成功探索过的探索点（同一个点只记一次）
+      if (spot?.id) recordSceneSpotVisit(profile, scene.id, spot.id);
       // 洛克贝产出：每打完一场真实战斗 +1（不分场景、不分胜负）
       if (hadBattle) {
         profile.rockbell = (profile.rockbell || 0) + 1;
@@ -3980,6 +4029,189 @@
     if (!spot) return;
     selectedSpotId = spot.id;
     handleExplore(spot);
+  }
+
+  // ===== 场景首领：探索点解锁、周次数、战斗与奖励 =====
+  function ensureSceneProgress(profile) {
+    if (!profile || typeof profile !== "object") return {};
+    if (!profile.sceneProgress || typeof profile.sceneProgress !== "object") {
+      profile.sceneProgress = {};
+    }
+    return profile.sceneProgress;
+  }
+
+  function getSceneBossState(profile, sceneId) {
+    const all = ensureSceneProgress(profile);
+    let entry = all[sceneId];
+    if (!entry || typeof entry !== "object") {
+      entry = { visitedSpots: [], boss: null };
+      all[sceneId] = entry;
+    }
+    if (!Array.isArray(entry.visitedSpots)) entry.visitedSpots = [];
+    entry.visitedSpots = Array.from(
+      new Set(entry.visitedSpots.filter((spotId) => typeof spotId === "string" && spotId)),
+    );
+    const week = getWeekKey();
+    let boss = entry.boss;
+    if (!boss || typeof boss !== "object" || boss.weekKey !== week) {
+      boss = {
+        weekKey: week,
+        attemptsUsed: 0,
+        firstClear: Boolean(boss?.firstClear),
+      };
+      entry.boss = boss;
+    }
+    boss.attemptsUsed = clampInteger(boss.attemptsUsed, 0, SCENE_BOSS_MAX_ATTEMPTS);
+    boss.firstClear = Boolean(boss.firstClear);
+    return boss;
+  }
+
+  function recordSceneSpotVisit(profile, sceneId, spotId) {
+    if (!sceneId || !spotId) return;
+    const all = ensureSceneProgress(profile);
+    getSceneBossState(profile, sceneId);
+    const entry = all[sceneId];
+    if (!entry.visitedSpots.includes(spotId)) entry.visitedSpots.push(spotId);
+  }
+
+  function getSceneVisitedCount(profile, sceneId) {
+    return getSceneBossState(profile, sceneId) && ensureSceneProgress(profile)[sceneId].visitedSpots.length;
+  }
+
+  function isSceneBossUnlocked(profile, sceneId) {
+    const spots = SCENE_SPOTS[sceneId] || [];
+    if (!spots.length) return false;
+    return getSceneVisitedCount(profile, sceneId) >= spots.length;
+  }
+
+  function grantSceneBossReward(profile, scene, firstClear) {
+    const coin = firstClear ? SCENE_BOSS_FIRST_COIN : SCENE_BOSS_REPEAT_COIN;
+    const itemCount = firstClear ? SCENE_BOSS_FIRST_ITEM : SCENE_BOSS_REPEAT_ITEM;
+    const items = SCENE_ITEMS[scene.id] || [];
+    const gained = [];
+    profile.rockbell = (Number(profile.rockbell) || 0) + coin;
+    if (!profile.inventory) profile.inventory = {};
+    for (let i = 0; i < itemCount && items.length; i += 1) {
+      const item = items[Math.floor(Math.random() * items.length)];
+      if (!item) continue;
+      profile.inventory[item.id] = (profile.inventory[item.id] || 0) + 1;
+      gained.push(item.name);
+    }
+    return { coin, gained };
+  }
+
+  function buildSceneBossChip(profile, scene) {
+    const spots = SCENE_SPOTS[scene.id] || [];
+    const visited = getSceneVisitedCount(profile, scene.id);
+    const boss = getSceneBossState(profile, scene.id);
+    const unlocked = visited >= spots.length;
+    const left = Math.max(0, SCENE_BOSS_MAX_ATTEMPTS - boss.attemptsUsed);
+    const busy = isExploring || (els.battleModal && !els.battleModal.hidden) || Date.now() < battleCloseAt;
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "scene-boss-chip";
+    chip.dataset.bossScene = scene.id;
+    if (!unlocked) {
+      chip.classList.add("is-locked");
+      chip.textContent = `👑 首领未解锁 · 探索点 ${visited}/${spots.length}`;
+      chip.disabled = true;
+      chip.title = "把本场景 6 个探索点各探索 1 次后解锁";
+    } else if (left <= 0) {
+      chip.classList.add("is-used");
+      chip.textContent = "👑 场景首领 · 本周次数已用完";
+      chip.disabled = true;
+      chip.title = "每周 3 次，周一 0 点恢复";
+    } else {
+      chip.textContent = `👑 场景首领 · 本周剩余 ${left} 次`;
+      chip.disabled = busy;
+      chip.title = "点击挑战场景首领；失败/平局也消耗 1 次";
+    }
+    chip.setAttribute("aria-label", chip.textContent);
+    chip.addEventListener("click", () => startSceneBoss(scene.id));
+    return chip;
+  }
+
+  function startSceneBoss(sceneId) {
+    if (isExploring) return;
+    if ((els.battleModal && !els.battleModal.hidden) || Date.now() < battleCloseAt) return;
+    if (els.captureModal && !els.captureModal.hidden) return;
+    const profile = getActiveProfile();
+    const scene = getScene(sceneId);
+    if (!profile || !profile.pet) {
+      showToast("首领战", "先孵出一只宠物再来挑战。", "warning", 2600);
+      return;
+    }
+    if (!scene) return;
+    if (!isSceneBossUnlocked(profile, sceneId)) {
+      showToast("首领未解锁", "把本场景 6 个探索点各探索 1 次后解锁。", "warning", 2800);
+      return;
+    }
+    const bossState = getSceneBossState(profile, sceneId);
+    if (bossState.attemptsUsed >= SCENE_BOSS_MAX_ATTEMPTS) {
+      showToast("本周次数已用完", "场景首领每周 3 次，周一 0 点恢复。", "warning", 2600);
+      return;
+    }
+    const spots = SCENE_SPOTS[sceneId] || [];
+    const bossPet = generateWildPet(sceneId, Math.max(0, spots.length - 1));
+    if (!bossPet) {
+      showToast("首领战", "这个场景还没有可用的首领数据。", "warning", 2400);
+      return;
+    }
+    const cfg = WILD_PETS[sceneId];
+    const range = cfg?.levels?.[spots.length - 1] || cfg?.levelRange || [bossPet.level, bossPet.level];
+    bossPet.level = Math.max(bossPet.level, Number(range[1]) + SCENE_BOSS_LEVEL_BONUS);
+    bossPet.hpMax = Math.max(1, Math.floor(bossPet.hpMax * SCENE_BOSS_HP_MULT));
+    bossPet.attack = Math.max(1, Math.floor(bossPet.attack * SCENE_BOSS_ATK_MULT));
+    bossPet.defense = Math.max(1, Math.floor(bossPet.defense * SCENE_BOSS_DEF_MULT));
+    bossPet.name = `首领·${bossPet.name}`;
+    bossPet.isBoss = true;
+    bossState.attemptsUsed += 1;
+    const firstClearBefore = !bossState.firstClear;
+    const battle = simulateBattle(profile.pet, bossPet);
+    showBattleModal(profile.pet, bossPet, battle);
+    if (els.battleTitle) {
+      els.battleTitle.textContent = battle.win
+        ? "👑 首领战胜利！"
+        : battle.draw
+          ? "👑 首领战平局"
+          : "👑 首领战失败…";
+    }
+    if (els.battleEnemyName) {
+      els.battleEnemyName.textContent = `👑 场景首领 ${bossPet.name}`;
+    }
+    if (els.battleResult) {
+      els.battleResult.textContent = battle.win
+        ? `打赢了！${firstClearBefore ? "首通奖励" : "重复奖励"}已发放。`
+        : battle.draw
+          ? "双方都还有体力，本次挑战结束，次数已扣。"
+          : "首领战失败，次数已扣，下次再来。";
+    }
+    let reward = null;
+    if (battle.win) {
+      bossState.firstClear = true;
+      reward = grantSceneBossReward(profile, scene, firstClearBefore);
+    }
+    saveState(battle.win ? "首领战胜利" : "首领战结束");
+    render();
+    const delay = Math.max(420, battleCloseAt - Date.now() + 180);
+    setTimeout(() => {
+      render();
+      if (reward) {
+        const itemText = reward.gained.length ? `，获得【${reward.gained.join("、")}】` : "";
+        showToast(
+          firstClearBefore ? "👑 首领首通！" : "👑 首领战胜利",
+          `+${reward.coin} 洛克贝${itemText}`,
+          "success",
+          3600,
+        );
+        setSceneResult(
+          `${scene.name}·首领战胜利：+${reward.coin} 洛克贝${itemText}。`,
+        );
+      } else {
+        showToast("首领战结束", "本次没有奖励，次数已扣。", "info", 2600);
+        setSceneResult(`${scene.name}·首领战结束：本次没有奖励。`, true);
+      }
+    }, delay);
   }
 
   let sceneResultTimer = null; // 场景提示 2 秒后自动消失
@@ -5767,6 +5999,7 @@
     });
 
     stageEl.appendChild(els.sceneSpotList);
+    stageEl.appendChild(buildSceneBossChip(profile, scene));
     els.sceneAtmosphere.appendChild(stageEl);
     syncPeerLayer();
 
@@ -7444,6 +7677,240 @@
     render();
   }
 
+  // ===== 今日委托：跨天重建、进度、领取、周奖励 =====
+  function isQuestEligible(taskDef, profile) {
+    if (!taskDef || !profile) return false;
+    const type = taskDef.type;
+    if (type === "battle" || type === "catch") {
+      if (!profile.pet) return false;
+    }
+    if (type === "catch" && (profile.pets || []).length >= MAX_PETS) return false;
+    if (type === "list") {
+      const total = Object.values(profile.inventory || {}).reduce((sum, n) => sum + (Number(n) || 0), 0);
+      if (total <= 0) return false;
+    }
+    if (type === "buy_ball" && (Number(profile.rockbell) || 0) < 6) return false;
+    if (type === "like" && (!state?.profiles || state.profiles.length <= 1)) return false;
+    return true;
+  }
+
+  function createDailyQuest(profile, date) {
+    const picked = [];
+    const addTask = (id) => {
+      if (id && DAILY_QUEST_DEFS[id] && !picked.includes(id)) picked.push(id);
+    };
+    addTask("explore3");
+    const candidates = ["battle2", "catch1", "list1", "buyball1", "like1", "spot5"]
+      .filter((id) => isQuestEligible(DAILY_QUEST_DEFS[id], profile));
+    for (let i = candidates.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+    candidates.slice(0, 2).forEach(addTask);
+    ["explore5", "spot5", "battle2", "explore3"].forEach((id) => {
+      if (picked.length < DAILY_QUEST_COUNT) addTask(id);
+    });
+    const tasks = picked.slice(0, DAILY_QUEST_COUNT).map((id) => {
+      const def = DAILY_QUEST_DEFS[id];
+      return {
+        id: def.id,
+        type: def.type,
+        target: def.target,
+        title: def.title,
+        icon: def.icon,
+        coin: def.coin,
+        item: Boolean(def.item),
+        progress: 0,
+        claimed: false,
+      };
+    });
+    return {
+      date,
+      weekKey: getWeekKey(),
+      weekDays: [],
+      weeklyBonusClaimed: false,
+      dailyBonusClaimed: false,
+      tasks,
+    };
+  }
+
+  function ensureDailyQuest(profile) {
+    if (!profile || typeof profile !== "object") return null;
+    const today = dayKeyOf();
+    const week = getWeekKey();
+    let data = profile.dailyQuest;
+    const needsRebuild =
+      !data ||
+      typeof data !== "object" ||
+      data.date !== today ||
+      !Array.isArray(data.tasks) ||
+      data.tasks.length !== DAILY_QUEST_COUNT ||
+      data.tasks.some((task) => !task || !DAILY_QUEST_DEFS[task.id]);
+    if (needsRebuild) {
+      data = createDailyQuest(profile, today);
+      profile.dailyQuest = data;
+    }
+    if (data.weekKey !== week) {
+      data.weekKey = week;
+      data.weekDays = [];
+      data.weeklyBonusClaimed = false;
+    }
+    if (!Array.isArray(data.weekDays)) data.weekDays = [];
+    data.weekDays = Array.from(new Set(data.weekDays.filter((day) => typeof day === "string")));
+    if (typeof data.dailyBonusClaimed !== "boolean") data.dailyBonusClaimed = false;
+    if (typeof data.weeklyBonusClaimed !== "boolean") data.weeklyBonusClaimed = false;
+    data.tasks = data.tasks.map((task) => {
+      const def = DAILY_QUEST_DEFS[task.id];
+      return {
+        id: def.id,
+        type: def.type,
+        target: def.target,
+        title: def.title,
+        icon: def.icon,
+        coin: def.coin,
+        item: Boolean(def.item),
+        progress: clampInteger(task.progress, 0, def.target),
+        claimed: Boolean(task.claimed),
+      };
+    });
+    return data;
+  }
+
+  function recordQuestProgress(profile, type, amount = 1) {
+    const data = ensureDailyQuest(profile);
+    if (!data) return;
+    const step = Math.max(1, Number(amount) || 1);
+    data.tasks.forEach((task) => {
+      if (task.type === type && !task.claimed) {
+        task.progress = Math.min(task.target, task.progress + step);
+      }
+    });
+  }
+
+  function grantDailyQuestItem(profile) {
+    const pool = Object.values(SCENE_ITEMS)
+      .flat()
+      .filter((item) => item && typeof item.id === "string" && typeof item.name === "string");
+    if (!pool.length) return null;
+    const item = pool[Math.floor(Math.random() * pool.length)];
+    if (!profile.inventory) profile.inventory = {};
+    profile.inventory[item.id] = (profile.inventory[item.id] || 0) + 1;
+    return item;
+  }
+
+  function markQuestWeekDay(profile) {
+    const data = ensureDailyQuest(profile);
+    if (!data || !data.tasks.every((task) => task.claimed)) return 0;
+    const today = dayKeyOf();
+    if (!data.weekDays.includes(today)) data.weekDays.push(today);
+    if (data.weekDays.length >= DAILY_QUEST_WEEK_DAYS && !data.weeklyBonusClaimed) {
+      data.weeklyBonusClaimed = true;
+      return DAILY_QUEST_WEEK_BONUS;
+    }
+    return 0;
+  }
+
+  function claimDailyQuest(taskId) {
+    const profile = getActiveProfile();
+    const data = ensureDailyQuest(profile);
+    if (!profile || !data) return;
+    const task = data.tasks.find((item) => item.id === taskId);
+    if (!task || task.claimed || task.progress < task.target) return;
+    task.claimed = true;
+    profile.rockbell = (Number(profile.rockbell) || 0) + task.coin;
+    const item = task.item ? grantDailyQuestItem(profile) : null;
+    let extra = 0;
+    if (!data.dailyBonusClaimed && data.tasks.every((item) => item.claimed)) {
+      data.dailyBonusClaimed = true;
+      extra += DAILY_QUEST_ALL_BONUS;
+    }
+    const weekBonus = markQuestWeekDay(profile);
+    extra += weekBonus;
+    profile.rockbell += extra;
+    saveState("今日委托奖励已领取");
+    const parts = [`${task.title}：+${task.coin} 洛克贝`];
+    if (item) parts.push(`获得【${item.name}】×1`);
+    if (extra) parts.push(`额外奖励 +${extra} 洛克贝`);
+    showToast("委托完成", parts.join("，"), "success", 4200);
+    renderRoleModal();
+    render();
+  }
+
+  function buildRoleQuests(profile) {
+    const data = ensureDailyQuest(profile);
+    const box = document.createElement("div");
+    box.className = "daily-quest-view";
+    if (!data) {
+      const empty = document.createElement("p");
+      empty.className = "role-empty";
+      empty.textContent = "委托还没有准备好，稍后再来看看。";
+      box.appendChild(empty);
+      return box;
+    }
+    const claimedCount = data.tasks.filter((task) => task.claimed).length;
+    const head = document.createElement("div");
+    head.className = "daily-quest-head";
+    const headMain = document.createElement("div");
+    const title = document.createElement("h4");
+    title.textContent = "今日委托";
+    const sub = document.createElement("p");
+    sub.textContent = `${data.date.slice(5).replace("-", "/")} · 已领取 ${claimedCount}/${data.tasks.length}`;
+    headMain.append(title, sub);
+    const week = document.createElement("span");
+    week.className = "daily-quest-week";
+    const weekDays = Math.min(DAILY_QUEST_WEEK_DAYS, data.weekDays.length);
+    week.textContent = `本周全清 ${weekDays}/${DAILY_QUEST_WEEK_DAYS} 天${data.weeklyBonusClaimed ? " · 周奖励已领" : ""}`;
+    head.append(headMain, week);
+    box.appendChild(head);
+
+    const list = document.createElement("div");
+    list.className = "daily-quest-list";
+    data.tasks.forEach((task) => {
+      const done = task.progress >= task.target;
+      const row = document.createElement("div");
+      row.className = `daily-quest-row${task.claimed ? " is-claimed" : done ? " is-ready" : ""}`;
+      const icon = document.createElement("span");
+      icon.className = "daily-quest-icon";
+      icon.textContent = task.icon;
+      const main = document.createElement("div");
+      main.className = "daily-quest-main";
+      const name = document.createElement("strong");
+      name.textContent = task.title;
+      const info = document.createElement("span");
+      info.textContent = `进度 ${Math.min(task.progress, task.target)}/${task.target} · 奖励 ${task.coin} 洛克贝${task.item ? " + 1 道具" : ""}`;
+      const bar = document.createElement("div");
+      bar.className = "daily-quest-bar";
+      const fill = document.createElement("span");
+      fill.style.width = `${Math.round((Math.min(task.progress, task.target) / task.target) * 100)}%`;
+      bar.appendChild(fill);
+      main.append(name, info, bar);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "daily-quest-claim";
+      btn.dataset.questClaim = task.id;
+      if (task.claimed) {
+        btn.textContent = "已领";
+        btn.disabled = true;
+      } else if (done) {
+        btn.textContent = "领取";
+      } else {
+        btn.textContent = "进行中";
+        btn.disabled = true;
+      }
+      row.append(icon, main, btn);
+      list.appendChild(row);
+    });
+    box.appendChild(list);
+
+    const foot = document.createElement("p");
+    foot.className = "daily-quest-foot";
+    foot.textContent = data.dailyBonusClaimed
+      ? "今日 3 条已全部领取，额外 20 洛克贝已入账。每天 0 点刷新。"
+      : "每天 0 点刷新；3 条全领额外 20，洛克贝本周完成 5 天再领 60。";
+    box.appendChild(foot);
+    return box;
+  }
+
   function renderRoleModal() {
     const profile = getActiveProfile();
     const area = document.getElementById("rolePanelArea");
@@ -7471,6 +7938,8 @@
       area.appendChild(buildRoleItems(profile));
     } else if (roleModalTab === "clothes") {
       area.appendChild(buildRoleClothes());
+    } else if (roleModalTab === "quest") {
+      area.appendChild(buildRoleQuests(profile));
     } else {
       area.appendChild(buildRoleInfo(profile));
     }
@@ -7566,6 +8035,12 @@
     if (close) close.addEventListener("click", () => { modal.hidden = true; });
     modal.addEventListener("click", (event) => {
       if (event.target === modal) modal.hidden = true;
+    });
+    // 委托领取：内容动态生成，用事件委托，避免每次渲染重复绑定
+    modal.addEventListener("click", (event) => {
+      const claimBtn = event.target.closest("[data-quest-claim]");
+      if (!claimBtn || !modal.contains(claimBtn)) return;
+      claimDailyQuest(claimBtn.dataset.questClaim);
     });
     modal.querySelectorAll("[data-role-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -8200,6 +8675,7 @@
       });
       profile.pets.push(newPet);
       syncActivePet(profile);
+      recordQuestProgress(profile, "catch", 1);
       // 新宠物在最后一页：自动翻到那一页，免得学生以为没抓到
       petTeamPageProfileId = profile.id || "";
       petTeamPage = Math.floor((profile.pets.length - 1) / PETS_PER_PAGE);
@@ -9013,6 +9489,7 @@
     profile.rockbell -= ball.price;
     if (!profile.balls) profile.balls = {};
     profile.balls[ballId] = (profile.balls[ballId] || 0) + 1;
+    recordQuestProgress(profile, "buy_ball", 1);
     saveState("购买成功");
     renderStore("balls");
   }
