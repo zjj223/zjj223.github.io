@@ -32,7 +32,7 @@
 
 /* ---------- 页面骨架 ---------- */
 body{background:var(--ik-ground);color:var(--ik-ink);font:14px/1.65 var(--ik-sans);margin:0}
-.page{max-width:1180px;margin:0 auto;padding:26px 18px 10px}
+.page{max-width:var(--nv-max,1180px);margin:0 auto;padding:26px var(--nv-pad,18px) 10px}
 .page{box-sizing:border-box}
 .page *{box-sizing:border-box}
 .page h1{position:relative;margin:0 0 6px;padding-left:16px;font-family:var(--ik-serif);
