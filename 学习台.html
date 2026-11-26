@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>俊杰侃信奥 · 学习台</title>
+<title>俊杰侃信奥 · 学习笔记</title>
+<link rel="stylesheet" href="nav.css?v=20261126a">
 <style>
   :root{--blue:#2947c9;--blue-d:#1f36a0;--line:#e3e8f2;--ink:#262626;--dim:#98a2b8;--bg:#f4f6fa;--ok:#52c41a}
   *{box-sizing:border-box}
@@ -151,14 +152,8 @@
 </head>
 <body>
 
-<div class="top">
-  <div class="top-in">
-    <span class="logo"><i>J</i>俊杰侃信奥</span>
-    <span class="sp"></span>
-    <span class="who" id="whoName">同学</span>
-    <button class="coin" id="btnCoin">🪙 128</button>
-    <a class="out" id="btnOut" href="index.html">切换账号</a>
-  </div>
+<div class="nav" data-page="note">
+  <div class="nav-in" id="navIn"></div>
 </div>
 
 <div class="wrap">
@@ -216,6 +211,7 @@
 </div>
 
 <script src="data/catalog.js?v=20261124b"></script>
+<script src="nav.js?v=20261126a"></script>
 <script>
 const C = window.CATALOG || { chapters: [] };
 const GROUPS = C.chapters || [];
@@ -266,7 +262,6 @@ function toast(msg) {
 }
 const openProblem = (id) => { if (!NAV.work) return toast('线上副本没有做题页'); location.href = NAV.work + '?pid=' + id; };
 
-document.getElementById('whoName').textContent = readName();
 document.getElementById('navCount').textContent = ALL.length + ' 题';
 
 /* 左栏：大类 → 节，逐组可折叠 */
@@ -468,8 +463,13 @@ document.getElementById('rows').addEventListener('keydown', (e) => {
   if (tr && !tr.classList.contains('closed')) openProblem(tr.dataset.id);
 });
 
-document.getElementById('btnCoin').onclick = () => toast('金币系统还没接通');
-document.getElementById('btnOut').onclick = (e) => { if (!NAV.login) { e.preventDefault(); toast('登录页只在本机'); } };
+/* 从题库页跳转：?g=<组id>&l=<节号> */
+const ps = new URLSearchParams(location.search);
+const pg = ps.get('g'), pl = ps.get('l');
+if (pg) {
+  const gi = GROUPS.findIndex((x) => x.id === pg);
+  if (gi >= 0) { state.g = gi; state.l = pl ? Number(pl) : 'all'; if (pl) collapsed.delete(gi); }
+}
 
 /* 直达：#guide 自学事项；#g3 第三组；#lesson-05 兼容旧链接 */
 const mg = /^#g(\d+)$/.exec(location.hash);
