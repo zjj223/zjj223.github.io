@@ -701,7 +701,6 @@
     explore5: { id: "explore5", type: "explore", target: 5, title: "探索 5 次", icon: "🐾", coin: 10, item: true },
   });
   const SCENE_BOSS_MAX_ATTEMPTS = 3;
-  const SCENE_BOSS_LEVEL_BONUS = 5;
   const SCENE_BOSS_HP_MULT = 1.8;
   const SCENE_BOSS_ATK_MULT = 1.2;
   const SCENE_BOSS_DEF_MULT = 1.2;
@@ -709,6 +708,20 @@
   const SCENE_BOSS_FIRST_ITEM = 2;
   const SCENE_BOSS_REPEAT_COIN = 10;
   const SCENE_BOSS_REPEAT_ITEM = 1;
+
+  // 每个场景一只固定首领：不随机抽野生宠，形象、名字、阶段、等级都固定
+  const SCENE_BOSS_CONFIG = Object.freeze({
+    grassland: { petId: "qili-grass", stage: 1, level: 15, name: "森之守望·奇丽草", desc: "轻风草原的花海守卫，会用藤蔓缠住闯入者。" },
+    volcano: { petId: "fire-god", stage: 2, level: 25, name: "熔岩霸主·火神", desc: "火山口的统治者，脚下的岩石常年被烧成赤红。" },
+    "mermaid-bay": { petId: "water-spirit", stage: 2, level: 35, name: "潮汐守卫·水灵", desc: "人鱼湾的潮汐守卫，能掀起整片海湾的浪。" },
+    academy: { petId: "holy-sword-x", stage: 2, level: 45, name: "学院守卫·圣剑-X", desc: "皇家研究院的机械守卫，剑刃上刻着古老校徽。" },
+    "snow-valley": { petId: "snow-shadow-doll", stage: 3, level: 55, name: "雪谷女王·雪影娃娃", desc: "雪人谷深处的冰霜女王，呼吸会冻结整片雪原。" },
+    "thunder-valley": { petId: "kula", stage: 2, level: 65, name: "雷霆统领·酷拉", desc: "雷霆峡谷的电流统领，尾巴扫过就会炸开雷云。" },
+    "shadow-forest": { petId: "bone-dragon", stage: 2, level: 75, name: "幽林骨王·寂灭骨龙", desc: "幽暗森林的骨王，月光下只剩下一双幽绿的眼。" },
+    "dark-swamp": { petId: "dragon-breath-par", stage: 3, level: 85, name: "沼泽魔龙·龙息帕尔", desc: "暗影沼泽的魔龙，吐息带着腐蚀一切的毒雾。" },
+    "dragon-realm": { petId: "wing-dragon", stage: 2, level: 95, name: "龙境守护·翼龙", desc: "龙之秘境的守门者，双翼展开时能遮住整片天空。" },
+    "sky-city": { petId: "royal-griffin", stage: 3, level: 100, name: "天空霸主·皇家狮鹫", desc: "天空之城的王者，金色羽翼在云层上闪闪发光。" },
+  });
 
   const SCENE_ITEMS = Object.freeze({
     grassland: [
@@ -4108,10 +4121,42 @@
     return { coin, gained };
   }
 
+  function getSceneBossDef(sceneId) {
+    return SCENE_BOSS_CONFIG[sceneId] || null;
+  }
+
+  function createSceneBossPet(sceneId) {
+    const def = getSceneBossDef(sceneId);
+    if (!def) return null;
+    const template = PET_DATABASE.find((pet) => pet.petId === def.petId);
+    if (!template || !template.stages.length) return null;
+    const stageIndex = Math.max(0, Math.min(template.stages.length - 1, Number(def.stage || 1) - 1));
+    const stage = template.stages[stageIndex];
+    const level = clampInteger(def.level, 1, Number.MAX_SAFE_INTEGER);
+    return {
+      petId: template.petId,
+      stage: stageIndex + 1,
+      name: def.name || stage.name,
+      image: stage.image,
+      desc: def.desc || stage.desc || "",
+      type: stage.type || template.type,
+      style: stage.style || template.style,
+      mark: stage.mark || template.mark,
+      level,
+      hpMax: Math.max(1, Math.floor((PET_BASE_HP_MAX + (level - 1) * PET_UPGRADE_HP_GAIN) * SCENE_BOSS_HP_MULT)),
+      attack: Math.max(1, Math.floor(getPetAttack({ level }) * SCENE_BOSS_ATK_MULT)),
+      defense: Math.max(1, Math.floor(getPetDefense({ level }) * SCENE_BOSS_DEF_MULT)),
+      speed: getPetSpeed({ level }),
+      isBoss: true,
+      bossScene: sceneId,
+    };
+  }
+
   function buildSceneBossChip(profile, scene) {
     const spots = SCENE_SPOTS[scene.id] || [];
     const visited = getSceneVisitedCount(profile, scene.id);
     const boss = getSceneBossState(profile, scene.id);
+    const bossPet = createSceneBossPet(scene.id);
     const unlocked = visited >= spots.length;
     const left = Math.max(0, SCENE_BOSS_MAX_ATTEMPTS - boss.attemptsUsed);
     const busy = isExploring || (els.battleModal && !els.battleModal.hidden) || Date.now() < battleCloseAt;
@@ -4119,22 +4164,49 @@
     chip.type = "button";
     chip.className = "scene-boss-chip";
     chip.dataset.bossScene = scene.id;
+
+    const avatarWrap = document.createElement("span");
+    avatarWrap.className = "scene-boss-avatar-wrap";
+    const avatar = document.createElement("img");
+    avatar.className = "scene-boss-avatar";
+    avatar.src = bossPet?.image || "";
+    avatar.alt = bossPet?.name || "场景首领";
+    avatarWrap.appendChild(avatar);
+    const lockBadge = document.createElement("span");
+    lockBadge.className = "scene-boss-lock";
+    lockBadge.textContent = "🔒";
+    avatarWrap.appendChild(lockBadge);
+
+    const copy = document.createElement("span");
+    copy.className = "scene-boss-copy";
+    const kicker = document.createElement("span");
+    kicker.className = "scene-boss-kicker";
+    kicker.textContent = "👑 场景首领";
+    const name = document.createElement("span");
+    name.className = "scene-boss-name";
+    name.textContent = bossPet?.name || "场景首领";
+    const status = document.createElement("span");
+    status.className = "scene-boss-status";
+    copy.append(kicker, name, status);
+    lockBadge.hidden = unlocked;
+
     if (!unlocked) {
       chip.classList.add("is-locked");
-      chip.textContent = `👑 首领未解锁 · 探索点 ${visited}/${spots.length}`;
+      status.textContent = `未解锁 · 探索点 ${visited}/${spots.length}`;
       chip.disabled = true;
       chip.title = "把本场景 6 个探索点各探索 1 次后解锁";
     } else if (left <= 0) {
       chip.classList.add("is-used");
-      chip.textContent = "👑 场景首领 · 本周次数已用完";
+      status.textContent = "本周次数已用完";
       chip.disabled = true;
       chip.title = "每周 3 次，周一 0 点恢复";
     } else {
-      chip.textContent = `👑 场景首领 · 本周剩余 ${left} 次`;
+      status.textContent = `本周剩余 ${left} 次 · 点击对战`;
       chip.disabled = busy;
-      chip.title = "点击挑战场景首领；失败/平局也消耗 1 次";
+      chip.title = "点击场景首领直接开战；失败/平局也消耗 1 次";
     }
-    chip.setAttribute("aria-label", chip.textContent);
+    chip.append(avatarWrap, copy);
+    chip.setAttribute("aria-label", `${kicker.textContent} ${name.textContent}，${status.textContent}`);
     chip.addEventListener("click", () => startSceneBoss(scene.id));
     return chip;
   }
@@ -4159,20 +4231,11 @@
       showToast("本周次数已用完", "场景首领每周 3 次，周一 0 点恢复。", "warning", 2600);
       return;
     }
-    const spots = SCENE_SPOTS[sceneId] || [];
-    const bossPet = generateWildPet(sceneId, Math.max(0, spots.length - 1));
+    const bossPet = createSceneBossPet(sceneId);
     if (!bossPet) {
-      showToast("首领战", "这个场景还没有可用的首领数据。", "warning", 2400);
+      showToast("首领战", "这个场景还没有配置专属首领。", "warning", 2400);
       return;
     }
-    const cfg = WILD_PETS[sceneId];
-    const range = cfg?.levels?.[spots.length - 1] || cfg?.levelRange || [bossPet.level, bossPet.level];
-    bossPet.level = Math.max(bossPet.level, Number(range[1]) + SCENE_BOSS_LEVEL_BONUS);
-    bossPet.hpMax = Math.max(1, Math.floor(bossPet.hpMax * SCENE_BOSS_HP_MULT));
-    bossPet.attack = Math.max(1, Math.floor(bossPet.attack * SCENE_BOSS_ATK_MULT));
-    bossPet.defense = Math.max(1, Math.floor(bossPet.defense * SCENE_BOSS_DEF_MULT));
-    bossPet.name = `首领·${bossPet.name}`;
-    bossPet.isBoss = true;
     bossState.attemptsUsed += 1;
     const firstClearBefore = !bossState.firstClear;
     const battle = simulateBattle(profile.pet, bossPet);
@@ -6927,6 +6990,7 @@
 
     if (els.battlePlayerName) {
       els.battlePlayerName.textContent = `${getPetRarityPrefix(playerPet)}${getPetDisplayName(playerPet)}`;
+      els.battlePlayerName.classList.remove("is-boss");
     }
     if (els.battlePlayerLv) {
       els.battlePlayerLv.textContent = `Lv.${playerPet?.level || 1}${playerPet?.type ? ` · ${playerPet.type}` : ""}`;
@@ -6937,6 +7001,7 @@
       els.battleEnemyName.textContent = `${getPetRarityPrefix(wildPet)}野生 ${
         getPetDisplayName(wildPet)
       }`;
+      els.battleEnemyName.classList.toggle("is-boss", Boolean(wildPet?.isBoss));
     }
     if (els.battleEnemyLv) {
       els.battleEnemyLv.textContent = `Lv.${wildPet?.level || 1}${wildPet?.type ? ` · ${wildPet.type}` : ""}`;
