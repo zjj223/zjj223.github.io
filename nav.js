@@ -130,6 +130,49 @@
     if (document.visibilityState !== 'hidden') fire();
   }, 3000);
 
+  /* ---------------- 身份层：名字就是身份，不用密码 ----------------
+     存在 localStorage["lk.user.v1"] = { name, role:'student'|'teacher', at }
+     优先级：地址栏 ?name= > 登记过的身份 > 游戏存档里的角色名 */
+  var UKEY = 'lk.user.v1';
+  function lkUser() {
+    try {
+      var v = JSON.parse(localStorage.getItem(UKEY) || 'null');
+      if (v && v.name) return { name: String(v.name), role: v.role === 'teacher' ? '老师' : '同学' };
+    } catch (e) {}
+    return null;
+  }
+  function saveUser(name, role) {
+    try { localStorage.setItem(UKEY, JSON.stringify({ name: name, role: role || 'student', at: new Date().toISOString() })); } catch (e) {}
+  }
+  function killUser() { try { localStorage.removeItem(UKEY); } catch (e) {} }
+
+  window.lkUser = { get: lkUser, set: saveUser, clear: killUser };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* 通过题数 / 连续打卡，都从学习台自己的记录里读 */
+  function stat() {
+    var pass = 0, streak = 0;
+    try {
+      var d = JSON.parse(localStorage.getItem('studypage.done') || '[]');
+      if (Array.isArray(d)) pass = d.length;
+      else if (d && typeof d === 'object') pass = Object.keys(d).length;
+    } catch (e) {}
+    try {
+      var ck = JSON.parse(localStorage.getItem('studypage.checkin') || 'null');
+      if (ck != null) {
+        if (typeof ck === 'number') streak = ck;
+        else if (Array.isArray(ck)) streak = ck.length;
+        else streak = Number(ck.streak || ck.days || 0) || 0;
+      }
+    } catch (e) {}
+    return { pass: pass, streak: streak };
+  }
+
   /* ---------------- 渲染 ---------------- */
   function icon(k) {
     return '<svg viewBox="0 0 20 20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5">' + SVG[k] + '</g></svg>';
@@ -137,35 +180,182 @@
 
   var box = document.getElementById('navIn');
   var page = (document.querySelector('.nav') || {}).dataset || {};
-  var qname = WANT || null;
-  var who = qname || window.lkCoin.name();
-  if (!who) who = '同学';
-  var suffix = qname ? '?name=' + encodeURIComponent(qname) : '';
-  var c = window.lkCoin.coin();
+  var state = { qname: WANT || null };
+
+  var suffix = function () {
+    return state.qname ? '?name=' + encodeURIComponent(state.qname) : '';
+  };
+
+  /* 把名字同步进地址栏，游戏那边的云档才认同一个人 */
+  function pushName(n) {
+    state.qname = n;
+    WANT = n;                                   /* 金币也跟着换到这个人的云档 */
+    last = ''; fire();
+    try {
+      if (location.protocol === 'file:') return;              /* 本地文件不改 query，改了反而打不开 */
+      var u = new URL(location.href);
+      if (u.searchParams.get('name') !== n) {
+        u.searchParams.set('name', n);
+        history.replaceState(null, '', u.pathname + u.search + u.hash);
+      }
+    } catch (e) {}
+  }
+  function dropName() {
+    state.qname = null;
+    WANT = '';
+    last = ''; fire();
+    try {
+      if (location.protocol === 'file:') return;
+      var u = new URL(location.href);
+      if (u.searchParams.get('name')) {
+        u.searchParams.delete('name');
+        history.replaceState(null, '', u.pathname + u.search + u.hash);
+      }
+    } catch (e) {}
+  }
+
+  function whoNow() {
+    var u = lkUser();
+    var name = state.qname || (u && u.name) || window.lkCoin.name() || '';
+    return { guest: !name, name: name, user: u, role: (u && u.role) || '同学' };
+  }
+
+  function panelUser(w) {
+    var s = stat(), c = window.lkCoin.coin();
+    var rows = [
+      ['01', '个人主页', '排行榜.html'],
+      ['02', '学习记录', '学习台.html'],
+      ['03', '练习题库', '练习题库.html'],
+      ['04', '我的比赛', '比赛.html'],
+      ['05', '箱庭世界', 'index.html'],
+      ['06', '站内信', '首页.html#mailbar']
+    ];
+    var sub = w.role + (s.pass ? ' · 已通过 ' + s.pass + ' 题' : ' · 还没开始刷') + (s.streak ? ' · 连续 ' + s.streak + ' 天' : '');
+    return '<div class="p-head">' +
+        '<span class="seal">' + esc(w.name.trim().charAt(0)) + '</span>' +
+        '<div class="meta"><b>' + esc(w.name) + '</b><span>' + esc(sub) + '</span></div>' +
+      '</div>' +
+      rows.map(function (r) {
+        return '<a class="p-row" href="' + r[2] + suffix() + '"><em>' + r[0] + '</em><span>' + r[1] + '</span><i>›</i></a>';
+      }).join('') +
+      '<div class="p-foot"><span class="coin"><i></i>' + fmt(c) + ' 洛克贝</span>' +
+        '<button type="button" class="p-quit">退出身份</button></div>';
+  }
+
+  function panelGuest() {
+    return '<div class="p-head">' +
+        '<span class="seal">?</span>' +
+        '<div class="meta"><b>登录</b><span>名字就是身份，不用密码</span></div>' +
+      '</div>' +
+      '<form class="p-form" autocomplete="off">' +
+        '<input name="nm" placeholder="你的名字，如 赵俊杰" maxlength="12">' +
+        '<button type="submit">进入</button>' +
+      '</form>' +
+      '<div class="p-note">下次打开自动带你回来；游戏里的洛克贝也按这个名字归档。</div>';
+  }
+
+  function drawAcc(w) {
+    var host = box && box.querySelector('.nav-acc');
+    if (!host) return;
+    var s = stat();
+    var head = w.guest ? '登录' : w.name;
+    var sub = w.guest ? '未登记' : (s.pass ? '通过 ' + s.pass + ' 题' : '还没刷');
+    host.innerHTML =
+      '<button class="acc' + (w.guest ? ' is-guest' : '') + '" type="button" aria-haspopup="true" aria-expanded="false">' +
+        '<span class="seal">' + esc(w.guest ? '?' : w.name.trim().charAt(0)) + '</span>' +
+        '<span class="txt"><b>' + esc(head) + '</b><i>' + esc(sub) + '</i></span>' +
+        '<span class="cv">▾</span>' +
+      '</button>' +
+      '<div class="acc-panel">' + (w.guest ? panelGuest() : panelUser(w)) + '</div>';
+    bindAcc(host);
+  }
+
+  function refreshAcc() {
+    var w = whoNow();
+    drawAcc(w);
+    return w;
+  }
+
+  function bindAcc(host) {
+    var btn = host.querySelector('.acc');
+    var panel = host.querySelector('.acc-panel');
+
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var open = host.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        var inp = host.querySelector('.p-form input');
+        if (inp) setTimeout(function () { inp.focus(); }, 30);
+      }
+    });
+
+    host.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    var quit = host.querySelector('.p-quit');
+    if (quit) quit.addEventListener('click', function (e) {
+      e.stopPropagation();
+      killUser();
+      dropName();
+      host.classList.remove('open');
+      refreshAcc();
+    });
+
+    var form = host.querySelector('.p-form');
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var inp = form.querySelector('input');
+        var v = (inp.value || '').trim();
+        if (!v) { inp.focus(); return; }
+        saveUser(v, 'student');
+        pushName(v);
+        host.classList.remove('open');
+        refreshAcc();
+      });
+    }
+
+    if (panel) panel.addEventListener('click', function (e) { e.stopPropagation(); });
+  }
 
   if (box) {
     box.innerHTML =
-      '<a class="nav-logo" href="首页.html' + suffix + '"><i>J</i>俊杰侃信奥</a>' +
+      '<a class="nav-logo" href="首页.html' + suffix() + '"><i>J</i>俊杰侃信奥</a>' +
       ITEMS.map(function (it) {
-        return '<a class="nav-item' + (it.k === page.page ? ' on' : '') + '" href="' + it.h + suffix + '">' +
+        return '<a class="nav-item' + (it.k === page.page ? ' on' : '') + '" href="' + it.h + suffix() + '">' +
           icon(it.k) + '<span>' + it.t + '</span></a>';
       }).join('') +
       '<span class="nav-sp"></span>' +
-      '<a class="nav-coin" href="index.html' + suffix + '" title="洛克贝：游戏里探索、战斗、做委托挣的"><i></i><span class="num">' + fmt(c) + '</span></a>' +
-      '<a class="nav-user" href="index.html' + suffix + '"><span class="nm">' + who + '</span><span class="c">▾</span></a>';
+      '<a class="nav-coin" href="index.html' + suffix() + '" title="洛克贝：游戏里探索、战斗、做委托挣的"><i></i><span class="num">' + fmt(window.lkCoin.coin()) + '</span></a>' +
+      '<div class="nav-acc"></div>';
+
+    refreshAcc();
 
     /* 存档一变，数字和名字当场跟着变，不用刷新 */
     window.lkCoin.on(function (r) {
       var num = box.querySelector('.nav-coin .num');
       if (num) num.textContent = fmt(r.coin);
-      if (!qname) {
-        var nm = box.querySelector('.nav-user .nm');
-        if (nm && r.name) nm.textContent = r.name;
-      }
+      var host = box.querySelector('.nav-acc');
+      /* 面板开着时不重建，免得把正在输入的名字冲掉 */
+      if (host && !host.classList.contains('open') && !lkUser() && !state.qname) refreshAcc();
     });
   }
+
+  document.addEventListener('click', function () {
+    var host = document.querySelector('.nav-acc');
+    if (host) {
+      host.classList.remove('open');
+      var btn = host.querySelector('.acc');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    var host = document.querySelector('.nav-acc');
+    if (host) host.classList.remove('open');
+  });
 
   /* 游戏页若也挂了本导航，游戏内加/花洛克贝后通知一次 */
   window.addEventListener('pagehide', function () { try { window.lkCoin.notify(); } catch (e) {} });
 })();
-
