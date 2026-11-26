@@ -2503,6 +2503,16 @@ button:focus-visible {
   color: #666;
 }
 
+.capture-guarantee-hint {
+  margin: -2px 0 10px !important;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fff7d6;
+  color: #9a6a00 !important;
+  font-size: 13px !important;
+  font-weight: 700;
+}
+
 .capture-ball-list {
   display: flex;
   flex-direction: column;
