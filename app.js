@@ -7833,6 +7833,7 @@
         icon: def.icon,
         coin: def.coin,
         item: Boolean(def.item),
+        itemCount: def.item ? WEEKLY_QUEST_TASK_ITEM : 0,
         progress: 0,
         claimed: false,
       };
@@ -7889,6 +7890,7 @@
         icon: def.icon,
         coin: def.coin,
         item: Boolean(def.item),
+        itemCount: def.item ? WEEKLY_QUEST_TASK_ITEM : 0,
         progress: clampInteger(task.progress, 0, def.target),
         claimed: Boolean(task.claimed),
       };
@@ -7935,7 +7937,11 @@
     if (!task || task.claimed || task.progress < task.target) return;
     task.claimed = true;
     profile.rockbell = (Number(profile.rockbell) || 0) + task.coin;
-    const item = task.item ? grantWeeklyQuestItem(profile) : null;
+    const items = [];
+    for (let i = 0; i < (Number(task.itemCount) || 0); i += 1) {
+      const item = grantWeeklyQuestItem(profile);
+      if (item) items.push(item);
+    }
     let extra = 0;
     const extraItems = [];
     if (!data.allBonusClaimed && data.tasks.every((item) => item.claimed)) {
@@ -7949,7 +7955,7 @@
     profile.rockbell += extra;
     saveState("本周任务奖励已领取");
     const parts = [`${task.title}：+${task.coin} 洛克贝`];
-    if (item) parts.push(`获得【${item.name}】×1`);
+    if (items.length) parts.push(`获得 ${items.map((it) => `【${it.name}】`).join("、")}`);
     if (extra) parts.push(`全清额外 +${extra} 洛克贝`);
     if (extraItems.length) parts.push(`全清道具 ${extraItems.map((it) => `【${it.name}】`).join("、")}`);
     showToast("本周任务完成", parts.join("，"), "success", 4200);
@@ -7998,7 +8004,7 @@
       const name = document.createElement("strong");
       name.textContent = task.title;
       const info = document.createElement("span");
-      info.textContent = `进度 ${Math.min(task.progress, task.target)}/${task.target} · 奖励 ${task.coin} 洛克贝${task.item ? " + 1 道具" : ""}`;
+      info.textContent = `进度 ${Math.min(task.progress, task.target)}/${task.target} · 奖励 ${task.coin} 洛克贝${task.itemCount ? ` + ${task.itemCount} 道具` : ""}`;
       const bar = document.createElement("div");
       bar.className = "daily-quest-bar";
       const fill = document.createElement("span");
