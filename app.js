@@ -1169,6 +1169,7 @@
   let captureTimerId = null; // 战斗胜利后等待 3400ms 再打开捕捉窗的定时器
   let captureCloseTimerId = null; // 捕捉成功/失败后 1500ms 自动关闭的定时器
   let captureSessionId = 0; // 每次捕捉窗的唯一会话号，旧定时器不得操作新窗
+  let captureImageToken = 0; // 防止上一只宠物的图片加载回调覆盖当前捕捉窗
   let encounterId = 0; // 每次探索的唯一遭遇号，旧捕捉不得串到新战斗
   // 本地存档键：老师端用全班存档，学生登录后切到自己的独立缓存，避免互相覆盖
   let activeStorageKey = STORAGE_KEY;
@@ -6775,6 +6776,7 @@
   // ===== 战斗演出系统 =====
   let battleTimers = [];
   let battleCloseAt = 0; // 战斗弹窗预计关闭的时间戳，用于给其他演出让位
+  let battleSpriteToken = 0; // 防止上一只宠物的图片加载回调覆盖当前战斗
 
   function clearBattleTimers() {
     battleTimers.forEach((timerId) => clearTimeout(timerId));
@@ -6788,23 +6790,30 @@
   }
 
   function setBattleSprite(imgEl, fallbackEl, src) {
-    if (imgEl) {
-      imgEl.onerror = () => {
-        imgEl.style.display = "none";
-        if (fallbackEl) fallbackEl.hidden = false;
-      };
-      imgEl.onload = () => {
-        if (fallbackEl) fallbackEl.hidden = true;
-      };
-      if (src) {
-        imgEl.src = src;
-        imgEl.style.display = "";
-      } else {
-        imgEl.removeAttribute("src");
-        imgEl.style.display = "none";
-      }
+    if (!imgEl) return;
+    const token = String(++battleSpriteToken);
+    imgEl.dataset.spriteToken = token;
+    imgEl.onerror = () => {
+      if (imgEl.dataset.spriteToken !== token) return;
+      imgEl.style.display = "none";
+      if (fallbackEl) fallbackEl.hidden = false;
+    };
+    imgEl.onload = () => {
+      if (imgEl.dataset.spriteToken !== token) return;
+      imgEl.style.display = "";
+      if (fallbackEl) fallbackEl.hidden = true;
+    };
+    if (src) {
+      // 先隐藏旧图，等新图加载完成再显示，避免名字已换、图片还是上一只
+      imgEl.style.display = "none";
+      if (fallbackEl) fallbackEl.hidden = false;
+      imgEl.removeAttribute("src");
+      imgEl.setAttribute("src", src);
+    } else {
+      imgEl.removeAttribute("src");
+      imgEl.style.display = "none";
+      if (fallbackEl) fallbackEl.hidden = false;
     }
-    if (fallbackEl) fallbackEl.hidden = Boolean(src);
   }
 
   function updateBattleHp(fillEl, numEl, hp, maxHp) {
@@ -8570,13 +8579,21 @@
     captureLocked = false;
     if (!els.captureModal) return;
 
-    // 每次打开都先把上一次 404 留下的隐藏状态复位
-    els.capturePetImage.style.display = "";
+    // 每次打开都先把上一次 404 留下的隐藏状态复位，并等新图加载完成再显示
+    const imageToken = String(++captureImageToken);
+    els.capturePetImage.dataset.captureToken = imageToken;
     els.capturePetImage.onerror = () => {
+      if (els.capturePetImage.dataset.captureToken !== imageToken) return;
       els.capturePetImage.style.display = "none";
     };
+    els.capturePetImage.onload = () => {
+      if (els.capturePetImage.dataset.captureToken !== imageToken) return;
+      els.capturePetImage.style.display = "";
+    };
     if (wildPet.image) {
-      els.capturePetImage.src = wildPet.image;
+      els.capturePetImage.style.display = "none";
+      els.capturePetImage.removeAttribute("src");
+      els.capturePetImage.setAttribute("src", wildPet.image);
     } else {
       els.capturePetImage.removeAttribute("src");
       els.capturePetImage.style.display = "none";
