@@ -684,22 +684,36 @@
   const ITEM_DROP_CHANCE = 0.18;
   const BOND_NAME_UNLOCK_LEVEL = 3;
 
-  // ===== 今日委托 / 场景首领（第一批扩展玩法） =====
-  // 数值全部集中在这里，后续调平衡只改常量。
-  const DAILY_QUEST_COUNT = 3;
-  const DAILY_QUEST_ALL_BONUS = 20;
-  const DAILY_QUEST_WEEK_DAYS = 5;
-  const DAILY_QUEST_WEEK_BONUS = 60;
-  const DAILY_QUEST_DEFS = Object.freeze({
-    explore3: { id: "explore3", type: "explore", target: 3, title: "探索 3 次", icon: "🧭", coin: 10, item: true },
-    battle2: { id: "battle2", type: "battle", target: 2, title: "战斗 2 场", icon: "⚔️", coin: 10, item: true },
-    catch1: { id: "catch1", type: "catch", target: 1, title: "捕捉 1 只宠物", icon: "🪄", coin: 10, item: true },
-    list1: { id: "list1", type: "list", target: 1, title: "上架 1 件道具", icon: "🏪", coin: 10, item: true },
-    buyball1: { id: "buyball1", type: "buy_ball", target: 1, title: "买 1 个咕噜球", icon: "🔮", coin: 10, item: true },
-    like1: { id: "like1", type: "like", target: 1, title: "给同学点 1 个赞", icon: "👍", coin: 10, item: true },
-    spot5: { id: "spot5", type: "spot5", target: 1, title: "探索第 5 个探索点", icon: "🌟", coin: 10, item: true },
-    explore5: { id: "explore5", type: "explore", target: 5, title: "探索 5 次", icon: "🐾", coin: 10, item: true },
+  // ===== 每周任务 / 邮件 / 场景首领（扩展玩法） =====
+  // 每周一 0 点刷新一轮，不做日活；所有数值集中在这里，调平衡只改常量。
+  const WEEKLY_QUEST_COUNT = 3;
+  const WEEKLY_QUEST_TASK_COIN = 20;
+  const WEEKLY_QUEST_TASK_ITEM = 1;
+  const WEEKLY_QUEST_ALL_BONUS = 30;
+  const WEEKLY_QUEST_ALL_ITEM = 2;
+  const WEEKLY_QUEST_DEFS = Object.freeze({
+    explore12: { id: "explore12", type: "explore", target: 12, title: "探索 12 次", icon: "🧭", coin: WEEKLY_QUEST_TASK_COIN, item: true },
+    explore18: { id: "explore18", type: "explore", target: 18, title: "探索 18 次", icon: "🐾", coin: WEEKLY_QUEST_TASK_COIN, item: true },
+    battle5: { id: "battle5", type: "battle", target: 5, title: "战斗 5 场", icon: "⚔️", coin: WEEKLY_QUEST_TASK_COIN, item: true },
+    catch2: { id: "catch2", type: "catch", target: 2, title: "捕捉 2 只宠物", icon: "🪄", coin: WEEKLY_QUEST_TASK_COIN, item: true },
+    list2: { id: "list2", type: "list", target: 2, title: "上架 2 件道具", icon: "🏪", coin: WEEKLY_QUEST_TASK_COIN, item: true },
+    buyball3: { id: "buyball3", type: "buy_ball", target: 3, title: "买 3 个咕噜球", icon: "🔮", coin: WEEKLY_QUEST_TASK_COIN, item: true },
+    like3: { id: "like3", type: "like", target: 3, title: "给同学点 3 个赞", icon: "👍", coin: WEEKLY_QUEST_TASK_COIN, item: true },
+    spot5x3: { id: "spot5x3", type: "spot5", target: 3, title: "探索第 5 个点 3 次", icon: "🌟", coin: WEEKLY_QUEST_TASK_COIN, item: true },
   });
+
+  // 系统邮件：新增补偿/奖励时在这里加一条，id 唯一；所有账号下次打开自动收到，已领不会重复。
+  const SYSTEM_MAILS = Object.freeze([
+    {
+      id: "welcome-20261126",
+      sender: "卡罗西亚邮局",
+      title: "欢迎来到卡罗西亚",
+      date: "2026-11-26",
+      icon: "🎁",
+      body: "训练师你好，邮局已经开通。以后的首领补偿、活动奖励和临时补发都会送到这里，记得每周来看看。",
+      rewards: { coin: 20, balls: [{ id: "ball1", count: 2 }] },
+    },
+  ]);
   const SCENE_BOSS_MAX_ATTEMPTS = 3;
   const SCENE_BOSS_HP_MULT = 1.8;
   const SCENE_BOSS_ATK_MULT = 1.2;
@@ -2062,6 +2076,8 @@
       };
 
       document.getElementById("dockPet")?.addEventListener("click", () => show("petModal"));
+      document.getElementById("dockTasks")?.addEventListener("click", () => openQuestModal());
+      document.getElementById("dockMail")?.addEventListener("click", () => openMailModal());
       document.getElementById("dockShop")?.addEventListener("click", () => {
         renderShop(currentShopTab);
         show("shopModal");
@@ -3156,6 +3172,7 @@
     els.publishRankReward?.addEventListener("click", publishRankReward);
     els.resetGuide?.addEventListener("click", handleResetGuide);
     setupRoleModal();
+    setupSideModals();
     setupPetTabs();
 
     // 场景道具抽屉：点顶栏胶囊开合
@@ -3339,9 +3356,15 @@
       // 五行觉醒活动：最近一次弹出主题提醒的日期（YYYY-MM-DD），每天只弹一次
       wuxingNoticeDate:
         typeof profile?.wuxingNoticeDate === "string" ? profile.wuxingNoticeDate : "",
-      // 今日委托：跨天重建，跨周重置周进度（旧账号缺失时首次访问自动创建）
+      // 今日委托（旧字段）：只用于首次迁移进度，迁移后不再读取
       dailyQuest:
         profile?.dailyQuest && typeof profile.dailyQuest === "object" ? profile.dailyQuest : null,
+      // 本周任务：周一 0 点刷新，3 条，全清额外奖励
+      weeklyQuest:
+        profile?.weeklyQuest && typeof profile.weeklyQuest === "object" ? profile.weeklyQuest : null,
+      // 邮箱：系统补偿 / 活动奖励 / 已读已领状态
+      mailbox:
+        profile?.mailbox && typeof profile.mailbox === "object" ? profile.mailbox : { mails: [] },
       // 场景首领：按场景记录探索点访问与本消费次数
       sceneProgress:
         profile?.sceneProgress && typeof profile.sceneProgress === "object" ? profile.sceneProgress : {},
@@ -5184,6 +5207,7 @@
     els.activeGender.textContent = genderLabel(profile.gender);
     els.rockbell.textContent = String(profile.rockbell);
     renderDockProfile(profile);
+    updateDockBadges(profile);
     if (profile.pet) {
       const bondLv = profile.pet.bond || 0;
       const statusLv = document.createElement("span");
@@ -7758,41 +7782,49 @@
     render();
   }
 
-  // ===== 今日委托：跨天重建、进度、领取、周奖励 =====
+  // ===== 每周任务：周一 0 点刷新、进度、领取、全清奖励 =====
+  function getWeekRangeText(weekKey) {
+    const start = new Date(`${weekKey}T00:00:00`);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    const short = (d) => `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+    return `${short(start)}-${short(end)}`;
+  }
+
   function isQuestEligible(taskDef, profile) {
     if (!taskDef || !profile) return false;
     const type = taskDef.type;
     if (type === "battle" || type === "catch") {
       if (!profile.pet) return false;
     }
-    if (type === "catch" && (profile.pets || []).length >= MAX_PETS) return false;
+    if (type === "catch" && (profile.pets || []).length > MAX_PETS - 2) return false;
     if (type === "list") {
       const total = Object.values(profile.inventory || {}).reduce((sum, n) => sum + (Number(n) || 0), 0);
-      if (total <= 0) return false;
+      if (total < 2) return false;
     }
-    if (type === "buy_ball" && (Number(profile.rockbell) || 0) < 6) return false;
+    if (type === "buy_ball" && (Number(profile.rockbell) || 0) < 18) return false;
     if (type === "like" && (!state?.profiles || state.profiles.length <= 1)) return false;
     return true;
   }
 
-  function createDailyQuest(profile, date) {
+  function createWeeklyQuest(profile, weekKey) {
     const picked = [];
     const addTask = (id) => {
-      if (id && DAILY_QUEST_DEFS[id] && !picked.includes(id)) picked.push(id);
+      if (id && WEEKLY_QUEST_DEFS[id] && !picked.includes(id)) picked.push(id);
     };
-    addTask("explore3");
-    const candidates = ["battle2", "catch1", "list1", "buyball1", "like1", "spot5"]
-      .filter((id) => isQuestEligible(DAILY_QUEST_DEFS[id], profile));
+    addTask("explore12");
+    const candidates = ["battle5", "catch2", "list2", "buyball3", "like3", "spot5x3"]
+      .filter((id) => isQuestEligible(WEEKLY_QUEST_DEFS[id], profile));
     for (let i = candidates.length - 1; i > 0; i -= 1) {
       const j = Math.floor(Math.random() * (i + 1));
       [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
     }
     candidates.slice(0, 2).forEach(addTask);
-    ["explore5", "spot5", "battle2", "explore3"].forEach((id) => {
-      if (picked.length < DAILY_QUEST_COUNT) addTask(id);
+    ["explore18", "spot5x3", "list2", "buyball3", "catch2"].forEach((id) => {
+      if (picked.length < WEEKLY_QUEST_COUNT) addTask(id);
     });
-    const tasks = picked.slice(0, DAILY_QUEST_COUNT).map((id) => {
-      const def = DAILY_QUEST_DEFS[id];
+    const tasks = picked.slice(0, WEEKLY_QUEST_COUNT).map((id) => {
+      const def = WEEKLY_QUEST_DEFS[id];
       return {
         id: def.id,
         type: def.type,
@@ -7806,42 +7838,49 @@
       };
     });
     return {
-      date,
-      weekKey: getWeekKey(),
-      weekDays: [],
-      weeklyBonusClaimed: false,
-      dailyBonusClaimed: false,
+      weekKey,
       tasks,
+      allBonusClaimed: false,
     };
   }
 
-  function ensureDailyQuest(profile) {
+  function ensureWeeklyQuest(profile) {
     if (!profile || typeof profile !== "object") return null;
-    const today = dayKeyOf();
     const week = getWeekKey();
-    let data = profile.dailyQuest;
+    let data = profile.weeklyQuest;
     const needsRebuild =
       !data ||
       typeof data !== "object" ||
-      data.date !== today ||
+      data.weekKey !== week ||
       !Array.isArray(data.tasks) ||
-      data.tasks.length !== DAILY_QUEST_COUNT ||
-      data.tasks.some((task) => !task || !DAILY_QUEST_DEFS[task.id]);
+      data.tasks.length !== WEEKLY_QUEST_COUNT ||
+      data.tasks.some((task) => !task || !WEEKLY_QUEST_DEFS[task.id]);
+    let created = false;
     if (needsRebuild) {
-      data = createDailyQuest(profile, today);
-      profile.dailyQuest = data;
+      // 首次从旧版今日委托迁移：同一周内按任务类型保留已有进度，不重新从 0 开始。
+      const legacy = profile.dailyQuest;
+      data = createWeeklyQuest(profile, week);
+      created = true;
+      if (
+        legacy &&
+        typeof legacy === "object" &&
+        legacy.weekKey === week &&
+        Array.isArray(legacy.tasks)
+      ) {
+        data.tasks.forEach((task) => {
+          const oldTask = legacy.tasks.find(
+            (item) => item && item.type === task.type && !item.claimed,
+          );
+          if (oldTask) {
+            task.progress = clampInteger(oldTask.progress, 0, task.target);
+          }
+        });
+      }
+      profile.weeklyQuest = data;
     }
-    if (data.weekKey !== week) {
-      data.weekKey = week;
-      data.weekDays = [];
-      data.weeklyBonusClaimed = false;
-    }
-    if (!Array.isArray(data.weekDays)) data.weekDays = [];
-    data.weekDays = Array.from(new Set(data.weekDays.filter((day) => typeof day === "string")));
-    if (typeof data.dailyBonusClaimed !== "boolean") data.dailyBonusClaimed = false;
-    if (typeof data.weeklyBonusClaimed !== "boolean") data.weeklyBonusClaimed = false;
+    if (typeof data.allBonusClaimed !== "boolean") data.allBonusClaimed = false;
     data.tasks = data.tasks.map((task) => {
-      const def = DAILY_QUEST_DEFS[task.id];
+      const def = WEEKLY_QUEST_DEFS[task.id];
       return {
         id: def.id,
         type: def.type,
@@ -7854,11 +7893,17 @@
         claimed: Boolean(task.claimed),
       };
     });
+    if (created) saveState("本周任务已刷新");
     return data;
   }
 
+  // 兼容旧调用名；现在返回的是本周任务。
+  function ensureDailyQuest(profile) {
+    return ensureWeeklyQuest(profile);
+  }
+
   function recordQuestProgress(profile, type, amount = 1) {
-    const data = ensureDailyQuest(profile);
+    const data = ensureWeeklyQuest(profile);
     if (!data) return;
     const step = Math.max(1, Number(amount) || 1);
     data.tasks.forEach((task) => {
@@ -7868,7 +7913,7 @@
     });
   }
 
-  function grantDailyQuestItem(profile) {
+  function grantWeeklyQuestItem(profile) {
     const pool = Object.values(SCENE_ITEMS)
       .flat()
       .filter((item) => item && typeof item.id === "string" && typeof item.name === "string");
@@ -7879,52 +7924,48 @@
     return item;
   }
 
-  function markQuestWeekDay(profile) {
-    const data = ensureDailyQuest(profile);
-    if (!data || !data.tasks.every((task) => task.claimed)) return 0;
-    const today = dayKeyOf();
-    if (!data.weekDays.includes(today)) data.weekDays.push(today);
-    if (data.weekDays.length >= DAILY_QUEST_WEEK_DAYS && !data.weeklyBonusClaimed) {
-      data.weeklyBonusClaimed = true;
-      return DAILY_QUEST_WEEK_BONUS;
-    }
-    return 0;
-  }
+  // 兼容旧调用名
+  const grantDailyQuestItem = grantWeeklyQuestItem;
 
   function claimDailyQuest(taskId) {
     const profile = getActiveProfile();
-    const data = ensureDailyQuest(profile);
+    const data = ensureWeeklyQuest(profile);
     if (!profile || !data) return;
     const task = data.tasks.find((item) => item.id === taskId);
     if (!task || task.claimed || task.progress < task.target) return;
     task.claimed = true;
     profile.rockbell = (Number(profile.rockbell) || 0) + task.coin;
-    const item = task.item ? grantDailyQuestItem(profile) : null;
+    const item = task.item ? grantWeeklyQuestItem(profile) : null;
     let extra = 0;
-    if (!data.dailyBonusClaimed && data.tasks.every((item) => item.claimed)) {
-      data.dailyBonusClaimed = true;
-      extra += DAILY_QUEST_ALL_BONUS;
+    const extraItems = [];
+    if (!data.allBonusClaimed && data.tasks.every((item) => item.claimed)) {
+      data.allBonusClaimed = true;
+      extra += WEEKLY_QUEST_ALL_BONUS;
+      for (let i = 0; i < WEEKLY_QUEST_ALL_ITEM; i += 1) {
+        const extraItem = grantWeeklyQuestItem(profile);
+        if (extraItem) extraItems.push(extraItem);
+      }
     }
-    const weekBonus = markQuestWeekDay(profile);
-    extra += weekBonus;
     profile.rockbell += extra;
-    saveState("今日委托奖励已领取");
+    saveState("本周任务奖励已领取");
     const parts = [`${task.title}：+${task.coin} 洛克贝`];
     if (item) parts.push(`获得【${item.name}】×1`);
-    if (extra) parts.push(`额外奖励 +${extra} 洛克贝`);
-    showToast("委托完成", parts.join("，"), "success", 4200);
+    if (extra) parts.push(`全清额外 +${extra} 洛克贝`);
+    if (extraItems.length) parts.push(`全清道具 ${extraItems.map((it) => `【${it.name}】`).join("、")}`);
+    showToast("本周任务完成", parts.join("，"), "success", 4200);
     renderRoleModal();
+    renderQuestModal();
     render();
   }
 
   function buildRoleQuests(profile) {
-    const data = ensureDailyQuest(profile);
+    const data = ensureWeeklyQuest(profile);
     const box = document.createElement("div");
     box.className = "daily-quest-view";
     if (!data) {
       const empty = document.createElement("p");
       empty.className = "role-empty";
-      empty.textContent = "委托还没有准备好，稍后再来看看。";
+      empty.textContent = "任务还没有准备好，稍后再来看看。";
       box.appendChild(empty);
       return box;
     }
@@ -7933,14 +7974,13 @@
     head.className = "daily-quest-head";
     const headMain = document.createElement("div");
     const title = document.createElement("h4");
-    title.textContent = "今日委托";
+    title.textContent = "本周任务";
     const sub = document.createElement("p");
-    sub.textContent = `${data.date.slice(5).replace("-", "/")} · 已领取 ${claimedCount}/${data.tasks.length}`;
+    sub.textContent = `${getWeekRangeText(data.weekKey)} · 已领取 ${claimedCount}/${data.tasks.length}`;
     headMain.append(title, sub);
     const week = document.createElement("span");
     week.className = "daily-quest-week";
-    const weekDays = Math.min(DAILY_QUEST_WEEK_DAYS, data.weekDays.length);
-    week.textContent = `本周全清 ${weekDays}/${DAILY_QUEST_WEEK_DAYS} 天${data.weeklyBonusClaimed ? " · 周奖励已领" : ""}`;
+    week.textContent = `本周 ${claimedCount}/${data.tasks.length}${data.allBonusClaimed ? " · 全清奖励已领" : ""}`;
     head.append(headMain, week);
     box.appendChild(head);
 
@@ -7985,11 +8025,338 @@
 
     const foot = document.createElement("p");
     foot.className = "daily-quest-foot";
-    foot.textContent = data.dailyBonusClaimed
-      ? "今日 3 条已全部领取，额外 20 洛克贝已入账。每天 0 点刷新。"
-      : "每天 0 点刷新；3 条全领额外 20，洛克贝本周完成 5 天再领 60。";
+    foot.textContent = data.allBonusClaimed
+      ? "本周 3 条已全部领取，全清额外 30 洛克贝 + 2 道具已入账。每周一 0 点刷新。"
+      : "每周一 0 点刷新；3 条全领额外 30 洛克贝 + 2 道具。";
     box.appendChild(foot);
     return box;
+  }
+
+  // ===== 邮件：系统补偿 / 活动奖励 / 领取入账 =====
+  function normalizeMailRewards(rewards) {
+    const source = rewards && typeof rewards === "object" ? rewards : {};
+    const items = Array.isArray(source.items)
+      ? source.items
+          .filter((item) => item && typeof item.id === "string")
+          .map((item) => ({ id: item.id, count: clampInteger(item.count, 1, 99) }))
+      : [];
+    const balls = Array.isArray(source.balls)
+      ? source.balls
+          .filter((ball) => ball && typeof ball.id === "string")
+          .map((ball) => ({ id: ball.id, count: clampInteger(ball.count, 1, 99) }))
+      : [];
+    return {
+      coin: clampInteger(source.coin, 0, 9999),
+      items,
+      balls,
+    };
+  }
+
+  function normalizeMail(raw, fallback = {}) {
+    if (!raw || typeof raw !== "object" || typeof raw.id !== "string") return null;
+    return {
+      id: raw.id,
+      sender: String(raw.sender || fallback.sender || "系统"),
+      title: String(raw.title || fallback.title || "系统邮件"),
+      date: String(raw.date || fallback.date || dayKeyOf()),
+      icon: String(raw.icon || fallback.icon || "✉️"),
+      body: String(raw.body || fallback.body || ""),
+      rewards: normalizeMailRewards(raw.rewards || fallback.rewards),
+      read: Boolean(raw.read),
+      claimed: Boolean(raw.claimed),
+    };
+  }
+
+  function ensureMailbox(profile) {
+    if (!profile || typeof profile !== "object") return null;
+    if (!profile.mailbox || typeof profile.mailbox !== "object" || !Array.isArray(profile.mailbox.mails)) {
+      profile.mailbox = { mails: [] };
+    }
+    const existing = new Map();
+    profile.mailbox.mails.forEach((mail) => {
+      const normalized = normalizeMail(mail);
+      if (normalized && !existing.has(normalized.id)) existing.set(normalized.id, normalized);
+    });
+    // 系统邮件按 id 只补一次；已有记录保留已读/已领状态。
+    let created = false;
+    SYSTEM_MAILS.forEach((mail) => {
+      if (existing.has(mail.id)) return;
+      const normalized = normalizeMail(
+        { ...mail, read: false, claimed: false },
+        mail,
+      );
+      if (normalized) {
+        existing.set(normalized.id, normalized);
+        created = true;
+      }
+    });
+    profile.mailbox.mails = Array.from(existing.values()).sort((a, b) => {
+      if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return a.id < b.id ? 1 : -1;
+    });
+    if (created) saveState("新邮件");
+    return profile.mailbox;
+  }
+
+  function mailHasRewards(mail) {
+    if (!mail || !mail.rewards) return false;
+    return mail.rewards.coin > 0 || mail.rewards.items.length > 0 || mail.rewards.balls.length > 0;
+  }
+
+  function findSceneItemById(itemId) {
+    for (const group of Object.values(SCENE_ITEMS)) {
+      const item = group.find((entry) => entry && entry.id === itemId);
+      if (item) return item;
+    }
+    return null;
+  }
+
+  function grantMailReward(profile, mail) {
+    if (!profile || !mail || !mailHasRewards(mail) || mail.claimed) return [];
+    const labels = [];
+    const rewards = normalizeMailRewards(mail.rewards);
+    if (rewards.coin > 0) {
+      profile.rockbell = (Number(profile.rockbell) || 0) + rewards.coin;
+      labels.push(`+${rewards.coin} 洛克贝`);
+    }
+    rewards.items.forEach((reward) => {
+      const item = findSceneItemById(reward.id);
+      if (!item) return;
+      if (!profile.inventory) profile.inventory = {};
+      profile.inventory[item.id] = (profile.inventory[item.id] || 0) + reward.count;
+      labels.push(`【${item.name}】×${reward.count}`);
+    });
+    rewards.balls.forEach((reward) => {
+      const ball = BALL_TYPES.find((entry) => entry.id === reward.id);
+      if (!ball) return;
+      if (!profile.balls) profile.balls = {};
+      profile.balls[ball.id] = (profile.balls[ball.id] || 0) + reward.count;
+      labels.push(`【${ball.name}】×${reward.count}`);
+    });
+    mail.claimed = true;
+    mail.read = true;
+    return labels;
+  }
+
+  function claimMail(mailId) {
+    const profile = getActiveProfile();
+    const mailbox = ensureMailbox(profile);
+    if (!profile || !mailbox) return;
+    const mail = mailbox.mails.find((entry) => entry.id === mailId);
+    if (!mail || mail.claimed) return;
+    if (!mailHasRewards(mail)) {
+      mail.read = true;
+      saveState("邮件已读");
+      renderMailModal();
+      render();
+      return;
+    }
+    const labels = grantMailReward(profile, mail);
+    saveState("邮件奖励已领取");
+    showToast("邮件奖励", labels.join("，"), "success", 4200);
+    renderMailModal();
+    render();
+  }
+
+  function claimAllMails() {
+    const profile = getActiveProfile();
+    const mailbox = ensureMailbox(profile);
+    if (!profile || !mailbox) return;
+    const labels = [];
+    mailbox.mails.forEach((mail) => {
+      if (mail.claimed || !mailHasRewards(mail)) return;
+      labels.push(...grantMailReward(profile, mail));
+    });
+    if (!labels.length) return;
+    saveState("邮件奖励已全部领取");
+    showToast("邮件奖励", `一键领取：${labels.join("，")}`, "success", 4800);
+    renderMailModal();
+    render();
+  }
+
+  function markMailRead(mailId) {
+    const profile = getActiveProfile();
+    const mailbox = ensureMailbox(profile);
+    if (!profile || !mailbox) return;
+    const mail = mailbox.mails.find((entry) => entry.id === mailId);
+    if (!mail || mail.read) return;
+    mail.read = true;
+    saveState("邮件已读");
+    renderMailModal();
+    updateDockBadges(profile);
+  }
+
+  function buildMailView(profile) {
+    const mailbox = ensureMailbox(profile);
+    const box = document.createElement("div");
+    box.className = "mail-view";
+    if (!mailbox) {
+      const empty = document.createElement("p");
+      empty.className = "role-empty";
+      empty.textContent = "还没有邮件。";
+      box.appendChild(empty);
+      return box;
+    }
+    const unread = mailbox.mails.filter((mail) => !mail.read).length;
+    const claimable = mailbox.mails.filter((mail) => !mail.claimed && mailHasRewards(mail)).length;
+    const head = document.createElement("div");
+    head.className = "mail-head";
+    const headMain = document.createElement("div");
+    const title = document.createElement("h4");
+    title.textContent = "收件箱";
+    const sub = document.createElement("p");
+    sub.textContent = `${unread} 封未读 · ${claimable} 封待领取 · 补偿和奖励都会送到这里。`;
+    headMain.append(title, sub);
+    const claimAll = document.createElement("button");
+    claimAll.type = "button";
+    claimAll.className = "mail-claim-all";
+    claimAll.dataset.mailClaimAll = "1";
+    claimAll.textContent = claimable ? `一键领取（${claimable}）` : "没有可领奖励";
+    claimAll.disabled = claimable === 0;
+    head.append(headMain, claimAll);
+    box.appendChild(head);
+
+    const list = document.createElement("div");
+    list.className = "mail-list";
+    if (!mailbox.mails.length) {
+      const empty = document.createElement("p");
+      empty.className = "mail-empty";
+      empty.textContent = "暂时没有邮件。";
+      list.appendChild(empty);
+    }
+    mailbox.mails.forEach((mail) => {
+      const card = document.createElement("div");
+      card.className = `mail-card${mail.read ? "" : " is-unread"}${mail.claimed ? " is-claimed" : ""}`;
+      card.dataset.mailId = mail.id;
+      const icon = document.createElement("span");
+      icon.className = "mail-icon";
+      icon.textContent = mail.icon || "✉️";
+      const main = document.createElement("div");
+      main.className = "mail-main";
+      const titleRow = document.createElement("div");
+      titleRow.className = "mail-title-row";
+      const name = document.createElement("strong");
+      name.textContent = mail.title;
+      const dot = document.createElement("span");
+      dot.className = "mail-unread-dot";
+      dot.hidden = mail.read;
+      titleRow.append(name, dot);
+      const meta = document.createElement("span");
+      meta.className = "mail-meta";
+      meta.textContent = `${mail.sender} · ${mail.date}`;
+      const body = document.createElement("p");
+      body.className = "mail-body";
+      body.textContent = mail.body;
+      main.append(titleRow, meta, body);
+      const rewards = document.createElement("div");
+      rewards.className = "mail-rewards";
+      if (mail.rewards.coin > 0) {
+        const coin = document.createElement("span");
+        coin.className = "mail-chip";
+        coin.textContent = `🪙 ${mail.rewards.coin} 洛克贝`;
+        rewards.appendChild(coin);
+      }
+      mail.rewards.items.forEach((reward) => {
+        const item = findSceneItemById(reward.id);
+        if (!item) return;
+        const chip = document.createElement("span");
+        chip.className = "mail-chip";
+        chip.textContent = `📦 ${item.name} ×${reward.count}`;
+        rewards.appendChild(chip);
+      });
+      mail.rewards.balls.forEach((reward) => {
+        const ball = BALL_TYPES.find((entry) => entry.id === reward.id);
+        if (!ball) return;
+        const chip = document.createElement("span");
+        chip.className = "mail-chip";
+        chip.textContent = `⚪ ${ball.name} ×${reward.count}`;
+        rewards.appendChild(chip);
+      });
+      const action = document.createElement("div");
+      action.className = "mail-action";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "mail-claim";
+      if (!mailHasRewards(mail)) {
+        btn.textContent = "已读";
+        btn.disabled = true;
+      } else if (mail.claimed) {
+        btn.textContent = "已领取";
+        btn.disabled = true;
+      } else {
+        btn.textContent = "领取";
+        btn.dataset.mailClaim = mail.id;
+      }
+      action.appendChild(btn);
+      card.append(icon, main, rewards, action);
+      list.appendChild(card);
+    });
+    box.appendChild(list);
+    return box;
+  }
+
+  function renderMailModal() {
+    const body = document.getElementById("mailModalBody");
+    if (!body) return;
+    const profile = getActiveProfile();
+    body.replaceChildren();
+    if (!profile) {
+      const empty = document.createElement("p");
+      empty.className = "role-empty";
+      empty.textContent = "还没有角色，先登录吧。";
+      body.appendChild(empty);
+      return;
+    }
+    body.appendChild(buildMailView(profile));
+  }
+
+  function openMailModal() {
+    const modal = document.getElementById("mailModal");
+    if (!modal) return;
+    renderMailModal();
+    modal.hidden = false;
+  }
+
+  function renderQuestModal() {
+    const body = document.getElementById("questModalBody");
+    if (!body) return;
+    const profile = getActiveProfile();
+    body.replaceChildren();
+    body.appendChild(profile ? buildRoleQuests(profile) : (() => {
+      const empty = document.createElement("p");
+      empty.className = "role-empty";
+      empty.textContent = "还没有角色，先登录吧。";
+      return empty;
+    })());
+  }
+
+  function openQuestModal() {
+    const modal = document.getElementById("questModal");
+    if (!modal) return;
+    renderQuestModal();
+    modal.hidden = false;
+  }
+
+  function setDockBadge(id, count) {
+    const badge = document.getElementById(id);
+    if (!badge) return;
+    const value = Math.max(0, Number(count) || 0);
+    badge.hidden = value === 0;
+    badge.textContent = value > 9 ? "9+" : String(value);
+  }
+
+  function updateDockBadges(profile) {
+    if (!profile) {
+      setDockBadge("dockTaskBadge", 0);
+      setDockBadge("dockMailBadge", 0);
+      return;
+    }
+    const quest = ensureWeeklyQuest(profile);
+    const ready = quest ? quest.tasks.filter((task) => !task.claimed && task.progress >= task.target).length : 0;
+    const mailbox = ensureMailbox(profile);
+    const unread = mailbox ? mailbox.mails.filter((mail) => !mail.read).length : 0;
+    setDockBadge("dockTaskBadge", ready);
+    setDockBadge("dockMailBadge", unread);
   }
 
   function renderRoleModal() {
@@ -8106,6 +8473,42 @@
     const mode = petModalTab === "items" ? "items" : "info";
     ability.dataset.mode = mode;
     if (itemsView) itemsView.hidden = mode !== "items";
+  }
+
+  function setupSideModals() {
+    const quest = document.getElementById("questModal");
+    if (quest && quest.dataset.bound !== "1") {
+      quest.dataset.bound = "1";
+      document.getElementById("questModalClose")?.addEventListener("click", () => { quest.hidden = true; });
+      quest.addEventListener("click", (event) => {
+        if (event.target === quest) quest.hidden = true;
+      });
+      document.getElementById("questModalBody")?.addEventListener("click", (event) => {
+        const claimBtn = event.target.closest("[data-quest-claim]");
+        if (claimBtn) claimDailyQuest(claimBtn.dataset.questClaim);
+      });
+    }
+    const mail = document.getElementById("mailModal");
+    if (mail && mail.dataset.bound !== "1") {
+      mail.dataset.bound = "1";
+      document.getElementById("mailModalClose")?.addEventListener("click", () => { mail.hidden = true; });
+      mail.addEventListener("click", (event) => {
+        if (event.target === mail) mail.hidden = true;
+      });
+      document.getElementById("mailModalBody")?.addEventListener("click", (event) => {
+        if (event.target.closest("[data-mail-claim-all]")) {
+          claimAllMails();
+          return;
+        }
+        const claimBtn = event.target.closest("[data-mail-claim]");
+        if (claimBtn) {
+          claimMail(claimBtn.dataset.mailClaim);
+          return;
+        }
+        const card = event.target.closest("[data-mail-id]");
+        if (card) markMailRead(card.dataset.mailId);
+      });
+    }
   }
 
   function setupRoleModal() {
