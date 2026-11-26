@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>俊杰侃信奥</title>
     <link rel="stylesheet" href="./styles.css?v=20261126i" />
-    <link rel="stylesheet" href="./auth.css?v=20261126i" />
   </head>
   <body>
-    <!-- 账号 / 后台登录界面：改成可按需弹出的模态层，首屏不再挡页面 -->
-    <div id="loginView" class="login-view as-modal" hidden>
+    <!-- 账号 / 后台登录界面 -->
+    <div id="loginView" class="login-view">
       <div class="login-card">
-        <button type="button" class="loginview-close" id="btnCloseLoginView" aria-label="关闭">×</button>
         <div class="login-logo">🌟</div>
         <h1 class="login-title">俊杰侃信奥</h1>
         <p class="login-subtitle">C++ 练习题单 · 在线编译评测</p>
@@ -47,7 +45,7 @@
           <p class="landing-hello" id="landingHello">你好，同学</p>
           <div class="landing-actions">
             <button type="button" id="btnStudyRoom" class="login-button">进入学习台</button>
-            <button type="button" id="btnStartGame" class="login-button is-ghost">进入游戏</button>
+            <button type="button" id="btnStartGame" class="login-button is-ghost">打开养成小游戏</button>
           </div>
           <p class="login-hint" id="landingNotice" hidden></p>
           <button type="button" id="btnSwitchAccount" class="login-link">切换账号</button>
@@ -79,7 +77,6 @@
         <div class="topbar-actions">
           <button type="button" id="btnBackHome" class="topbar-home" hidden>🏠 学习台</button>
           <div id="saveStatus" class="save-status" aria-live="polite">正在读取存档</div>
-          <button type="button" id="authBtn" class="auth-btn login-link" style="position:fixed;right:16px;top:16px;z-index:41">登录</button>
         </div>
       </header>
 
@@ -772,7 +769,6 @@
 
     <script src="./assets/vendor/supabase.js?v=20261126i"></script>
     <script src="./data/petConfig.js?v=20261126i"></script>
-    <script src="./auth.js?v=20261126i"></script>
     <script src="./app.js?v=20261126i"></script>
 
   <!-- 新手引导：手指引导 + 功能卡 -->
