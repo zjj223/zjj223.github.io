@@ -62,7 +62,8 @@
   const CLOUD_ENABLED = Boolean(CLOUD_CONFIG.url && CLOUD_CONFIG.key);
   // 【安全改造】会话门票：登录时由服务端函数核对口令后发下来，只活在内存+sessionStorage。
   // 前端不再保存、不再传输任何口令原文。门票 12 小时过期，刷新即失效。
-  let studentToken = null;
+  // 【免登录改造】门票默认从本地 AuthGate 恢复（12 小时有效），没有就是游客态
+  let studentToken = (window.AuthGate && window.AuthGate.user() && window.AuthGate.user().token) || null;
   let teacherToken = null;
   let cloudSyncTimer = null;
   let cloudSyncBusy = false;
@@ -1205,6 +1206,17 @@
 
   function init() {
     cacheElements();
+    // 【免登录改造】本地有门票：学生态先切存档键再读档；老师态留到 enterTeacherMode 里切
+    if (window.AuthGate && window.AuthGate.isLoggedIn()) {
+      const u = window.AuthGate.user();
+      if (u.role === "teacher") {
+        teacherToken = u.token;
+      } else {
+        studentToken = u.token;
+        activeStorageKey = `${STORAGE_KEY}_cloud_${u.name}`;
+        cloudSyncAllowed = true;
+      }
+    }
     state = loadState();
     marketState = loadMarket();
     const changed = normalizeState();
@@ -1233,13 +1245,83 @@
     } else {
       setSaveStatus("存档已读取");
     }
-    // 登录界面默认显示，登录后才渲染游戏
+    // 【免登录改造】登录卡不再挡首屏，只在需要时从顶栏按钮弹出
     if (els.loginView) {
-      els.loginView.classList.remove("hidden");
+      els.loginView.classList.add("hidden");
     }
     // 本地双击打开（老师备课）默认进老师入口；线上默认学生登录
     setLoginMode(location.protocol === "file:" ? "teacher" : "student");
     consumeForcedLogoutNotice();
+
+    bootAfterAuth();
+  }
+
+  // 【免登录改造】游客态第一次进来：自动建一个「游客」角色，否则主区只有空状态
+  function ensureGuestProfile() {
+    if (getActiveProfile()) return false;
+    const now = new Date().toISOString();
+    const profile = {
+      id: `role_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: "游客",
+      gender: "male",
+      hp: 0,
+      mp: 0,
+      exp: 0,
+      rockbell: 0,
+      egg: { granted: true, grantedAt: now, hatched: false, hatchedAt: null },
+      pet: null,
+      pets: [],
+      activePetIndex: 0,
+      inventory: {},
+      balls: {},
+      bondScenes: [],
+      guideCompleted: true,
+      outfits: ["starter"],
+      outfit: "starter",
+      genderSwapUsed: false,
+      passChangeUsed: false,
+      secondPassUses: 0,
+      likesGiven: null,
+      likesSent: {},
+      likedCount: 0,
+      compensationEligible: false,
+      compensationClaimed: false,
+      // 游客首屏不弹活动提醒，先让人看到主界面
+      wuxingNoticeDate: localDateKey(),
+      createdAt: now,
+    };
+    state.profiles.unshift(profile);
+    state.selectedId = profile.id;
+    selectedSceneId = "grassland";
+    saveState("游客存档已建立");
+    return true;
+  }
+
+  // 进页面：老师态直接进后台；学生态静默校验后进游戏；没门票 → 游客态直接进
+  async function bootAfterAuth() {
+    if (teacherToken) {
+      await enterTeacherMode(teacherToken);
+      return;
+    }
+    if (studentToken && CLOUD_ENABLED && location.protocol !== "file:") {
+      try {
+        const res = await rpcCall("student_check", { p_token: studentToken });
+        if (!res || res.ok === false) {
+          studentToken = null;
+          cloudSyncAllowed = false;
+          if (window.AuthGate) window.AuthGate.clear();
+        }
+      } catch (err) {
+        // 网络抖动不踢人，等 30 秒轮询再判
+      }
+    }
+    if (studentToken) {
+      startSessionWatch();
+    } else {
+      // 游客：没有云端角色，就在本机建一个默认角色，保证进游戏有东西可玩
+      ensureGuestProfile();
+    }
+    enterGame({ guest: !studentToken });
   }
 
   // 老师登录：进后台，并把云端全班数据拉下来（拉不到就继续用本地）
@@ -1268,13 +1350,15 @@
       els.teacherCode.value = "";
       return;
     }
-    if (res && res.ok) {
-      teacherToken = res.token;
-    }
+    await enterTeacherMode(res && res.ok ? res.token : null);
+  }
+  // 老师后台：权限码校验通过、或刷新后凭本地门票恢复，都从这里进
+  async function enterTeacherMode(token) {
+    teacherToken = token || null;
     teacherUnlocked = true;
     els.loginError.hidden = true;
-    // 本地双击打开（老师离线备课 / 线下课）保持纯本地存档；线上才拉云端全班
-    const useCloudTeacher = CLOUD_ENABLED && location.protocol !== "file:";
+    // 本地双击（老师离线备课）保持纯本地存档；线上才拉云端全班
+    const useCloudTeacher = CLOUD_ENABLED && location.protocol !== "file:" && Boolean(token);
     activeStorageKey = useCloudTeacher ? `${STORAGE_KEY}_cloud_teacher` : STORAGE_KEY;
     cloudSyncAllowed = useCloudTeacher;
     if (useCloudTeacher) {
@@ -1288,40 +1372,39 @@
           state.selectedId = merged[0].id;
           normalizeState();
           pendingEvolution = null;
+          try {
+            localStorage.setItem(activeStorageKey, JSON.stringify(state));
+          } catch (err) {
+            console.warn("写老师缓存失败", err);
+          }
           setSaveStatus(`全班数据已加载（${merged.length} 人）`);
         } else {
           teacherRosterMeta.clear();
+          state = loadState();
         }
       } catch (err) {
         console.warn("读取云端名单失败", err);
         setSaveStatus("云端读取失败（沿用本地存档）");
+        state = loadState();
       }
+    } else {
+      state = loadState();
     }
-    els.loginView.classList.add("hidden");
+    // 门票落本地：刷新后 12 小时内还是老师态
+    if (window.AuthGate && token) window.AuthGate.setSession("老师", token, "teacher");
+    if (els.loginView) els.loginView.classList.add("hidden");
     const backHomeBtn = document.getElementById("btnBackHome");
     if (backHomeBtn) backHomeBtn.hidden = true;
     // 老师模式：只显示后台名单，不显示地图与其它面板
     document.body.classList.add("is-teacher-mode");
-    // 老师端：恢复三栏桌面布局
     const teacherGrid = document.querySelector(".app-grid");
-    if (teacherGrid) {
-      teacherGrid.classList.remove("is-student");
-    }
-    // 老师端恢复"角色存档"面板
+    if (teacherGrid) teacherGrid.classList.remove("is-student");
     const teacherPanel = document.querySelector(".profile-panel");
-    if (teacherPanel) {
-      teacherPanel.hidden = false;
-    }
-    // 老师端保留课间计时器
+    if (teacherPanel) teacherPanel.hidden = false;
     const teacherTimer = document.querySelector(".timer-panel");
-    if (teacherTimer) {
-      teacherTimer.style.display = "";
-    }
-    // 老师端显示老师后台
+    if (teacherTimer) teacherTimer.style.display = "";
     const teacherBox = document.querySelector(".teacher-panel");
-    if (teacherBox) {
-      teacherBox.style.display = "";
-    }
+    if (teacherBox) teacherBox.style.display = "";
     render();
   }
 
@@ -1386,9 +1469,10 @@
       } catch (err) {
         console.warn("写本地缓存失败", err);
       }
-      // 登录成功后先停在「开始游戏 / 学习台」选择页，点开始游戏才真正进游戏
-      showStudentLanding(profile.name);
+      // 【免登录改造】门票落本地（12 小时），登录成功不再停选择页，直接进游戏
+      if (window.AuthGate) window.AuthGate.setSession(name, studentToken, "student");
       startSessionWatch();
+      enterGame();
     } catch (err) {
       console.error("学生登录失败", err);
       showStudentError("连不上云端，检查网络后再试");
@@ -2147,6 +2231,7 @@
         const target = e.target;
         if (!target || !target.closest) return;
         if (target.closest(".stage-spot")) return;
+        if (target.closest(".roam-pet")) return;
         const stage = target.closest(".scene-stage");
         if (!stage) return;
         const r = stage.getBoundingClientRect();
@@ -2797,8 +2882,13 @@
   }
 
   // 真正进游戏：原先写在学生登录成功那一段，原样搬出来，点「开始游戏」才执行
-  function enterGame() {
-    els.loginView.classList.add("hidden");
+  function enterGame(opts) {
+    opts = opts || {};
+    if (els.loginView) els.loginView.classList.add("hidden");
+    // 游客态：继续用本机存档，不写云端
+    if (opts.guest) {
+      cloudSyncAllowed = false;
+    }
     const backHomeBtn = document.getElementById("btnBackHome");
     if (backHomeBtn) backHomeBtn.hidden = false;
     // 学生端切换为桌面宽屏：单列外壳 + 内部"宠物侧栏 / 主区"
@@ -2806,7 +2896,11 @@
     if (studentGrid) {
       studentGrid.classList.add("is-student");
     }
-    setSaveStatus("云端存档已加载");
+    if (opts.guest) {
+      setSaveStatus("游客模式 · 登录后进度存到账号");
+    } else {
+      setSaveStatus("云端存档已加载");
+    }
     // 学生端只有一个角色，隐藏"角色存档/新建角色"面板
     const studentPanel = document.querySelector(".profile-panel");
     if (studentPanel) {
@@ -2845,7 +2939,7 @@
     els.loginView.classList.remove("hidden");
   }
 
-  // 被老师踢下线或门票失效：清掉内存门票，回登录页并说明原因
+  // 被老师踢下线或门票失效：清门票，弹登录窗（不再整页回登录页）
   function handleForcedLogout(message) {
     if (forcedLogoutReloading) return;
     forcedLogoutReloading = true;
@@ -2858,12 +2952,15 @@
     cloudSyncBusy = false;
     cloudSyncAllowed = false;
     studentToken = null;
-    try {
-      sessionStorage.setItem("forcedLogoutNotice", message || "登录已失效，请重新登录");
-    } catch (err) {
-      /* 忽略 */
+    if (window.AuthGate) {
+      window.AuthGate.clear();
+      window.AuthGate.open({
+        reason: message || "登录已失效，请重新登录",
+        onSuccess: () => location.reload(),
+      });
+    } else {
+      location.reload();
     }
-    location.reload();
   }
 
   async function checkStudentSession() {
@@ -2913,12 +3010,16 @@
     if (message) showStudentError(message);
   }
 
-  // 切换账号：先告诉服务端正常退出（失败也不拦着），再把本地缓存落一次
+  // 切换账号：先落一次本地缓存，再清门票重载（云端退出由 AuthGate 负责）
   async function switchAccount() {
     try {
       localStorage.setItem(activeStorageKey, JSON.stringify(state));
     } catch (err) {
       /* 忽略 */
+    }
+    if (window.AuthGate) {
+      await window.AuthGate.logout();
+      return;
     }
     await studentLogout({ silent: true });
     stopSessionWatch();
@@ -2940,13 +3041,31 @@
     els.copyCreatedPin?.addEventListener("click", copyCreatedStudentPin);
     els.downloadCreatedPin?.addEventListener("click", downloadCreatedStudentPin);
     const startGameBtn = document.getElementById("btnStartGame");
-    if (startGameBtn) startGameBtn.addEventListener("click", enterGame);
+    if (startGameBtn) startGameBtn.addEventListener("click", () => enterGame({ guest: !studentToken }));
     const studyRoomBtn = document.getElementById("btnStudyRoom");
     if (studyRoomBtn) {
       studyRoomBtn.addEventListener("click", () => {
-        // 学习台 → 三屏外壳的学习台页（再点题单，最后进做题页）
-        const win = window.open("学习台.html?name=" + encodeURIComponent((getActiveProfile() || {}).name || ""), "_studypage");
-        if (!win) showLandingNotice("学习台被浏览器拦下了，允许弹窗后再试一次");
+        // 同窗口跳转：学习台自己读 AuthGate 拿名字，不再靠弹窗传参
+        location.href = "学习台.html";
+      });
+    }
+    // 顶栏「登录 / 名字」按钮 + 关闭选择页模态卡
+    if (window.AuthGate) {
+      window.AuthGate.mountButton(document.getElementById("authBtn"));
+      window.AuthGate.onChange((u) => {
+        if (u && !studentToken) {
+          // 从顶栏弹窗登录成功：重载一次，走门票恢复 + 云端存档键
+          location.reload();
+          return;
+        }
+        studentToken = (u && u.token) || null;
+        cloudSyncAllowed = !!studentToken;
+      });
+    }
+    const closeLoginViewBtn = document.getElementById("btnCloseLoginView");
+    if (closeLoginViewBtn) {
+      closeLoginViewBtn.addEventListener("click", () => {
+        if (els.loginView) els.loginView.classList.add("hidden");
       });
     }
     const switchAccountBtn = document.getElementById("btnSwitchAccount");
@@ -3365,6 +3484,11 @@
       // 邮箱：系统补偿 / 活动奖励 / 已读已领状态
       mailbox:
         profile?.mailbox && typeof profile.mailbox === "object" ? profile.mailbox : { mails: [] },
+      // 地图游荡宠：按周记录已捕获的槽位，周一自动换周重刷
+      roamPetWeek:
+        profile?.roamPetWeek && typeof profile.roamPetWeek === "object"
+          ? profile.roamPetWeek
+          : null,
       // 场景首领：按场景记录探索点访问与本消费次数
       sceneProgress:
         profile?.sceneProgress && typeof profile.sceneProgress === "object" ? profile.sceneProgress : {},
@@ -3451,6 +3575,8 @@
       isShiny: !!pet.isShiny || (petTemplate?.petId || "").startsWith("shiny-"),
       // 五行神兽：数据与异色同级，但边框/标识单独一套
       isWuxing: !!pet.isWuxing || (petTemplate?.petId || "").startsWith("wuxing-"),
+      // 地图游荡宠里的稀有只：捕获后保留金框，和普通游荡宠区分
+      isRoamRare: !!pet.isRoamRare,
       hatchedAt: typeof pet.hatchedAt === "string" ? pet.hatchedAt : new Date().toISOString(),
       // 亲密度等级：集齐场景道具后 +1，最高 10
       bond: clampInteger(pet.bond, 0, 10),
@@ -3572,7 +3698,7 @@
   function rowToListing(row) {
     return {
       id: row.id,
-      sellerId: row.seller_id,
+      isMine: Boolean(row.is_mine),
       sellerName: row.seller_name,
       itemId: row.item_id,
       itemName: row.item_name,
@@ -3586,7 +3712,7 @@
   async function loadMarketFromCloud() {
     if (!CLOUD_ENABLED) return marketState;
     try {
-      const rows = await rpcCall("market_list", {});
+      const rows = await rpcCall("market_list", { p_token: studentToken || null });
       marketState.listings = Array.isArray(rows) ? rows.map(rowToListing) : [];
       saveMarket();
     } catch (error) {
@@ -3658,7 +3784,7 @@
     if (!profile) return { ok: false, msg: "请先选择角色。" };
     const listing = marketState.listings.find((l) => l.id === listingId);
     if (!listing) return { ok: false, msg: "该上架不存在。" };
-    if (listing.sellerId !== profile.id) return { ok: false, msg: "只能下架自己的道具。" };
+    if (!listing.isMine) return { ok: false, msg: "只能下架自己的道具。" };
     if (CLOUD_ENABLED) {
       if (!studentToken) return { ok: false, msg: "会话已过期，请重新登录。" };
       try {
@@ -3684,7 +3810,7 @@
     if (!profile) return { ok: false, msg: "请先选择角色。" };
     const listing = marketState.listings.find((l) => l.id === listingId);
     if (!listing) return { ok: false, msg: "该道具已被买走或下架。" };
-    if (listing.sellerId === profile.id) return { ok: false, msg: "不能购买自己上架的道具。" };
+    if (listing.isMine) return { ok: false, msg: "不能购买自己上架的道具。" };
     if (profile.rockbell < listing.price) return { ok: false, msg: `洛克贝不足，需要 ${listing.price} 洛克贝。` };
 
     const fee = marketFee(listing.price);
@@ -3867,6 +3993,7 @@
   function switchView(view) {
     currentView = view;
     if (view !== "scene") cancelCaptureFlow();
+    if (view !== "scene") stopRoamPetMovement();
     if (view === "world") {
       selectedSpotId = null;
       stopSceneWalk();
@@ -5987,6 +6114,364 @@
     );
   }
 
+  // ===== 地图游荡宠 =====
+  // 规则：每张地图每周 5 只，在中央草地区域随机走动；点一下直接开战，
+  // 胜利后自动入队并从地图消失；周一 0 点整批换周重刷，每张图必有 1 只稀有。
+  const ROAM_PETS_PER_SCENE = 5;
+  const ROAM_RARE_INDEX_COUNT = 1;
+  const ROAM_PET_MOVE_INTERVAL = 2400;
+  const ROAM_PET_MOVE_MS = 2000;
+  const ROAM_PET_BATTLE_SETTLE_MS = 3450;
+  const ROAM_RARE_LEVEL_BONUS = 1;
+  const ROAM_PET_ZONES = Object.freeze({
+    grassland: { x: [27, 75], y: [46, 65] },
+    volcano: { x: [27, 75], y: [48, 66] },
+    "mermaid-bay": { x: [28, 77], y: [47, 65] },
+    academy: { x: [28, 75], y: [46, 65] },
+    "snow-valley": { x: [27, 74], y: [47, 66] },
+    "thunder-valley": { x: [27, 74], y: [47, 66] },
+    "shadow-forest": { x: [27, 74], y: [46, 65] },
+    "dark-swamp": { x: [28, 74], y: [48, 66] },
+    "dragon-realm": { x: [27, 68], y: [48, 66] },
+    "sky-city": { x: [28, 74], y: [47, 66] },
+  });
+
+  let roamPetMoveTimer = null;
+  let roamBattleToken = 0;
+  let roamBattleLock = false;
+  let roamPetsById = Object.create(null);
+
+  function stopRoamPetMovement() {
+    if (roamPetMoveTimer) {
+      clearInterval(roamPetMoveTimer);
+      roamPetMoveTimer = null;
+    }
+  }
+
+  function roamSeedFromString(value) {
+    let hash = 2166136261;
+    const text = String(value || "");
+    for (let i = 0; i < text.length; i += 1) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  // 同一周、同一账号、同一地图，抽到的宠和初始位置固定，刷新页面不会变
+  function createRoamRandom(seed) {
+    let state = seed >>> 0;
+    return function next() {
+      state += 0x6d2b79f5;
+      let t = state;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function ensureRoamPetWeek(profile) {
+    if (!profile) return { weekKey: getWeekKey(), caught: {} };
+    const weekKey = getWeekKey();
+    const old = profile.roamPetWeek;
+    const caught =
+      old && old.caught && typeof old.caught === "object" && !Array.isArray(old.caught)
+        ? old.caught
+        : null;
+    if (!old || old.weekKey !== weekKey || !caught) {
+      profile.roamPetWeek = { weekKey, caught: {} };
+      saveState("游荡宠已按周刷新");
+    }
+    return profile.roamPetWeek;
+  }
+
+  function getRoamPetCaughtIds(profile, sceneId) {
+    const state = ensureRoamPetWeek(profile);
+    const list = state.caught && Array.isArray(state.caught[sceneId]) ? state.caught[sceneId] : [];
+    return list.filter((id) => typeof id === "string");
+  }
+
+  function markRoamPetCaught(profile, sceneId, roamId) {
+    const state = ensureRoamPetWeek(profile);
+    if (!state.caught[sceneId]) state.caught[sceneId] = [];
+    if (!state.caught[sceneId].includes(roamId)) state.caught[sceneId].push(roamId);
+    return state.caught[sceneId].length;
+  }
+
+  function shuffleRoamList(list, rng) {
+    const copy = list.slice();
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(rng() * (i + 1));
+      const tmp = copy[i];
+      copy[i] = copy[j];
+      copy[j] = tmp;
+    }
+    return copy;
+  }
+
+  function clampRoamPercent(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  // 中间是人物站位：靠近画面中线时把宠物抬到上层，避免立绘和等级牌压在人物头上
+  function pickRoamPosition(zone, rng, slotT = null) {
+    const spread =
+      typeof slotT === "number" && Number.isFinite(slotT)
+        ? clampRoamPercent(0.08 + slotT * 0.84, 0.08, 0.92)
+        : rng();
+    const x = clampRoamPercent(
+      zone.x[0] + (zone.x[1] - zone.x[0]) * spread,
+      zone.x[0],
+      zone.x[1],
+    );
+    const isCenter = x >= 40 && x <= 60;
+    let y = zone.y[0] + rng() * (zone.y[1] - zone.y[0]);
+    if (isCenter) {
+      y = Math.max(42, zone.y[0] - 3) + rng() * 3;
+    }
+    return {
+      x: Number(x.toFixed(2)),
+      y: Number(
+        clampRoamPercent(y, isCenter ? Math.max(42, zone.y[0] - 3) : zone.y[0], zone.y[1]).toFixed(2),
+      ),
+    };
+  }
+
+  function generateRoamPets(profile, sceneId) {
+    const config = WILD_PETS[sceneId];
+    if (!config) return [];
+    const state = ensureRoamPetWeek(profile);
+    const weekKey = state.weekKey;
+    const hasTemplate = (id) => PET_DATABASE.some((p) => p.petId === id);
+    const validPetIds = (Array.isArray(config.petIds) ? config.petIds : []).filter(hasTemplate);
+    if (!validPetIds.length) return [];
+
+    const rng = createRoamRandom(
+      roamSeedFromString(`${weekKey}|${profile?.id || "anon"}|${sceneId}|roam`),
+    );
+    const speciesPool = shuffleRoamList(validPetIds, rng);
+    const rareIndex = Math.floor(rng() * ROAM_PETS_PER_SCENE);
+    const rareCount = Math.min(ROAM_RARE_INDEX_COUNT, ROAM_PETS_PER_SCENE);
+    const zone = ROAM_PET_ZONES[sceneId] || { x: [30, 73], y: [46, 65] };
+    const sceneLevelRange = Array.isArray(config.levelRange) ? config.levelRange : [1, 1];
+
+    const pets = [];
+    for (let i = 0; i < ROAM_PETS_PER_SCENE; i += 1) {
+      const petId = speciesPool[i % speciesPool.length];
+      const template = PET_DATABASE.find((p) => p.petId === petId);
+      if (!template) continue;
+      const slotRange =
+        (Array.isArray(config.levels) && config.levels[Math.min(i, config.levels.length - 1)]) ||
+        sceneLevelRange;
+      let level =
+        slotRange[0] + Math.floor(rng() * Math.max(1, slotRange[1] - slotRange[0] + 1));
+      const isRoamRare = rareCount > 0 && i === rareIndex;
+      if (isRoamRare) {
+        level = Math.min(sceneLevelRange[1], level + ROAM_RARE_LEVEL_BONUS);
+      }
+      const stageData =
+        template.stages.find((s) => level >= s.needLevel) || template.stages[0];
+      const stageNumber = Math.max(1, template.stages.indexOf(stageData) + 1);
+      const hpBonus = isRoamRare ? 1.2 : 1;
+      const hpMax = Math.floor(
+        (PET_BASE_HP_MAX + (level - 1) * PET_UPGRADE_HP_GAIN) * hpBonus,
+      );
+
+      // 初始位置按槽位均匀铺开，五个一排不叠在一起
+      const slotT = ROAM_PETS_PER_SCENE > 1 ? i / (ROAM_PETS_PER_SCENE - 1) : 0.5;
+      const pos = pickRoamPosition(zone, rng, slotT);
+
+      pets.push({
+        petId,
+        stage: stageNumber,
+        name: stageData.name,
+        image: stageData.image || null,
+        desc: template.desc || "",
+        type: stageData.type || template.type,
+        style: stageData.style || template.style,
+        level,
+        hpMax,
+        attack: getPetAttack({ level }) + (isRoamRare ? 4 : 0),
+        defense: getPetDefense({ level }) + (isRoamRare ? 2 : 0),
+        speed: getPetSpeed({ level }) + (isRoamRare ? 2 : 0),
+        isShiny: false,
+        isWuxing: false,
+        isRoamPet: true,
+        isRoamRare,
+        roamSceneId: sceneId,
+        roamId: `roam-${sceneId}-${weekKey}-${i}`,
+        roamX: pos.x,
+        roamY: pos.y,
+      });
+    }
+    return pets;
+  }
+
+  function moveRoamPets(layer, sceneId, rng) {
+    const zone = ROAM_PET_ZONES[sceneId] || { x: [30, 73], y: [46, 65] };
+    layer.querySelectorAll(".roam-pet").forEach((button) => {
+      const pos = pickRoamPosition(zone, rng);
+      button.style.left = `${pos.x}%`;
+      button.style.top = `${pos.y}%`;
+    });
+  }
+
+  function buildRoamPetLayer(profile, scene) {
+    stopRoamPetMovement();
+    roamPetsById = Object.create(null);
+    const layer = document.createElement("div");
+    layer.className = "roam-pet-layer";
+    const allPets = generateRoamPets(profile, scene.id);
+    const caughtIds = getRoamPetCaughtIds(profile, scene.id);
+    const visiblePets = allPets.filter((pet) => !caughtIds.includes(pet.roamId));
+    const remaining = visiblePets.length;
+
+    const countBadge = document.createElement("div");
+    countBadge.className = `roam-pet-count${remaining === 0 ? " is-empty" : ""}`;
+    countBadge.textContent =
+      remaining > 0
+        ? `🐾 本周游荡宠 ${remaining}/${ROAM_PETS_PER_SCENE} · 周一刷新`
+        : "✅ 本周游荡宠已抓完 · 周一刷新";
+    countBadge.title = "点击地图上的小宠物直接挑战；打赢后自动入队，抓一只少一只";
+    layer.appendChild(countBadge);
+
+    visiblePets.forEach((pet) => {
+      roamPetsById[pet.roamId] = pet;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `roam-pet${pet.isRoamRare ? " is-rare" : ""}`;
+      button.style.left = `${pet.roamX}%`;
+      button.style.top = `${pet.roamY}%`;
+      button.dataset.roamId = pet.roamId;
+      button.setAttribute(
+        "aria-label",
+        `${pet.isRoamRare ? "稀有游荡宠 " : "游荡宠 "}${pet.name} Lv.${pet.level}，点击挑战`,
+      );
+      button.title = `${pet.isRoamRare ? "稀有·" : ""}${pet.name} Lv.${pet.level} · 点击直接挑战`;
+
+      const img = document.createElement("img");
+      img.src = pet.image || "";
+      img.alt = pet.name;
+      img.draggable = false;
+      img.onerror = () => {
+        img.style.visibility = "hidden";
+      };
+      const label = document.createElement("span");
+      label.className = "roam-pet-label";
+      label.textContent = pet.isRoamRare ? "稀有" : `Lv.${pet.level}`;
+
+      button.append(img, label);
+      layer.appendChild(button);
+    });
+
+    layer.addEventListener("click", (event) => {
+      const button = event.target.closest(".roam-pet");
+      if (!button) return;
+      event.preventDefault();
+      event.stopPropagation();
+      startRoamPetBattle(button.dataset.roamId);
+    });
+
+    if (visiblePets.length > 0) {
+      const rng = createRoamRandom(roamSeedFromString(`${scene.id}|move|${Date.now()}`));
+      roamPetMoveTimer = setInterval(() => {
+        if (!layer.isConnected) {
+          stopRoamPetMovement();
+          return;
+        }
+        moveRoamPets(layer, scene.id, rng);
+      }, ROAM_PET_MOVE_INTERVAL);
+    }
+    return layer;
+  }
+
+  function startRoamPetBattle(roamId) {
+    const wildPet = roamPetsById[roamId];
+    if (!wildPet) return;
+    if (currentView !== "scene") return;
+    const profile = getActiveProfile();
+    if (!profile || !profile.pet) {
+      showToast("先选一只出战宠物", "去宠物栏设置出战宠物后再来挑战。", "warning");
+      return;
+    }
+    if (isExploring) {
+      showResult("正在探索中，稍等一下再挑战游荡宠。", true);
+      return;
+    }
+    if (roamBattleLock) return;
+    if (profile.pets.length >= MAX_PETS) {
+      showToast(
+        "宠物栏已满",
+        `最多带 ${MAX_PETS} 只宠物。先放生一只，再来抓游荡宠。`,
+        "warning",
+        4500,
+      );
+      return;
+    }
+    const battle = simulateBattle(profile.pet, wildPet);
+    if (!battle) return;
+    roamBattleLock = true;
+    showBattleModal(profile.pet, wildPet, battle);
+    if (!battle.win) {
+      setTimeout(() => {
+        roamBattleLock = false;
+      }, ROAM_PET_BATTLE_SETTLE_MS);
+      return;
+    }
+    const token = ++roamBattleToken;
+    setTimeout(() => {
+      if (token !== roamBattleToken) return;
+      claimRoamPet(roamId, profile.id);
+      roamBattleLock = false;
+    }, ROAM_PET_BATTLE_SETTLE_MS);
+  }
+
+  function claimRoamPet(roamId, profileId) {
+    const wildPet = roamPetsById[roamId];
+    if (!wildPet) return;
+    const profile = getActiveProfile();
+    if (!profile || profile.id !== profileId) return;
+    if (getRoamPetCaughtIds(profile, wildPet.roamSceneId).includes(roamId)) return;
+    if (profile.pets.length >= MAX_PETS) {
+      showToast("宠物栏已满", "这只游荡宠还在原地，放生一只后再来抓。", "warning", 4500);
+      return;
+    }
+    const newPet = normalizePet({
+      petId: wildPet.petId,
+      stage: wildPet.stage,
+      name: wildPet.name,
+      image: wildPet.image,
+      desc: wildPet.desc,
+      type: wildPet.type,
+      style: wildPet.style,
+      level: wildPet.level,
+      hpMax: wildPet.hpMax,
+      isShiny: false,
+      isWuxing: false,
+      isRoamRare: wildPet.isRoamRare,
+      nickname: null,
+    });
+    if (!newPet) return;
+    profile.pets.push(newPet);
+    syncActivePet(profile);
+    recordQuestProgress(profile, "catch", 1);
+    const caughtCount = markRoamPetCaught(profile, wildPet.roamSceneId, roamId);
+    // 和普通捕捉一致：新宠在最后一页，打开宠物栏能直接看到
+    petTeamPageProfileId = profile.id || "";
+    petTeamPage = Math.floor((profile.pets.length - 1) / PETS_PER_PAGE);
+    saveState("游荡宠捕获成功");
+    const remaining = Math.max(0, ROAM_PETS_PER_SCENE - caughtCount);
+    render();
+    showToast(
+      wildPet.isRoamRare ? "🌟 稀有游荡宠捕获！" : "🎉 游荡宠捕获成功",
+      `${wildPet.name} 已加入队伍 · 本周还剩 ${remaining}/${ROAM_PETS_PER_SCENE}${
+        remaining === 0 ? "，周一刷新" : ""
+      }`,
+      "success",
+      4500,
+    );
+  }
+
   function renderSceneInner(profile) {
     const scene = getScene(selectedSceneId);
     if (!scene) return;
@@ -6094,6 +6579,7 @@
     });
 
     stageEl.appendChild(els.sceneSpotList);
+    stageEl.appendChild(buildRoamPetLayer(profile, scene));
     stageEl.appendChild(buildSceneBossChip(profile, scene));
     els.sceneAtmosphere.appendChild(stageEl);
     syncPeerLayer();
@@ -6222,7 +6708,7 @@
       const itemDef = getItemDef(listing.itemId);
       const card = document.createElement("div");
       card.className = "shop-item-card";
-      const isOwn = listing.sellerId === profile.id;
+      const isOwn = Boolean(listing.isMine);
 
       const icon = document.createElement("div");
       icon.className = "shop-item-icon";
@@ -6392,7 +6878,7 @@
   }
 
   function renderMineTab(profile) {
-    const myListings = marketState.listings.filter((l) => l.sellerId === profile.id);
+    const myListings = marketState.listings.filter((l) => l.isMine);
     if (myListings.length === 0) {
       const empty = document.createElement("div");
       empty.className = "shop-empty";
@@ -6713,6 +7199,7 @@
   function getPetRarityPrefix(pet) {
     if (!pet) return "";
     if (pet.isWuxing) return "五行·";
+    if (pet.isRoamRare) return "稀有·";
     if (pet.isShiny) return "✨";
     return "";
   }
@@ -6790,7 +7277,7 @@
     const playerDef = getPetDefense(playerPet) + lvGap * 2;
     const playerSpd = getPetSpeed(playerPet);
 
-    log.push(`野生的 ${wildPet.name}（Lv.${wildPet.level}）出现了！`);
+    log.push(`${wildPet.isRoamPet ? "游荡的" : "野生的"} ${wildPet.name}（Lv.${wildPet.level}）出现了！`);
 
     const playerTypeMult = getTypeMultiplier(playerPet.type, wildPet.type);
     const wildTypeMult = getTypeMultiplier(wildPet.type, playerPet.type);
@@ -6858,7 +7345,7 @@
     const win = wildHp <= 0;
     const draw = !win && playerHp > 0 && wildHp > 0;
     if (win) {
-      log.push(`🎉 胜利！野生 ${wildPet.name} 被击败了。`);
+      log.push(`🎉 胜利！${wildPet.isRoamPet ? "游荡" : "野生"} ${wildPet.name} 被击败了。`);
     } else if (draw) {
       log.push(`⏳ 30 回合结束，双方都还有体力，平局。`);
     } else {
@@ -7004,12 +7491,19 @@
     const finalWildHp = events.length ? events[events.length - 1].wildHp : enemyMaxHp;
 
     els.battleModal.hidden = false;
+    const isRoam = Boolean(wildPet?.isRoamPet);
     els.battleTitle.textContent = win ? "⚔️ 战斗胜利！" : draw ? "⏳ 平局" : "⚔️ 战斗失败…";
     els.battleResult.textContent = win
-      ? "打赢了！这场不给经验，有几率触发捕捉。"
+      ? isRoam
+        ? "打赢了！游荡宠会被直接收入队伍，抓一只少一只。"
+        : "打赢了！这场不给经验，有几率触发捕捉。"
       : draw
-        ? "双方都还有体力，这场是平局，不给经验。"
-        : "打输了，这场不给经验，可能被抢走道具。";
+        ? isRoam
+          ? "双方都还有体力，游荡宠还在原地，可以再挑战。"
+          : "双方都还有体力，这场是平局，不给经验。"
+        : isRoam
+          ? "打输了，游荡宠还在原地，可以再挑战，不会掉道具。"
+          : "打输了，这场不给经验，可能被抢走道具。";
     els.battleResult.className = `battle-result ${win ? "win" : draw ? "draw" : "lose"}`;
 
     if (els.battlePlayerName) {
@@ -7022,7 +7516,7 @@
     setBattleSprite(els.battlePlayerImage, els.battlePlayerFallback, playerPet?.image);
 
     if (els.battleEnemyName) {
-      els.battleEnemyName.textContent = `${getPetRarityPrefix(wildPet)}野生 ${
+      els.battleEnemyName.textContent = `${getPetRarityPrefix(wildPet)}${isRoam ? "游荡" : "野生"} ${
         getPetDisplayName(wildPet)
       }`;
       els.battleEnemyName.classList.toggle("is-boss", Boolean(wildPet?.isBoss));
@@ -7308,6 +7802,13 @@
       wuxingBadge.className = "wuxing-badge";
       wuxingBadge.textContent = `五行·${element ? element.label : ""}`;
       visual.appendChild(wuxingBadge);
+    }
+    if (pet.isRoamRare) {
+      visual.classList.add("roam-rare-pet");
+      const rareBadge = document.createElement("div");
+      rareBadge.className = "roam-rare-badge";
+      rareBadge.textContent = "🌿稀有";
+      visual.appendChild(rareBadge);
     }
     if (pet.image) {
       const image = document.createElement("img");
@@ -8733,6 +9234,13 @@
         badge.className = "wuxing-badge";
         badge.textContent = `五行·${element ? element.label : ""}`;
         card.appendChild(badge);
+      }
+      if (pet.isRoamRare) {
+        card.classList.add("roam-rare-pet");
+        const rareBadge = document.createElement("div");
+        rareBadge.className = "roam-rare-badge";
+        rareBadge.textContent = "🌿稀有";
+        card.appendChild(rareBadge);
       }
 
       const header = document.createElement("div");
