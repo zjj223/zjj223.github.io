@@ -5,116 +5,171 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>俊杰侃信奥 · C++ 练习题单与在线编译评测</title>
 <link rel="stylesheet" href="nav.css?v=20261126a">
-<style>
-  .hero{padding:24px 26px}
-  .hero h1{margin:0 0 6px;font-size:24px}
-  .hero .sub{margin:0 0 12px;color:#5a6480;font-size:13.5px}
-  .hero .lead{margin:0 0 18px;color:#7b8499;font-size:13px;line-height:1.8;max-width:760px}
-  .hero .acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-  .hero .stat{margin-top:6px}
-  .tile{display:block;text-decoration:none;color:inherit;transition:border-color .15s,box-shadow .15s}
-  .tile:hover{border-color:#c3cfec;box-shadow:0 6px 18px rgba(41,71,201,.08)}
-  .tile .th{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14.5px}
-  .tile .th .pill{margin-left:auto;font-weight:400}
-  .tile p{margin:8px 0 12px;color:#8a94a6;font-size:12.5px;line-height:1.7}
-  .tile .bar{margin-top:2px}
-  .tile .pct{margin-top:6px;font-size:12px;color:#2947c9}
-  .cats{margin-top:14px}
-  .catline{margin:12px 0}
-  .catline .hd{display:flex;align-items:baseline;gap:8px;font-size:13.5px}
-  .catline .hd b{font-weight:600}
-  .catline .hd span{color:#98a2b8;font-size:12px}
-  .catline .hd em{margin-left:auto;font-style:normal;color:#2947c9;font-size:12px}
-</style>
+<link rel="stylesheet" href="home.css?v=20261126a">
 </head>
 <body>
 
 <div class="nav" data-page="home"><div class="nav-in" id="navIn"></div></div>
 
 <div class="page">
-  <div class="card hero">
-    <h1>俊杰侃信奥</h1>
-    <p class="sub">C++ 练习题单 · 在线编译评测</p>
-    <p class="lead">按章节整理的一整套 C++ 练习题：从最基础的输出、输入，到循环、数组、函数，再到排序、递推、搜索与动态规划。题目按章节成组，点开就写代码，提交后即时看到评测结果，通过与否都会记在你的学习进度里。</p>
-    <div class="stat">
-      <div><b id="sCats">8</b><span>大类</span></div>
-      <div><b id="sLes">57</b><span>章节</span></div>
-      <div><b id="sPro">1367</b><span>题目</span></div>
-      <div><b id="sDone">0</b><span>我已通过</span></div>
+  <div class="cols">
+    <div class="main">
+
+      <!-- B. Hero 轮播 -->
+      <section class="card hero" id="hero">
+        <div class="slides">
+          <div class="slide s1 on">
+            <div class="kicker">C++ 练习题单 · 在线编译评测</div>
+            <h2>俊杰侃信奥</h2>
+            <p id="heroSub">从输出、输入到排序、搜索、动态规划，1367 道题按章节排好</p>
+            <div class="acts">
+              <a class="btn" href="学习台.html">开始刷题</a>
+              <a class="btn ghost" href="练习题库.html">浏览题库</a>
+            </div>
+          </div>
+          <div class="slide s2">
+            <span class="tag">筹备中</span>
+            <div class="kicker">每月一场</div>
+            <h2>俊杰月赛</h2>
+            <p>限时 2 小时，ABC 三档难度，赛后三天出题解，题目随后并入题库。</p>
+            <div class="acts">
+              <a class="btn" style="background:#fff;color:#2947c9" href="俊杰月赛.html">看看赛制</a>
+            </div>
+          </div>
+          <div class="slide s3">
+            <div class="kicker">题库总览</div>
+            <h2 id="heroCats">8 大类 · 44 章 · 1367 题</h2>
+            <div class="nums">
+              <div><b id="heroLes">44</b><span>章</span></div>
+              <div><b id="heroPro">1367</b><span>题</span></div>
+              <div><b id="heroDone">0</b><span>我已通过</span></div>
+            </div>
+            <div class="acts">
+              <a class="btn" href="练习题库.html">查看题库总览</a>
+            </div>
+          </div>
+        </div>
+        <div class="dots"><i class="on"></i><i></i><i></i></div>
+      </section>
+
+      <!-- D. 问题跳转 + J. 今日幸运签 -->
+      <div class="row2">
+        <section class="card jump" id="jump">
+          <div class="hd"><b>问题跳转</b><span>输题号直达</span></div>
+          <input id="jumpPid" placeholder="例：1002" maxlength="4" inputmode="numeric" autocomplete="off">
+          <div class="bts">
+            <button class="btn" id="btnJump" type="button">跳转</button>
+            <button class="btn ghost" id="btnRand" type="button">随机一题</button>
+          </div>
+          <div class="tip" id="jumpTip"></div>
+        </section>
+
+        <section class="card luck" id="luck">
+          <span class="seal">签</span>
+          <div class="hd"><b>今日幸运签</b><span>摇一支签 · 今天刷哪章</span></div>
+          <div id="luckBox"></div>
+          <div class="luck-dots" id="luckDots"></div>
+        </section>
+      </div>
     </div>
-    <div class="acts">
-      <a class="btn" id="goNote" href="学习台.html">开始刷题</a>
-      <a class="btn ghost" href="练习题库.html">浏览题库</a>
+
+    <aside class="side">
+      <!-- C. 欢迎卡 -->
+      <section class="card wel" id="wel">
+        <div class="hi">欢迎回来</div>
+        <div class="name" id="welName">同学</div>
+        <div class="date">
+          <div class="y"><span id="welMon">十一月</span><span id="welSize">小</span></div>
+          <div class="big" id="welDay">26</div>
+          <div class="w"><span id="welWeek">星期四</span></div>
+        </div>
+        <div class="cd" id="welCd"></div>
+        <button class="btn-check" id="btnCheck" type="button">今日打卡</button>
+        <div class="sub" id="welSub"></div>
+      </section>
+
+      <!-- E. 近期比赛 -->
+      <section class="card">
+        <div class="hd" style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
+          <b style="font-size:15.5px">近期比赛</b>
+          <span style="font-size:11.5px;color:#9aa3b2">站内赛</span>
+        </div>
+        <div id="matches"></div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- K. 网站信箱（通栏） -->
+  <div class="mailbar" id="mailbar" style="margin:16px 0">
+    <div class="env" aria-hidden="true">
+      <svg viewBox="0 0 64 48" width="64" height="48">
+        <defs><linearGradient id="evg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#eff4ff"/><stop offset="1" stop-color="#d8e4ff"/>
+        </linearGradient></defs>
+        <rect x="1" y="1" width="62" height="46" rx="6" fill="url(#evg)" stroke="#c7d6f6"/>
+        <path d="M2 4 L32 26 L62 4" fill="none" stroke="#b6c8ef" stroke-width="1.6"/>
+        <path d="M2 44 L24 24 M62 44 L40 24" fill="none" stroke="#cbd9f5" stroke-width="1.2"/>
+      </svg>
+      <span class="dot"></span>
+    </div>
+    <div class="mtxt">
+      <b>网站信箱</b>
+      <p>想让站里加什么功能？哪道题题面有问题？哪里用着别扭？<br>写进来就行，匿名也可以，只有站长能看到。</p>
+    </div>
+    <button class="btn-w" id="btnWrite" type="button">✎ 写一封</button>
+    <div class="mform" id="mform">
+      <div class="mf">
+        <input id="mNick" placeholder="怎么称呼你（可不填）" maxlength="12" autocomplete="off">
+        <textarea id="mBody" placeholder="想让站里加什么？哪道题题面有问题？" maxlength="240"></textarea>
+        <button class="btn-s" id="btnSend" type="button">寄出</button>
+      </div>
+      <div class="mfoot"><span class="cnt" id="mCnt">0/200 · 只有站长能看到</span></div>
     </div>
   </div>
 
-  <div class="cardgrid" style="margin-top:16px">
-    <a class="card tile" id="tNote" href="学习台.html">
-      <div class="th">学习笔记 <span class="pill">做题</span></div>
-      <p>按大类、章节浏览题单，勾选通过标记，边做边记。</p>
-      <div class="bar"><i id="barNote" style="width:0%"></i></div>
-      <div class="pct" id="pctNote">0%</div>
-    </a>
-    <a class="card tile" href="练习题库.html">
-      <div class="th">练习题库 <span class="pill" id="pillLib">8 组</span></div>
-      <p>按大类看章节和题量，想练哪一章点哪一章。</p>
-    </a>
-    <a class="card tile" href="俊杰月赛.html">
-      <div class="th">俊杰月赛 <span class="pill warn">未开放</span></div>
-      <p>每月一场限时赛，赛题与评测接入后开放。</p>
-    </a>
-    <a class="card tile" href="排行榜.html">
-      <div class="th">排行榜 <span class="pill">筹备中</span></div>
-      <p>按通过题数排名，数据积累到一定量后公布。</p>
-    </a>
-  </div>
+  <div class="cols">
+    <div class="main">
+      <!-- F. 题库总览 -->
+      <section class="card">
+        <div class="hd" style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
+          <b style="font-size:15.5px">题库总览</b>
+          <span style="font-size:11.5px;color:#9aa3b2">按大类 · 点哪张进哪一类</span>
+        </div>
+        <div class="cats" id="cats"></div>
+      </section>
 
-  <div class="card cats">
-    <h2>题库总览</h2>
-    <div id="cats"></div>
+      <!-- G. 做题记录 -->
+      <section class="card chart">
+        <div class="hd"><b>做题记录</b><span>近 14 天通过题数 · 右为累积</span></div>
+        <div id="chartBox"></div>
+      </section>
+    </div>
+    <aside class="side">
+      <!-- H. 本站公告 -->
+      <section class="card">
+        <div class="hd" style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
+          <b style="font-size:15.5px">本站公告</b>
+        </div>
+        <div id="notice"></div>
+      </section>
+    </aside>
   </div>
 </div>
 
 <div class="foot"><a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">京ICP备________号</a></div>
 
+<button class="fab" id="fab" type="button" title="回到顶部 / 常见问题">↑</button>
+<div class="fab-tip" id="fabTip">
+  <b>常见问题</b>
+  · 怎么算通过：做完题回来点通过标记<br>
+  · 题目打不开：先看网络，再刷新一次<br>
+  · 评测怎么用：写代码 → 提交 → 看结果
+</div>
+
 <script src="data/catalog.js?v=20261124b"></script>
+<script src="data/fortune.js?v=20261126a"></script>
+<script src="data/config.js?v=20261126a"></script>
 <script src="nav.js?v=20261126a"></script>
-<script>
-(function () {
-  var C = window.CATALOG || { chapters: [] };
-  var GROUPS = C.chapters || [];
-  var ALL = [];
-  GROUPS.forEach(function (g) { (g.lessons || []).forEach(function (l) { (l.problems || []).forEach(function (p) { p._g = g; ALL.push(p); }); }); });
-  var lesN = GROUPS.reduce(function (a, g) { return a + (g.lessons || []).filter(function (l) { return (l.problems || []).length; }).length; }, 0);
-  var done = new Set();
-  try { done = new Set(JSON.parse(localStorage.getItem('studypage.done') || '[]')); } catch (e) {}
-  var ok = ALL.filter(function (p) { return done.has('ybt' + p.pid); }).length;
-  var pct = ALL.length ? Math.round(ok / ALL.length * 100) : 0;
-
-  document.getElementById('sCats').textContent = GROUPS.length;
-  document.getElementById('sLes').textContent = lesN;
-  document.getElementById('sPro').textContent = ALL.length;
-  document.getElementById('sDone').textContent = ok;
-  document.getElementById('barNote').style.width = pct + '%';
-  document.getElementById('pctNote').textContent = pct + '% · ' + ok + ' / ' + ALL.length + ' 题';
-  document.getElementById('pillLib').textContent = GROUPS.length + ' 组 · ' + lesN + ' 节';
-
-  document.getElementById('cats').innerHTML = GROUPS.map(function (g) {
-    var n = (g.lessons || []).reduce(function (a, l) { return a + (l.problems || []).length; }, 0);
-    var gok = (g.lessons || []).reduce(function (a, l) { return a + (l.problems || []).filter(function (p) { return done.has('ybt' + p.pid); }).length; }, 0);
-    var p = n ? Math.round(gok / n * 100) : 0;
-    return '<div class="catline">' +
-      '<div class="hd"><b>' + g.name + '</b><span>' + (g.lessons || []).length + ' 节 · ' + n + ' 题</span><em>' + p + '%</em></div>' +
-      '<div class="bar" style="margin-top:6px"><i style="width:' + p + '%"></i></div>' +
-      '</div>';
-  }).join('');
-
-  var nm = new URLSearchParams(location.search).get('name');
-  if (nm) {
-    document.getElementById('goNote').href = '学习台.html?name=' + encodeURIComponent(nm);
-    document.getElementById('tNote').href = '学习台.html?name=' + encodeURIComponent(nm);
-  }
-})();
-</script>
+<script src="home.js?v=20261126a"></script>
 </body>
 </html>
