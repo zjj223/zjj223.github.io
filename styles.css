@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   color-scheme: light;
   --bg: #f6f3ec;
   --surface: #fffdfa;
@@ -9816,4 +9816,310 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
   .battle-sprite-wrap, .battle-sprite { width: 54px; height: 54px; }
   .battle-log { max-height: 36px; font-size: 11px; line-height: 1.35; padding: 4px 6px; }
   .battle-result { font-size: 12px; }
+}
+
+/* ===== 第一批扩展玩法：今日委托 ===== */
+.daily-quest-view {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+.daily-quest-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 2px solid #e6d7bd;
+  border-radius: 12px;
+  background: #fffaf0;
+}
+.daily-quest-head h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #3f2f1c;
+}
+.daily-quest-head p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: #8b7355;
+}
+.daily-quest-week {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #f1e4cc;
+  color: #7a5c36;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.daily-quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.daily-quest-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 58px;
+  padding: 9px 10px;
+  border: 2px solid #e6d7bd;
+  border-radius: 12px;
+  background: #fffdf7;
+  box-sizing: border-box;
+}
+.daily-quest-row.is-ready {
+  border-color: #78a95c;
+  background: #f8fff1;
+}
+.daily-quest-row.is-claimed {
+  opacity: .72;
+  background: #f6f2e8;
+}
+.daily-quest-icon {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #f7ead3;
+  font-size: 18px;
+}
+.daily-quest-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.daily-quest-main strong {
+  font-size: 13.5px;
+  color: #3f2f1c;
+}
+.daily-quest-main span {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: #8b7355;
+}
+.daily-quest-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #efe3cf;
+}
+.daily-quest-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #9bc47a, #5f9a46);
+}
+.daily-quest-claim {
+  min-width: 58px;
+  min-height: 34px;
+  padding: 7px 9px;
+  border: 2px solid #c9b294;
+  border-radius: 999px;
+  background: #fffdf6;
+  color: #5b4630;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+}
+.daily-quest-claim:not(:disabled) {
+  border-color: #5f9a46;
+  background: #6da951;
+  color: #fff;
+  box-shadow: 0 2px 0 #4b7d36;
+}
+.daily-quest-claim:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+.daily-quest-foot {
+  margin: 0;
+  padding: 2px 2px 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #8b7355;
+}
+
+/* ===== 第一批扩展玩法：场景首领 ===== */
+.scene-boss-chip {
+  position: absolute;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  z-index: 5;
+  max-width: min(86%, 420px);
+  padding: 8px 14px;
+  border: 2px solid rgba(255, 226, 150, .9);
+  border-radius: 999px;
+  background: rgba(56, 39, 16, .72);
+  color: #fff5d8;
+  font-size: 12.5px;
+  font-weight: 800;
+  font-family: inherit;
+  line-height: 1.2;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .7);
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .28);
+  white-space: nowrap;
+}
+.scene-boss-chip:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+.scene-boss-chip:disabled,
+.scene-boss-chip.is-locked,
+.scene-boss-chip.is-used {
+  border-color: rgba(255, 255, 255, .38);
+  background: rgba(28, 24, 18, .6);
+  color: rgba(255, 255, 255, .72);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.scene-boss-chip.is-locked {
+  border-color: rgba(255, 255, 255, .42);
+}
+
+/* 窄屏角色弹窗：保证委托页有足够正文宽度，不把内容压成 6px */
+@media (max-width: 700px) {
+  #roleModal .zone-modal-box.role {
+    width: calc(100vw - 12px) !important;
+  }
+  #roleModal .role-layout {
+    grid-template-columns: 84px minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+  #roleModal .role-main {
+    grid-template-columns: minmax(0, 1fr) 60px !important;
+    gap: 8px !important;
+  }
+  #roleModal .role-tabs {
+    gap: 6px !important;
+  }
+  #roleModal .role-tabs .role-tab {
+    padding: 10px 3px !important;
+    font-size: 12px !important;
+  }
+  #roleModal .role-portrait-frame {
+    aspect-ratio: 3 / 4;
+  }
+  #roleModal .role-portrait-name {
+    font-size: 12px;
+  }
+  #roleModal .role-info-grid {
+    grid-template-columns: 1fr !important;
+  }
+  #roleModal .role-item-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .daily-quest-head {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .daily-quest-week {
+    white-space: normal;
+  }
+  .daily-quest-row {
+    grid-template-columns: 28px minmax(0, 1fr) 52px;
+    gap: 6px;
+    padding: 7px;
+    min-height: 52px;
+  }
+  .daily-quest-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 15px;
+  }
+  .daily-quest-claim {
+    min-width: 48px;
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+  .daily-quest-main strong {
+    font-size: 12.5px;
+  }
+  .daily-quest-main span {
+    font-size: 10.5px;
+  }
+  .scene-boss-chip {
+    max-width: 92%;
+    padding: 6px 10px;
+    bottom: 34px;
+    font-size: 11.5px;
+    white-space: normal;
+  }
+}
+
+/* 手机竖屏：角色弹窗改为「头像条 + 横向页签 + 全宽内容」 */
+@media (max-width: 560px) {
+  #roleModal .role-layout,
+  #roleModal .role-layout.is-clothes {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    gap: 7px !important;
+  }
+  #roleModal .role-portrait {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+  }
+  #roleModal .role-portrait-frame {
+    width: 58px !important;
+    height: 76px !important;
+    aspect-ratio: auto !important;
+    flex: 0 0 auto !important;
+  }
+  #roleModal .role-portrait-name {
+    font-size: 13px !important;
+  }
+  #roleModal .role-main {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    gap: 6px !important;
+  }
+  #roleModal .role-tabs {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 5px !important;
+  }
+  #roleModal .role-tabs .role-tab {
+    flex: 1 1 calc(25% - 5px) !important;
+    width: auto !important;
+    padding: 8px 2px !important;
+    font-size: 12px !important;
+  }
+  #roleModal #rolePanelArea {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    max-height: calc(100vh - 218px) !important;
+    min-height: 0 !important;
+  }
+  .daily-quest-row {
+    grid-template-columns: 26px minmax(0, 1fr) 44px;
+    gap: 4px;
+    padding: 6px;
+  }
+  .daily-quest-main strong {
+    font-size: 12px;
+  }
+  .daily-quest-main span {
+    font-size: 10px;
+  }
+  .daily-quest-claim {
+    min-width: 42px;
+    padding: 5px 3px;
+    font-size: 10.5px;
+  }
 }
