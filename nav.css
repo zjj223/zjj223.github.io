@@ -18,6 +18,14 @@
   text-decoration:none;padding:6px 10px;border-radius:6px}
 .nav-user:hover{background:#f2f5ff}
 .nav-user .c{font-size:11px;opacity:.7}
+/* 洛克贝：一枚小铜钱，数字用等距数字对齐 */
+.nav-coin{display:flex;align-items:center;gap:6px;margin-right:6px;padding:4px 9px;
+  border:1px solid #D8D4C6;border-radius:2px;background:#FBF8EE;color:#7A5A12;
+  font-size:12.5px;font-weight:600;text-decoration:none;font-variant-numeric:tabular-nums;
+  white-space:nowrap;transition:.15s}
+.nav-coin i{width:9px;height:9px;border-radius:50%;background:#C8992E;flex:0 0 9px;
+  box-shadow:inset 0 0 0 1.5px #FBF8EE,inset 0 0 0 2.5px #C8992E}
+.nav-coin:hover{border-color:#B99B54;background:#FFFCF3}
 @media (max-width:900px){
   .nav-in{overflow-x:auto;scrollbar-width:none}
   .nav-in::-webkit-scrollbar{display:none}
