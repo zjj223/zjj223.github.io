@@ -68,3 +68,91 @@ body{margin:0;background:#f4f6fa;color:#262626;font:14px/1.6 -apple-system,"Sego
 .stat{display:flex;gap:26px;flex-wrap:wrap}
 .stat b{display:block;font-size:20px;line-height:1.3}
 .stat span{font-size:12px;color:#98a2b8}
+
+/* ============================================================
+   顶栏账号区：方印头像 + 名字 + 下拉（墨纸皮肤，与纸卡同一套规矩）
+   已登记 = 朱砂方印；未登记 = 虚线灰印
+   ============================================================ */
+.nav-acc{position:relative;flex:0 0 auto;margin-left:6px}
+.acc{display:flex;align-items:center;gap:7px;height:38px;padding:0 6px;background:none;
+  border:0;border-radius:1px;cursor:pointer;font-family:inherit;color:var(--ik-navy,#17265A)}
+.acc:hover{background:#F2F3EE}
+.acc .seal{width:24px;height:24px;flex:0 0 24px;display:grid;place-items:center;
+  border:1px solid var(--ik-seal,#A8322A);border-radius:2px;background:transparent;
+  font-family:var(--ik-serif,Georgia,"Songti SC","SimSun",serif);font-size:13px;line-height:1;
+  color:var(--ik-seal,#A8322A);letter-spacing:0}
+.acc .txt{display:flex;flex-direction:column;line-height:1.15;text-align:left;min-width:0}
+.acc .txt b{font-family:var(--ik-serif,Georgia,"Songti SC","SimSun",serif);font-size:13.5px;font-weight:700;
+  letter-spacing:.04em;white-space:nowrap;max-width:118px;overflow:hidden;text-overflow:ellipsis}
+.acc .txt i{font-style:normal;font-size:10px;letter-spacing:.08em;color:var(--ik-ink3,#8D939E);margin-top:1px}
+.acc .cv{font-size:9px;color:var(--ik-ink3,#8D939E);transition:transform .18s}
+.nav-acc.open .acc .cv{transform:rotate(180deg)}
+.nav-acc.open .acc{background:#F2F3EE}
+.acc.is-guest .seal{border-style:dashed;border-color:#B4B8B1;color:#9B9F99}
+
+/* 下拉面板：白纸、1px 墨线、方角、零阴影 */
+.acc-panel{position:absolute;top:calc(100% + 7px);right:0;width:308px;display:none;z-index:80;
+  background:var(--ik-paper,#fff);border:1px solid var(--ik-rule,#D6D8D4);border-radius:2px;overflow:hidden}
+.nav-acc.open .acc-panel{display:block}
+
+.p-head{display:flex;align-items:center;gap:11px;padding:13px 14px 12px;
+  border-bottom:1px solid var(--ik-rule2,#E8EAE6);background:#FBFAF4}
+.p-head .seal{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;
+  border:1px solid var(--ik-seal,#A8322A);border-radius:2px;
+  font-family:var(--ik-serif,Georgia,"Songti SC","SimSun",serif);font-size:19px;line-height:1;
+  color:var(--ik-seal,#A8322A)}
+.p-head .meta{min-width:0}
+.p-head .meta b{display:block;font-family:var(--ik-serif,Georgia,"Songti SC","SimSun",serif);
+  font-size:15px;font-weight:700;letter-spacing:.05em;color:var(--ik-ink,#14171C);line-height:1.3;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-head .meta span{display:block;margin-top:3px;font-size:11px;letter-spacing:.02em;
+  color:var(--ik-ink3,#8D939E);line-height:1.4}
+
+.p-row{display:flex;align-items:center;gap:9px;padding:9px 14px;text-decoration:none;
+  color:var(--ik-ink,#14171C);font-size:12.5px;border-bottom:1px solid var(--ik-rule2,#E8EAE6)}
+.p-row em{width:17px;flex:0 0 17px;font-style:normal;font-family:var(--ik-serif,Georgia,serif);
+  font-size:10.5px;letter-spacing:.06em;color:var(--ik-ink3,#8D939E);font-variant-numeric:tabular-nums}
+.p-row span{flex:1}
+.p-row i{font-style:normal;font-size:11px;color:#C2C6CE}
+.p-row:hover{background:#FAFAF6}
+.p-row:hover span{color:var(--ik-navy,#17265A)}
+.p-row:hover i{color:var(--ik-navy,#17265A)}
+
+.p-foot{display:flex;align-items:center;gap:8px;padding:9px 14px;background:#FBFAF4;
+  border-top:1px solid var(--ik-rule,#D6D8D4);font-size:11.5px;color:var(--ik-ink2,#575D69)}
+.p-foot .coin{display:flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.p-foot .coin i{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:#C8992E}
+.p-foot .p-quit{margin-left:auto;padding:0;background:none;border:0;cursor:pointer;
+  font-family:inherit;font-size:11.5px;letter-spacing:.04em;color:var(--ik-seal,#A8322A)}
+.p-foot .p-quit:hover{text-decoration:underline}
+.p-foot .p-quit:focus-visible{outline:1px solid var(--ik-seal,#A8322A);outline-offset:2px}
+
+/* 未登记态：名字输入 */
+@supports selector(.p-form:has(input)){.p-form:has(input:focus){border-color:var(--ik-navy,#17265A)}}
+.p-form{display:flex;gap:8px;padding:13px 14px 11px}
+.p-form input{flex:1;min-width:0;height:32px;padding:0 9px;border:1px solid var(--ik-rule,#D6D8D4);
+  border-radius:1px;background:#fff;font:13px var(--ik-sans,"Segoe UI","Microsoft YaHei",sans-serif);
+  color:var(--ik-ink,#14171C);outline:none}
+.p-form input:focus{border-color:var(--ik-navy,#17265A)}
+.p-form input::placeholder{color:#AEB2AC}
+.p-form button{height:32px;padding:0 14px;border:1px solid var(--ik-navy,#17265A);
+  border-radius:1px;background:var(--ik-navy,#17265A);color:#fff;cursor:pointer;
+  font:600 12.5px var(--ik-sans,"Segoe UI","Microsoft YaHei",sans-serif);letter-spacing:.04em}
+.p-form button:hover{background:#0F1B42;border-color:#0F1B42}
+.p-note{padding:0 14px 13px;font-size:11px;line-height:1.7;color:var(--ik-ink3,#8D939E);letter-spacing:.02em}
+
+@media (max-width:1024px){
+  .nav-item{padding:0 10px}
+}
+@media (max-width:900px){
+  .nav-item{padding:0 8px}
+  .acc .txt b{max-width:88px;font-size:13px}
+  .acc .txt i{display:none}                 /* 窄屏先砍小字，名字留着 */
+  .nav-coin{margin-right:3px}
+  .acc-panel{position:fixed;left:10px;right:10px;top:56px;width:auto}
+}
+@media (max-width:720px){
+  .acc .txt{display:none}                   /* 再窄就只留方印 + 小三角 */
+  .acc{padding:0 4px;gap:5px}
+  .acc .seal{width:22px;height:22px;flex:0 0 22px;font-size:12px}
+}
