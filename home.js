@@ -67,8 +67,8 @@
     var doneArr = Array.from(doneSet()).filter(function (k) { return ALL.some(function (p) { return 'ybt' + p.pid === k; }); });
     var lesN = GROUPS.reduce(function (a, g) { return a + (g.lessons || []).filter(function (l) { return (l.problems || []).length; }).length; }, 0);
     var s1 = $('#heroSub'), s3 = $('#heroCats'), s3b = $('#heroLes'), s3c = $('#heroPro'), s3d = $('#heroDone');
-    if (s1) s1.textContent = '从输出、输入到排序、搜索、动态规划，' + ALL.length + ' 道题按章节排好';
-    if (s3) s3.textContent = GROUPS.length + ' 大类 · ' + lesN + ' 章 · ' + ALL.length + ' 题';
+    if (s1) s1.textContent = ALL.length + ' 道 C++ 题按章节排好，从输出格式一直练到动态规划。';
+    if (s3) s3.textContent = GROUPS.length + ' 大类，' + lesN + ' 章，' + ALL.length + ' 题';
     if (s3b) s3b.textContent = lesN;
     if (s3c) s3c.textContent = ALL.length;
     if (s3d) s3d.textContent = doneArr.length;
@@ -101,7 +101,7 @@
     function paint() {
       var isToday = st.last === today();
       btn.classList.toggle('done', isToday);
-      btn.textContent = isToday ? '今日已打卡 · 连续 ' + st.streak + ' 天' : '今日打卡';
+      btn.textContent = isToday ? '今天已打卡，连续 ' + st.streak + ' 天' : '今日打卡';
       if (sub) sub.textContent = st.total ? '累计打卡 ' + st.total + ' 天' : '每天来一次，攒个连续';
     }
     btn.addEventListener('click', function () {
@@ -121,7 +121,7 @@
     var box = $('#jump'); if (!box) return;
     var inp = $('#jumpPid'), tip = $('#jumpTip');
     var done = doneSet();
-    if (tip) tip.textContent = '当前题库 ' + ALL.length + ' 题 · 已通过 ' + ALL.filter(function (p) { return done.has('ybt' + p.pid); }).length + ' 题';
+    if (tip) tip.textContent = '题库共 ' + ALL.length + ' 题，已通过 ' + ALL.filter(function (p) { return done.has('ybt' + p.pid); }).length + ' 题';
     function go2() {
       var v = (inp.value || '').trim();
       if (!/^\d{3,4}$/.test(v)) { inp.focus(); inp.style.borderColor = '#e0a1a1'; setTimeout(function () { inp.style.borderColor = ''; }, 1200); return; }
@@ -178,7 +178,7 @@
 
     function idle() {
       box.innerHTML = '<div class="luck-body">' + tube() +
-        '<div class="luck-txt"><p>摇一支签，看看今天刷哪章</p><small>一天一次，摇完记在下面</small>' +
+        '<div class="luck-txt"><p>摇一支，今天先做哪一章</p><small>一天一次，摇完记住就行</small>' +
         '<button class="btn-shake" id="btnShake">摇一摇</button></div></div>';
       $('#btnShake').addEventListener('click', shake);
       paintDots();
@@ -212,14 +212,14 @@
       box.innerHTML = '<div class="luck-res">' +
         '<div class="slip">' +
           '<div class="s-top"><span class="stamp' + lvCls + '">' + lvName + '</span>' +
-            '<span class="s-ch">今天刷：' + (f.ch || '') + '</span></div>' +
+            '<span class="s-ch">' + (f.ch || '') + '</span></div>' +
           '<div class="txt">' + f.text + '</div>' +
           '<div class="s-bot"><span>宜 <b class="g">' + f.good + '</b></span>' +
             '<span>忌 <b class="b">' + f.bad + '</b></span></div>' +
         '</div>' +
         '<div class="luck-op">' +
-          '<div class="meta">今日已摇 · 明天再来<br>连续开签 ' + stk + ' 天</div>' +
-          '<button class="btn-go" id="btnGo" type="button">去做这一章 →</button>' +
+          '<div class="meta">今天摇过了，明天再来<br>连续开签 ' + stk + ' 天</div>' +
+          '<button class="btn-go" id="btnGo" type="button">去这一章</button>' +
         '</div></div>';
       $('#btnGo').addEventListener('click', function () {
         var q = ['g=' + f.g, 'l=' + f.l];
@@ -249,19 +249,19 @@
     }).join('');
   })();
 
-  /* ---------------- F. 题库总览 ---------------- */
+  /* ---------------- F. 题库总览（目录式） ---------------- */
   (function cats() {
     var box = $('#cats'); if (!box) return;
     var done = doneSet();
-    box.innerHTML = GROUPS.map(function (g) {
+    box.innerHTML = GROUPS.map(function (g, k) {
       var n = (g.lessons || []).reduce(function (a, l) { return a + (l.problems || []).length; }, 0);
       var ok = (g.lessons || []).reduce(function (a, l) { return a + (l.problems || []).filter(function (p) { return done.has('ybt' + p.pid); }).length; }, 0);
       var p = n ? Math.round(ok / n * 100) : 0;
+      var len = (g.lessons || []).length;
       return '<a class="cat" href="练习题库.html">' +
-        (ok === n && n ? '<span class="ok">✓</span>' : '') +
-        '<b>' + g.name + '</b><span>' + (g.lessons || []).length + ' 节 · ' + n + ' 题</span>' +
-        '<div class="bar"><i style="width:' + p + '%"></i></div>' +
-        '<em>' + p + '%</em></a>';
+        '<span class="no">' + (k + 1 < 10 ? '0' : '') + (k + 1) + '</span>' +
+        '<span class="mid"><b>' + g.name + '</b><span>' + len + ' 节</span></span>' +
+        '<span class="right">' + n + ' 题<em>' + (ok ? '通过 ' + ok + '，' + p + '%' : '未开始') + '</em></span></a>';
     }).join('');
   })();
 
@@ -284,23 +284,23 @@
       days.push(ymd(d)); vals.push(daily[ymd(d)] || 0);
     }
     if (!vals.some(function (v) { return v > 0; })) {
-      box.innerHTML = '<div class="empty">做题后这里会自动出图（从今天开始记）</div>';
+      box.innerHTML = '<div class="empty">还没有记录。做一道题，回来点「通过」，这里就长出第一根柱子。</div>';
       return;
     }
     var W = 780, H = 190, padB = 26, padT = 16;
     var maxV = Math.max(3, Math.max.apply(null, vals));
-    var bw = 14, gap = 10, baseY = H - padB;
+    var bw = 12, gap = 11, baseY = H - padB;
     function y(v) { return baseY - Math.round(v / maxV * (baseY - padT)); }
-    var barX = 14, bars = '', labels = '';
+    var barX = 16, bars = '', labels = '';
     vals.forEach(function (v, k) {
       var x = barX + k * (bw + gap), yy = y(v);
-      bars += '<rect x="' + x + '" y="' + yy + '" width="' + bw + '" height="' + (baseY - yy) + '" rx="2" fill="#8fa8e8"/>';
+      bars += '<rect x="' + x + '" y="' + yy + '" width="' + bw + '" height="' + (baseY - yy) + '" fill="rgba(23,38,90,.26)"/>';
     });
     var grid = '';
     [0, .5, 1].forEach(function (p) {
       var gy = baseY - Math.round(p * (baseY - padT));
-      grid += '<line x1="0" y1="' + gy + '" x2="' + W + '" y2="' + gy + '" stroke="#eef1f7"/>' +
-        '<text x="2" y="' + (gy - 3) + '" font-size="10" fill="#b0b8c8">' + Math.round(maxV * p) + '</text>';
+      grid += '<line x1="0" y1="' + gy + '" x2="' + W + '" y2="' + gy + '" stroke="#E5E7E1"/>' +
+        '<text x="2" y="' + (gy - 3) + '" font-size="10" fill="#8D939E">' + Math.round(maxV * p) + '</text>';
     });
     var acc = 0, pts = [], cum = vals.map(function (v, k) { acc += v; return acc; });
     var maxC = Math.max(1, acc);
@@ -311,20 +311,19 @@
       var yy = baseY - Math.round(c / maxC * (baseY - padT));
       pts.push(x + ',' + yy);
     });
-    var line = '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#2947c9" stroke-width="2"/>';
-    var area = '<polygon points="' + pts.join(' ') + ' ' + (chartL + lineW) + ',' + baseY + ' ' + chartL + ',' + baseY + '" fill="rgba(41,71,201,.08)"/>';
-    labels = '<text x="14" y="' + (H - 6) + '" font-size="10" fill="#b0b8c8">14 天前</text>' +
-      '<text x="' + (chartL - 60) + '" y="' + (H - 6) + '" font-size="10" fill="#b0b8c8">今天</text>' +
-      '<text x="' + (chartL + 4) + '" y="12" font-size="10" fill="#8a94a6">累积 ' + acc + ' 题</text>';
+    var line = '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#17265A" stroke-width="1.5"/>';
+    labels = '<text x="16" y="' + (H - 6) + '" font-size="10" fill="#8D939E">14 天前</text>' +
+      '<text x="' + (chartL - 56) + '" y="' + (H - 6) + '" font-size="10" fill="#8D939E">今天</text>' +
+      '<text x="' + (chartL + 4) + '" y="12" font-size="10" fill="#575D69">累计 ' + acc + ' 题</text>';
     box.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet">' +
-      grid + area + bars + line + labels + '</svg>';
+      grid + bars + line + labels + '</svg>';
   })();
 
   /* ---------------- H. 公告 ---------------- */
   (function notice() {
     var box = $('#notice'); if (!box) return;
     box.innerHTML = (CFG.notices || []).map(function (n) {
-      return '<a class="nt" href="' + (n.href || '#') + '"><div class="d">' + n.date + ' · ' + n.year + '</div>' +
+      return '<a class="nt" href="' + (n.href || '#') + '"><div class="d">' + n.date + '　' + n.year + '</div>' +
         '<div class="tt">' + n.title + '</div></a>';
     }).join('');
   })();
@@ -369,7 +368,7 @@
     }
     function updCnt() {
       var n = ta.value.length;
-      cnt.textContent = n + '/200 · 只有站长能看到';
+      cnt.textContent = n + '/200 字，只有站长能看到';
       cnt.classList.toggle('over', n > 200);
       if (coolLeft() <= 0) btnS.disabled = n === 0 || n > 200;
     }
@@ -456,3 +455,5 @@
     tip.addEventListener('mouseleave', function () { tip.classList.remove('on'); });
   })();
 })();
+
+
