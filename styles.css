@@ -2255,6 +2255,22 @@ button:focus-visible {
   white-space: nowrap;
 }
 
+.battle-name.is-boss {
+  max-width: 172px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.12;
+  word-break: keep-all;
+}
+
+@media (max-width: 640px) {
+  .battle-name.is-boss {
+    max-width: 118px;
+    font-size: 0.64rem;
+  }
+}
+
 .battle-lv {
   font-size: 0.66rem;
   color: #e65100;
@@ -9962,26 +9978,24 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
 /* ===== 第一批扩展玩法：场景首领 ===== */
 .scene-boss-chip {
   position: absolute;
-  left: 50%;
+  right: 64px;
   bottom: 40px;
-  transform: translateX(-50%);
   z-index: 5;
-  max-width: min(86%, 420px);
-  padding: 8px 14px;
+  display: flex;
+  align-items: flex-end;
+  gap: 9px;
+  max-width: min(72%, 320px);
+  padding: 8px 13px 8px 8px;
   border: 2px solid rgba(255, 226, 150, .9);
-  border-radius: 999px;
-  background: rgba(56, 39, 16, .72);
+  border-radius: 16px;
+  background: rgba(40, 29, 15, .78);
   color: #fff5d8;
-  font-size: 12.5px;
-  font-weight: 800;
   font-family: inherit;
-  line-height: 1.2;
-  text-align: center;
+  text-align: left;
   text-shadow: 0 1px 3px rgba(0, 0, 0, .7);
   cursor: pointer;
   backdrop-filter: blur(4px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, .28);
-  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .32);
 }
 .scene-boss-chip:hover:not(:disabled) {
   filter: brightness(1.12);
@@ -9990,13 +10004,77 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
 .scene-boss-chip.is-locked,
 .scene-boss-chip.is-used {
   border-color: rgba(255, 255, 255, .38);
-  background: rgba(28, 24, 18, .6);
-  color: rgba(255, 255, 255, .72);
+  background: rgba(28, 24, 18, .66);
+  color: rgba(255, 255, 255, .75);
   cursor: not-allowed;
   box-shadow: none;
 }
-.scene-boss-chip.is-locked {
-  border-color: rgba(255, 255, 255, .42);
+.scene-boss-avatar-wrap {
+  position: relative;
+  flex: 0 0 82px;
+  width: 82px;
+  height: 82px;
+  border-radius: 12px;
+  background: radial-gradient(circle at 50% 65%, rgba(255, 218, 132, .26), rgba(80, 53, 20, .1) 68%);
+}
+.scene-boss-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .35));
+}
+.scene-boss-chip.is-locked .scene-boss-avatar {
+  filter: grayscale(.72) brightness(.72);
+}
+.scene-boss-lock {
+  position: absolute;
+  right: -4px;
+  bottom: -2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(20, 18, 14, .86);
+  color: #ffd66e;
+  font-size: 13px;
+  line-height: 24px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
+}
+.scene-boss-lock[hidden] {
+  display: none;
+}
+.scene-boss-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+}
+.scene-boss-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  color: #ffd66e;
+}
+.scene-boss-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+.scene-boss-status {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #f4e4be;
+}
+.scene-boss-chip.is-locked .scene-boss-status,
+.scene-boss-chip.is-used .scene-boss-status {
+  color: rgba(255, 255, 255, .68);
 }
 
 /* 窄屏角色弹窗：保证委托页有足够正文宽度，不把内容压成 6px */
@@ -10061,11 +10139,51 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
     font-size: 10.5px;
   }
   .scene-boss-chip {
-    max-width: 92%;
-    padding: 6px 10px;
-    bottom: 34px;
-    font-size: 11.5px;
+    right: 7px;
+    top: 44%;
+    bottom: auto;
+    transform: translateY(-50%);
+    width: 96px;
+    max-width: 96px;
+    padding: 6px 4px;
+    gap: 3px;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 12px;
+  }
+  .scene-boss-avatar-wrap {
+    flex-basis: 52px;
+    width: 52px;
+    height: 52px;
+  }
+  .scene-boss-copy {
+    align-items: center;
+    text-align: center;
+    gap: 1px;
+  }
+  .scene-boss-name {
+    max-width: 88px;
+    min-height: 2.4em;
     white-space: normal;
+    overflow: hidden;
+    text-overflow: clip;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .scene-boss-kicker {
+    font-size: 8px;
+    letter-spacing: .2px;
+  }
+  .scene-boss-status {
+    max-width: 88px;
+    font-size: 9px;
+    line-height: 1.25;
+  }
+  .scene-boss-lock {
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+    line-height: 20px;
   }
 }
 
