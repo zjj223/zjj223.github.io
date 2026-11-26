@@ -4,8 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>俊杰侃信奥 · 学习笔记</title>
-<link rel="stylesheet" href="nav.css?v=20261126a">
-<link rel="stylesheet" href="paper.css?v=20261126d">
+<link rel="stylesheet" href="nav.css?v=20261126x">
+<link rel="stylesheet" href="paper.css?v=20261126x">
 <style>
   :root{--blue:#17265A;--blue-d:#0F1B42;--line:#D6D8D4;--ink:#14171C;--dim:#8D939E;--bg:#EBECEA;--ok:#2A6A45}
   *{box-sizing:border-box}
@@ -24,7 +24,7 @@
   .out{font-size:12.5px;color:var(--dim);text-decoration:none;padding:4px 10px;border-radius:6px}
   .out:hover{background:#f2f4f9;color:var(--blue)}
 
-  .wrap{max-width:1180px;margin:0 auto;padding:20px 18px 60px;display:flex;gap:18px;align-items:flex-start}
+  .wrap{max-width:var(--nv-max,1180px);margin:0 auto;padding:20px var(--nv-pad,18px) 60px;display:flex;gap:18px;align-items:flex-start}
 
   /* 左：纸白目录卡 */
   .left{width:214px;flex:0 0 214px;position:sticky;top:64px}
@@ -93,15 +93,17 @@
     font-size:11px;line-height:17px;display:inline-block;text-align:center}
   .idx{color:#a9b2c4;font-variant-numeric:tabular-nums;font-size:12.5px}
   .id{width:66px;color:#98a2b8;font-variant-numeric:tabular-nums;font-size:12.5px}
-  .ttl{color:var(--blue);font-weight:500;font-size:13.5px}
+  .ttl{color:var(--blue);font-weight:500;font-size:13.5px;text-align:left}
   tbody tr[data-id]:hover .ttl{text-decoration:underline}
   .num-col{width:84px;color:#98a2b8;font-variant-numeric:tabular-nums;font-size:12px}
-  .arrow{color:#b9c2d6;text-align:right;width:30px}
+  .arrow{color:#b9c2d6;text-align:right;width:48px}
   tbody tr[data-id]:hover .arrow{color:var(--blue)}
   .empty{padding:36px 0;text-align:center;color:#b0b8c8;font-size:13px}
 
   /* 列宽按 15/15/40/15/15 分 */
-  th.w-st{width:15%}.th.w-id{width:15%}.th.w-ttl{width:40%}.th.w-ac{width:15%}.th.w-sub{width:14%}
+  th.w-st{width:86px}.th.w-id{width:96px}.th.w-ttl{width:auto}.th.w-ac{width:110px}.th.w-sub{width:110px}
+  table{table-layout:fixed}
+  table td.ttl,table th.w-ttl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   thead th{background:#F8F6EE;color:#575D69}
   tbody tr:nth-child(odd){background:transparent}
   tbody tr.grp:nth-child(odd){background:#FAFAF6}
@@ -125,7 +127,7 @@
     font:inherit;font-size:12.5px;color:#6B7280;cursor:pointer}
   .pgsearch button:hover{border-color:var(--blue);color:var(--blue)}
 
-  .foot{max-width:1180px;margin:0 auto;padding:0 18px 28px;text-align:center}
+  .foot{max-width:var(--nv-max,1180px);margin:0 auto;padding:0 var(--nv-pad,18px) 28px;text-align:center}
   .foot a{font-size:12px;color:#9aa3b2;text-decoration:none}
   .foot a:hover{color:#4a5266}
 
@@ -212,7 +214,7 @@
 </div>
 
 <script src="data/catalog.js?v=20261124b"></script>
-<script src="nav.js?v=20261126c"></script>
+<script src="nav.js?v=20261126x"></script>
 <script>
 const C = window.CATALOG || { chapters: [] };
 const GROUPS = C.chapters || [];
