@@ -230,23 +230,16 @@
       ['05', '箱庭世界', 'index.html'],
       ['06', '站内信', '首页.html#mailbar']
     ];
-    var sub = w.role + (s.pass ? ' · 已通过 ' + s.pass + ' 题' : ' · 还没开始刷') + (s.streak ? ' · 连续 ' + s.streak + ' 天' : '');
-    return '<div class="p-head">' +
-        '<span class="seal">' + esc(w.name.trim().charAt(0)) + '</span>' +
-        '<div class="meta"><b>' + esc(w.name) + '</b><span>' + esc(sub) + '</span></div>' +
-      '</div>' +
-      rows.map(function (r) {
+    return rows.map(function (r) {
         return '<a class="p-row" href="' + r[2] + suffix() + '"><em>' + r[0] + '</em><span>' + r[1] + '</span><i>›</i></a>';
       }).join('') +
       '<div class="p-foot"><span class="coin"><i></i>' + fmt(c) + ' 洛克贝</span>' +
+        (s.streak ? '<span class="p-streak">连续 ' + s.streak + ' 天</span>' : '') +
         '<button type="button" class="p-quit">退出身份</button></div>';
   }
 
   function panelGuest() {
-    return '<div class="p-head">' +
-        '<span class="seal">?</span>' +
-        '<div class="meta"><b>登录</b><span>名字就是身份，不用密码</span></div>' +
-      '</div>' +
+    return '<div class="p-lead"><b>登录</b><span>名字就是身份，不用密码</span></div>' +
       '<form class="p-form" autocomplete="off">' +
         '<input name="nm" placeholder="你的名字，如 赵俊杰" maxlength="12">' +
         '<button type="submit">进入</button>' +
@@ -259,13 +252,17 @@
     if (!host) return;
     var s = stat();
     var head = w.guest ? '登录' : w.name;
-    var sub = w.guest ? '未登记' : (s.pass ? '通过 ' + s.pass + ' 题' : '还没刷');
+    var sub = w.guest ? '未登记' : (s.pass ? '同学 · 通过 ' + s.pass + ' 题' : '同学 · 还没刷');
     host.innerHTML =
-      '<button class="acc' + (w.guest ? ' is-guest' : '') + '" type="button" aria-haspopup="true" aria-expanded="false">' +
+      '<div class="idcard' + (w.guest ? ' is-guest' : '') + '" role="button" tabindex="0" ' +
+        'aria-haspopup="true" aria-expanded="false">' +
         '<span class="seal">' + esc(w.guest ? '?' : w.name.trim().charAt(0)) + '</span>' +
-        '<span class="txt"><b>' + esc(head) + '</b><i>' + esc(sub) + '</i></span>' +
+        '<span class="who"><b>' + esc(head) + '</b><i>' + esc(sub) + '</i></span>' +
+        '<span class="sep"></span>' +
+        '<a class="coin" href="index.html' + suffix() + '" title="洛克贝：游戏里探索、战斗、做委托挣的">' +
+          '<i></i><span class="num">' + fmt(window.lkCoin.coin()) + '</span></a>' +
         '<span class="cv">▾</span>' +
-      '</button>' +
+      '</div>' +
       '<div class="acc-panel">' + (w.guest ? panelGuest() : panelUser(w)) + '</div>';
     bindAcc(host);
   }
@@ -277,17 +274,29 @@
   }
 
   function bindAcc(host) {
-    var btn = host.querySelector('.acc');
+    var card = host.querySelector('.idcard');
     var panel = host.querySelector('.acc-panel');
 
-    btn.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
+    function toggle() {
       var open = host.classList.toggle('open');
-      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      card.setAttribute('aria-expanded', open ? 'true' : 'false');
       if (open) {
         var inp = host.querySelector('.p-form input');
         if (inp) setTimeout(function () { inp.focus(); }, 30);
+      }
+    }
+
+    card.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('.coin')) return;   /* 点金币是去游戏 */
+      e.preventDefault();
+      e.stopPropagation();
+      toggle();
+    });
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        toggle();
       }
     });
 
@@ -327,14 +336,13 @@
           icon(it.k) + '<span>' + it.t + '</span></a>';
       }).join('') +
       '<span class="nav-sp"></span>' +
-      '<a class="nav-coin" href="index.html' + suffix() + '" title="洛克贝：游戏里探索、战斗、做委托挣的"><i></i><span class="num">' + fmt(window.lkCoin.coin()) + '</span></a>' +
       '<div class="nav-acc"></div>';
 
     refreshAcc();
 
     /* 存档一变，数字和名字当场跟着变，不用刷新 */
     window.lkCoin.on(function (r) {
-      var num = box.querySelector('.nav-coin .num');
+      var num = box.querySelector('.idcard .coin .num');
       if (num) num.textContent = fmt(r.coin);
       var host = box.querySelector('.nav-acc');
       /* 面板开着时不重建，免得把正在输入的名字冲掉 */
@@ -346,7 +354,7 @@
     var host = document.querySelector('.nav-acc');
     if (host) {
       host.classList.remove('open');
-      var btn = host.querySelector('.acc');
+      var btn = host.querySelector('.idcard');
       if (btn) btn.setAttribute('aria-expanded', 'false');
     }
   });
