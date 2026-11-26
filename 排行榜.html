@@ -5,11 +5,21 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>俊杰侃信奥 · 排行榜</title>
 <link rel="stylesheet" href="nav.css?v=20261126a">
+<link rel="stylesheet" href="paper.css?v=20261126d">
 <style>
-  .empty{padding:40px 0;text-align:center;color:#b0b8c8;font-size:13px}
-  .mine{display:flex;align-items:center;gap:14px}
-  .mine .av{width:40px;height:40px;border-radius:50%;background:#eef2ff;color:#2947c9;font-weight:700;
-    display:flex;align-items:center;justify-content:center;flex:0 0 40px}
+  .mine{display:flex;align-items:center;gap:16px}
+  .mine .av{width:44px;height:44px;flex:0 0 44px;border:1px solid var(--ik-seal);color:var(--ik-seal);
+    background:#FDF8F6;border-radius:2px;font-family:var(--ik-serif);font-size:19px;
+    display:flex;align-items:center;justify-content:center}
+  .mine .who{flex:1;min-width:0}
+  .mine .who .nm{font-family:var(--ik-serif);font-size:19px;font-weight:700;letter-spacing:.06em}
+  .mine .who .info{font-size:12px;color:var(--ik-ink3);margin-top:2px}
+  .mine .sc{text-align:right}
+  .mine .sc b{display:block;font-family:var(--ik-serif);font-size:28px;line-height:1.1;
+    color:var(--ik-navy);font-variant-numeric:tabular-nums}
+  .mine .sc span{font-size:11px;color:var(--ik-ink3)}
+  .empty{padding:22px 0 24px}
+  .gap{height:18px}
 </style>
 </head>
 <body>
@@ -20,22 +30,24 @@
   <h1>排行榜</h1>
   <p class="sub">按通过题数排名，同分看提交次数</p>
 
-  <div class="card mine">
+  <section class="card mine">
     <div class="av" id="av">同</div>
-    <div>
-      <div style="font-weight:600" id="meName">同学</div>
-      <div style="color:#98a2b8;font-size:12px" id="meInfo">已通过 0 题 · 覆盖 0%</div>
+    <div class="who">
+      <div class="nm" id="meName">同学</div>
+      <div class="info" id="meInfo">已通过 0 题 · 覆盖 0%</div>
     </div>
-    <div style="margin-left:auto;text-align:right">
-      <div style="font-size:20px;font-weight:700;color:#2947c9" id="meOk">0</div>
-      <div style="font-size:12px;color:#98a2b8">通过题数</div>
+    <div class="sc">
+      <b id="meOk">0</b>
+      <span>通过题数</span>
     </div>
-  </div>
+  </section>
 
-  <div class="card" style="margin-top:16px">
-    <h2>总榜 <span class="pill">筹备中</span></h2>
-    <div class="empty">排行榜数据积累中，等参与的同学多了再公布</div>
-  </div>
+  <div class="gap"></div>
+
+  <section class="card">
+    <div class="hd"><b>总榜</b><span>筹备中</span></div>
+    <div class="empty">排行榜数据积累中，等参与的同学多了再公布。</div>
+  </section>
 </div>
 
 <div class="foot"><a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">京ICP备________号</a></div>
@@ -46,15 +58,23 @@
 (function () {
   var C = window.CATALOG || { chapters: [] };
   var ALL = [];
-  (C.chapters || []).forEach(function (g) { (g.lessons || []).forEach(function (l) { (l.problems || []).forEach(function (p) { ALL.push(p); }); }); });
+  (C.chapters || []).forEach(function (g) {
+    (g.lessons || []).forEach(function (l) {
+      (l.problems || []).forEach(function (p) { ALL.push(p); });
+    });
+  });
   var done = new Set();
   try { done = new Set(JSON.parse(localStorage.getItem('studypage.done') || '[]')); } catch (e) {}
   var ok = ALL.filter(function (p) { return done.has('ybt' + p.pid); }).length;
-  var nm = new URLSearchParams(location.search).get('name') || '同学';
+
+  var q = new URLSearchParams(location.search).get('name');
+  var nm = q || (window.lkCoin ? window.lkCoin.name() : '') || '同学';
+
   document.getElementById('meName').textContent = nm;
   document.getElementById('av').textContent = nm.slice(0, 1);
   document.getElementById('meOk').textContent = ok;
-  document.getElementById('meInfo').textContent = '已通过 ' + ok + ' 题 · 覆盖 ' + (ALL.length ? Math.round(ok / ALL.length * 100) : 0) + '%';
+  document.getElementById('meInfo').textContent =
+    '已通过 ' + ok + ' 题 · 覆盖 ' + (ALL.length ? Math.round(ok / ALL.length * 100) : 0) + '%';
 })();
 </script>
 </body>
