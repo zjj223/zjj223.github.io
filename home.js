@@ -443,6 +443,18 @@
     tick();
   })();
 
+  /* ---------------- L. 箱庭世界（洛克贝） ---------------- */
+  (function game() {
+    var n = $('#gCoin'), tip = $('#gameTip');
+    if (!n) return;
+    var c = typeof window.siteCoin === 'function' ? window.siteCoin() : 0;
+    n.textContent = String(c).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    if (tip && c <= 0) {
+      tip.textContent = '还没开始攒。进游戏建角色，做题就会掉洛克贝。';
+      tip.classList.add('zero');
+    }
+  })();
+
   /* ---------------- I. 浮标 ---------------- */
   (function fab() {
     var b = $('#fab'), tip = $('#fabTip');
@@ -455,5 +467,6 @@
     tip.addEventListener('mouseleave', function () { tip.classList.remove('on'); });
   })();
 })();
+
 
 
