@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>俊杰侃信奥</title>
-    <link rel="stylesheet" href="./styles.css?v=20261126b" />
+    <link rel="stylesheet" href="./styles.css?v=20261126c" />
   </head>
   <body>
     <!-- 账号 / 后台登录界面 -->
@@ -597,6 +597,7 @@
         </div>
         <div class="capture-balls">
           <p>选择咕噜球进行捕捉：</p>
+          <p id="captureGuaranteeHint" class="capture-guarantee-hint" style="display:none;">五行神兽：任意咕噜球必定捕捉</p>
           <div id="captureBallList" class="capture-ball-list"></div>
         </div>
         <div class="capture-result" id="captureResult"></div>
@@ -734,9 +735,9 @@
       </div>
     </div>
 
-    <script src="./assets/vendor/supabase.js?v=20261126b"></script>
-    <script src="./data/petConfig.js?v=20261126b"></script>
-    <script src="./app.js?v=20261126b"></script>
+    <script src="./assets/vendor/supabase.js?v=20261126c"></script>
+    <script src="./data/petConfig.js?v=20261126c"></script>
+    <script src="./app.js?v=20261126c"></script>
 
   <!-- 新手引导：手指引导 + 功能卡 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
