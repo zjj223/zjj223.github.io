@@ -25,6 +25,12 @@
     var q = new URLSearchParams(location.search).get('name');
     if (q) return q;
     try {
+      if (window.lkCoin && typeof window.lkCoin.name === 'function') {
+        var n = window.lkCoin.name();
+        if (n) return n;
+      }
+    } catch (e) {}
+    try {
       for (var i = 0; i < localStorage.length; i++) {
         var k = localStorage.key(i);
         if (!/carlosia_phase1_save_v1/.test(k)) continue;
@@ -443,16 +449,22 @@
     tick();
   })();
 
-  /* ---------------- L. 箱庭世界（洛克贝） ---------------- */
+  /* ---------------- L. 箱庭世界（洛克贝，与游戏存档同一份数据） ---------------- */
   (function game() {
     var n = $('#gCoin'), tip = $('#gameTip');
     if (!n) return;
-    var c = typeof window.siteCoin === 'function' ? window.siteCoin() : 0;
-    n.textContent = String(c).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    if (tip && c <= 0) {
-      tip.textContent = '还没开始攒。进游戏建角色，做题就会掉洛克贝。';
-      tip.classList.add('zero');
+    var api = window.lkCoin;
+    var TIP = '探索遇敌打一场 +1；做委托、打首领另有奖励。';
+    var TIP0 = '还没开始攒。进游戏建角色，探索战斗就会掉洛克贝。';
+    function paint(r) {
+      var c = Math.max(0, Number(r && r.coin) || 0);
+      n.textContent = api ? api.fmt(c) : String(c);
+      if (!tip) return;
+      tip.textContent = c > 0 ? TIP : TIP0;
+      if (c > 0) tip.classList.remove('zero'); else tip.classList.add('zero');
     }
+    if (api && typeof api.on === 'function') api.on(paint);
+    else paint({ coin: typeof window.siteCoin === 'function' ? window.siteCoin() : 0 });
   })();
 
   /* ---------------- I. 浮标 ---------------- */
