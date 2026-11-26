@@ -172,6 +172,19 @@ body{background:var(--ik-ground);color:var(--ik-ink);font-family:var(--ik-sans)}
   color:var(--ik-seal);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
 .btn-go:hover{background:var(--ik-seal);color:#fff}
 
+/* ---------- 箱庭世界：通行证 + 洛克贝 ---------- */
+.game .wallet{display:flex;align-items:baseline;gap:9px;padding:0 0 8px}
+.game .wallet .ring{width:13px;height:13px;border-radius:50%;background:#C8992E;flex:0 0 13px;align-self:center;
+  box-shadow:inset 0 0 0 1.6px #fff,inset 0 0 0 3px #C8992E}
+.game .wallet b{font-family:var(--ik-serif);font-size:29px;line-height:1;color:#7A5A12;font-variant-numeric:tabular-nums}
+.game .wallet .u{font-size:11.5px;color:var(--ik-ink3)}
+.game .gt{margin:0;padding-top:7px;border-top:1px solid var(--ik-rule2);font-size:11.5px;color:var(--ik-ink2);line-height:1.7}
+.game .gt.zero{color:#8A6A20}
+.game .gbtn{display:flex;align-items:center;justify-content:center;height:34px;margin-top:9px;
+  background:var(--ik-navy);color:#fff;text-decoration:none;font-size:13px;font-weight:600;
+  letter-spacing:.04em;border-radius:2px;transition:.15s}
+.game .gbtn:hover{background:#0F1B42}
+
 /* ---------- 近期比赛：状态色只用一条竖线 ---------- */
 .mt{display:block;text-decoration:none;color:inherit;padding:9px 0 9px 12px;border-left:2px solid var(--ik-rule)}
 .mt+.mt{margin-top:2px}
@@ -298,6 +311,7 @@ body{background:var(--ik-ground);color:var(--ik-ink);font-family:var(--ik-sans)}
 @media (prefers-reduced-motion:reduce){
   .slide,.tube.shake,.dots i{transition:none;animation:none}
 }
+
 
 
 
