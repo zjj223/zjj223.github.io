@@ -372,7 +372,7 @@
     { id: "ball4", name: "超级咕噜球", price: 36, catchRate: 0.30, color: "#ffa726", desc: "捕捉率30%" },
     { id: "ball5", name: "至尊咕噜球", price: 72, catchRate: 0.40, color: "#ab47bc", desc: "捕捉率40%" },
     { id: "ball6", name: "国王咕噜球", price: 144, catchRate: 0.60, color: "#ef5350", desc: "捕捉率60%" },
-    { id: "ball-wuxing", name: "五行咕噜球", price: 144, catchRate: 0.60, catchRateWuxing: 0.80, color: "#ffd54f", desc: "普通60%，对五行神兽80%" },
+    { id: "ball-wuxing", name: "五行咕噜球", price: 144, catchRate: 0.60, catchRateWuxing: 1, color: "#ffd54f", desc: "普通60%，对五行神兽必定捕捉" },
   ]);
 
   // ===== 时装 / 形象 =====
@@ -529,7 +529,7 @@
     },
     {
       title: "捕捉宠物",
-      desc: "战斗胜利后有15%概率出现捕捉窗口。使用咕噜球可以捕捉野生宠物，咕噜球越好捕捉率越高。捕捉到的宠物会加入你的宠物栏。",
+      desc: "战斗胜利后有15%概率出现捕捉窗口；五行神兽胜利后必定出现捕捉窗口，且必定捕捉成功。使用咕噜球可以捕捉野生宠物，咕噜球越好捕捉率越高。捕捉到的宠物会加入你的宠物栏。",
       highlight: "记得先去商店购买咕噜球"
     },
     {
@@ -2630,6 +2630,7 @@
     els.capturePetType = document.getElementById("capturePetType");
     els.captureShinyLabel = document.getElementById("captureShinyLabel");
     els.captureWuxingLabel = document.getElementById("captureWuxingLabel");
+    els.captureGuaranteeHint = document.getElementById("captureGuaranteeHint");
     els.captureBallList = document.getElementById("captureBallList");
     els.captureResult = document.getElementById("captureResult");
     // 排行榜视图元素
@@ -2730,7 +2731,7 @@
             })
             .join("")}
         </div>
-        <p class="wuxing-notice-tip">🛒 商店已上架「五行咕噜球」：普通捕捉 60%，对五行宠物 <b>80%</b>。</p>
+        <p class="wuxing-notice-tip">🛒 商店已上架「五行咕噜球」：普通捕捉 60%，对五行宠物 <b>必定捕捉</b>。</p>
         <div class="wuxing-notice-actions">
           <button type="button" class="wuxing-btn primary" data-wx-act="ok">知道了，去抓宠</button>
           <button type="button" class="wuxing-btn ghost" data-wx-act="shop">去商店看看</button>
@@ -3838,6 +3839,12 @@
     render();
   }
 
+  // 战斗胜利后是否弹出捕捉窗：五行神兽必定弹出，其它野生宠保持 15%
+  function shouldOfferCapture(wildPet) {
+    if (wildPet?.isWuxing) return true;
+    return Math.random() < 0.15;
+  }
+
   function handleExplore(spot) {
     if (isExploring) return;
     const changed = normalizeState();
@@ -3894,8 +3901,8 @@
           if (battleWin) {
             // 打赢了也不给经验，只留洛克贝和捕捉机会
             expGained = 0;
-            // 15%概率弹出捕捉窗口（等战斗演出播完再弹，避免两个弹窗叠加）
-            if (Math.random() < 0.15 && profile.pets.length < MAX_PETS) {
+            // 15%概率弹出捕捉窗口；五行神兽胜利后必定弹出（等战斗演出播完再弹，避免两个弹窗叠加）
+            if (shouldOfferCapture(wildPet) && profile.pets.length < MAX_PETS) {
               captureTimerId = setTimeout(() => {
                 captureTimerId = null;
                 // 旧遭遇的定时器不得操作新场景/新账号/新战斗
@@ -8603,6 +8610,9 @@
     els.capturePetLevel.textContent = `Lv.${wildPet.level}`;
     els.capturePetType.textContent = wildPet.type;
     els.captureResult.textContent = "";
+    if (els.captureGuaranteeHint) {
+      els.captureGuaranteeHint.style.display = wildPet.isWuxing ? "block" : "none";
+    }
 
     // 异色稀有标识
     if (els.captureShinyLabel) {
@@ -8652,12 +8662,12 @@
     if (profile.balls[ballId] <= 0) delete profile.balls[ballId];
 
     // 计算捕捉成功率（野生宠物等级越高，越难捕捉）
-    // 五行咕噜球对五行神兽：固定 80%，不扣等级惩罚
+    // 五行神兽：战斗胜利后必抓，不扣等级惩罚、不看球种
     const levelPenalty = Math.max(0, (target.level - 5) * 0.01);
     const wuxingRate = target.isWuxing ? ball.catchRateWuxing : null;
     const successRate =
       typeof wuxingRate === "number" ? wuxingRate : Math.max(0.01, ball.catchRate - levelPenalty);
-    const success = Math.random() < successRate;
+    const success = target.isWuxing ? true : Math.random() < successRate;
 
     if (success) {
       // 捕捉成功：保留野生宠当前阶段/等级，抓到什么就显示什么
