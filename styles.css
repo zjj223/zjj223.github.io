@@ -10121,6 +10121,16 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
 }
 
 /* 手机竖屏：7 个入口改成图标在上、文字在下，避免横向溢出 */
+@media (max-width: 1180px) {
+  /* 中等屏 7 个入口已经把底栏占满，学习台先移到右上角 */
+  #btnBackHome {
+    top: 8px;
+    right: 8px;
+    bottom: auto;
+    z-index: 45;
+  }
+}
+
 @media (max-width: 700px) {
   .dock-bar {
     padding: 0 4px !important;
