@@ -10077,7 +10077,356 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
   color: rgba(255, 255, 255, .68);
 }
 
-/* 窄屏角色弹窗：保证委托页有足够正文宽度，不把内容压成 6px */
+/* ===== V23 底栏 7 入口 + 每周任务 + 邮件 ===== */
+.dock-btn {
+  position: relative;
+}
+
+.dock-badge {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: #e25b4a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 17px;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .35);
+}
+
+.dock-badge[hidden] {
+  display: none;
+}
+
+/* 7 个入口均分整条底栏，不再使用旧的 104px 最小宽度 */
+.dock-bar .dock-actions {
+  flex: 1 1 auto !important;
+  justify-content: center !important;
+  gap: 8px !important;
+}
+
+.dock-bar .dock-btn {
+  flex: 1 1 0 !important;
+  max-width: 150px !important;
+  min-width: 0 !important;
+  padding: 0 10px !important;
+  box-sizing: border-box;
+}
+
+/* 手机竖屏：7 个入口改成图标在上、文字在下，避免横向溢出 */
+@media (max-width: 700px) {
+  .dock-bar {
+    padding: 0 4px !important;
+  }
+  .dock-bar .dock-actions {
+    gap: 2px !important;
+    width: 100%;
+  }
+  .dock-bar .dock-btn {
+    flex: 1 1 0 !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: 46px !important;
+    padding: 0 1px !important;
+    flex-direction: column !important;
+    gap: 1px !important;
+  }
+  .dock-icon {
+    font-size: 13px !important;
+  }
+  .dock-label {
+    font-size: 9px !important;
+    white-space: nowrap;
+  }
+  .dock-badge {
+    top: -4px;
+    right: -2px;
+    min-width: 14px;
+    height: 14px;
+    font-size: 9px;
+    line-height: 14px;
+  }
+  /* 手机上底栏已经被 7 个入口占满，学习台按钮移到右上角，避免压住排行榜/商店 */
+  #btnBackHome {
+    top: 8px;
+    right: 8px;
+    bottom: auto;
+    min-height: 30px;
+    padding: 0 9px;
+    font-size: 12px;
+    z-index: 45;
+  }
+}
+
+/* 任务 / 邮件独立弹窗 */
+#questModal,
+#mailModal {
+  z-index: 9500;
+}
+
+.zone-modal-box.side-modal {
+  width: min(560px, 94vw) !important;
+  max-height: min(720px, 84vh);
+}
+
+.zone-modal-box.side-modal .side-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 8px 14px 6px !important;
+}
+
+.daily-quest-view > .daily-quest-head {
+  flex: 0 0 auto;
+}
+
+.mail-view {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.mail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 2px solid #e6d7bd;
+  border-radius: 12px;
+  background: #fffaf0;
+}
+
+.mail-head h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #3f2f1c;
+}
+
+.mail-head p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #8b7355;
+}
+
+.mail-claim-all {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 7px 11px;
+  border: 2px solid #5f9a46;
+  border-radius: 999px;
+  background: #6da951;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #4b7d36;
+}
+
+.mail-claim-all:disabled {
+  border-color: #c9b294;
+  background: #fffdf6;
+  color: #8b7355;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.mail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mail-card {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "icon main action"
+    "icon rewards action";
+  align-items: center;
+  gap: 6px 9px;
+  padding: 9px 10px;
+  border: 2px solid #e6d7bd;
+  border-radius: 12px;
+  background: #fffdf7;
+  box-sizing: border-box;
+}
+
+.mail-card.is-unread {
+  border-color: #d9b35c;
+  background: #fffbf0;
+}
+
+.mail-card.is-claimed {
+  opacity: .78;
+}
+
+.mail-icon {
+  grid-area: icon;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #f7ead3;
+  font-size: 18px;
+}
+
+.mail-main {
+  grid-area: main;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mail-title-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13.5px;
+  color: #3f2f1c;
+}
+
+.mail-unread-dot {
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e25b4a;
+}
+
+.mail-unread-dot[hidden] {
+  display: none;
+}
+
+.mail-meta {
+  font-size: 10.5px;
+  color: #a08968;
+}
+
+.mail-body {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #75624a;
+}
+
+.mail-rewards {
+  grid-area: rewards;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mail-rewards:empty {
+  display: none;
+}
+
+.mail-chip {
+  padding: 2px 7px;
+  border: 1px solid #e0cbaa;
+  border-radius: 999px;
+  background: #fff5df;
+  color: #7a5c36;
+  font-size: 10.5px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.mail-action {
+  grid-area: action;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.mail-claim {
+  min-width: 56px;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 2px solid #5f9a46;
+  border-radius: 999px;
+  background: #6da951;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #4b7d36;
+}
+
+.mail-claim:disabled {
+  border-color: #c9b294;
+  background: #fffdf6;
+  color: #8b7355;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.mail-empty {
+  margin: 0;
+  padding: 22px 10px;
+  text-align: center;
+  font-size: 13px;
+  color: #8b7355;
+}
+
+@media (max-width: 700px) {
+  .mail-head {
+    flex-direction: column;
+    gap: 7px;
+  }
+  .mail-claim-all {
+    width: 100%;
+  }
+  .mail-card {
+    grid-template-columns: 28px minmax(0, 1fr) 50px;
+    gap: 5px 6px;
+    padding: 7px;
+  }
+  .mail-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 15px;
+  }
+  .mail-title-row strong {
+    font-size: 12.5px;
+  }
+  .mail-meta,
+  .mail-chip {
+    font-size: 10px;
+  }
+  .mail-body {
+    font-size: 10.8px;
+  }
+  .mail-claim {
+    min-width: 46px;
+    min-height: 30px;
+    padding: 5px 3px;
+    font-size: 10.5px;
+  }
+}
+
 @media (max-width: 700px) {
   #roleModal .zone-modal-box.role {
     width: calc(100vw - 12px) !important;
