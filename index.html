@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>俊杰侃信奥</title>
-    <link rel="stylesheet" href="./styles.css?v=20261126e" />
+    <link rel="stylesheet" href="./styles.css?v=20261126f" />
   </head>
   <body>
     <!-- 账号 / 后台登录界面 -->
@@ -271,6 +271,16 @@
                 <button id="dockPet" class="dock-btn" type="button">
                   <span class="dock-icon" aria-hidden="true">🐾</span>
                   <span class="dock-label">宠物</span>
+                </button>
+                <button id="dockTasks" class="dock-btn" type="button">
+                  <span class="dock-icon" aria-hidden="true">📜</span>
+                  <span class="dock-label">任务</span>
+                  <span id="dockTaskBadge" class="dock-badge" hidden></span>
+                </button>
+                <button id="dockMail" class="dock-btn" type="button">
+                  <span class="dock-icon" aria-hidden="true">✉️</span>
+                  <span class="dock-label">邮件</span>
+                  <span id="dockMailBadge" class="dock-badge" hidden></span>
                 </button>
                 <button id="dockShop" class="dock-btn" type="button">
                   <span class="dock-icon" aria-hidden="true">🛒</span>
@@ -644,12 +654,34 @@
                 <button class="role-tab active" type="button" data-role-tab="info">信息</button>
                 <button class="role-tab" type="button" data-role-tab="items">道具</button>
                 <button class="role-tab" type="button" data-role-tab="clothes">衣服</button>
-                <button class="role-tab" type="button" data-role-tab="quest">委托</button>
+                <button class="role-tab" type="button" data-role-tab="quest">任务</button>
               </div>
               <div class="role-panel-area" id="rolePanelArea"></div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- 每周任务弹窗（学生端） -->
+    <div id="questModal" class="modal-overlay zone-modal" hidden>
+      <div class="modal zone-modal-box side-modal quest">
+        <div class="modal-header">
+          <h3>📜 任务</h3>
+          <button id="questModalClose" class="modal-close" type="button">×</button>
+        </div>
+        <div id="questModalBody" class="zone-modal-body side-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- 邮件弹窗（学生端） -->
+    <div id="mailModal" class="modal-overlay zone-modal" hidden>
+      <div class="modal zone-modal-box side-modal mail">
+        <div class="modal-header">
+          <h3>✉️ 邮件</h3>
+          <button id="mailModalClose" class="modal-close" type="button">×</button>
+        </div>
+        <div id="mailModalBody" class="zone-modal-body side-modal-body"></div>
       </div>
     </div>
 
@@ -735,9 +767,9 @@
       </div>
     </div>
 
-    <script src="./assets/vendor/supabase.js?v=20261126e"></script>
-    <script src="./data/petConfig.js?v=20261126e"></script>
-    <script src="./app.js?v=20261126e"></script>
+    <script src="./assets/vendor/supabase.js?v=20261126f"></script>
+    <script src="./data/petConfig.js?v=20261126f"></script>
+    <script src="./app.js?v=20261126f"></script>
 
   <!-- 新手引导：手指引导 + 功能卡 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
