@@ -2,16 +2,34 @@
   "use strict";
 
   // 每只宠物的阶段图片放在：
-  // assets/pets/all/{pet-folder}/stage-1.png
-  // assets/pets/all/{pet-folder}/stage-2.png
-  // assets/pets/all/{pet-folder}/stage-3.png
+  // assets/pets/all/{pet-folder}/stage-1.webp（压缩版，优先）
+  // assets/pets/all/{pet-folder}/stage-1.png （原图，兜底）
   // 新增宠物使用SVG占位图，后续可替换为PNG
+  // 换图时必须同时改 ASSET_VER，浏览器才会当成新地址重新下载
+  const ASSET_VER = "20261127";
+
+  // 图片加载失败时自动降级：webp → png → svg（SVG 占位宠不会再显示空白）
+  if (typeof document !== "undefined") {
+    document.addEventListener(
+      "error",
+      function (event) {
+        const img = event.target;
+        if (!img || img.tagName !== "IMG") return;
+        const src = img.getAttribute("src") || "";
+        const match = src.match(/^(.*stage-\d+)\.(webp|png)(\?.*)?$/);
+        if (!match) return;
+        img.setAttribute("src", match[1] + (match[2] === "webp" ? ".png" : ".svg") + (match[3] || ""));
+      },
+      true,
+    );
+  }
+
   function createStage(petId, stage, name, type, style, mark, needLevel, desc) {
     const petFolder = petId;
     return Object.freeze({
       stage,
       name,
-      image: `./assets/pets/all/${petFolder}/stage-${stage}.png`,
+      image: `./assets/pets/all/${petFolder}/stage-${stage}.webp?v=${ASSET_VER}`,
       desc,
       type,
       style,
