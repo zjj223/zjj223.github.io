@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>俊杰侃信奥 · 学习笔记</title>
+<link rel="stylesheet" href="nav.css?v=20261126z">
+<link rel="stylesheet" href="paper.css?v=20261126x">
+<link rel="stylesheet" href="auth.css?v=20261126i">
+<style>
+  :root{--blue:#17265A;--blue-d:#0F1B42;--line:#D6D8D4;--ink:#14171C;--dim:#8D939E;--bg:#EBECEA;--ok:#2A6A45}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.65 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+  .top{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+  .top-in{max-width:1180px;margin:0 auto;padding:0 18px;height:52px;display:flex;align-items:center;gap:12px}
+  .logo{font-weight:700;font-size:15.5px;letter-spacing:.5px}
+  .logo i{display:inline-block;width:22px;height:22px;border-radius:6px;background:var(--blue);color:#fff;
+    font-size:12px;text-align:center;line-height:22px;font-style:normal;margin-right:8px;vertical-align:-4px}
+  .sp{flex:1}
+  .who{font-size:12.5px;color:var(--dim)}
+  .coin{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;background:#fff8e6;
+    border:1px solid #ffe2a8;color:#a26a00;padding:3px 10px;border-radius:999px;cursor:pointer;font-family:inherit}
+  .coin:hover{background:#ffefcc}
+  .out{font-size:12.5px;color:var(--dim);text-decoration:none;padding:4px 10px;border-radius:6px}
+  .out:hover{background:#f2f4f9;color:var(--blue)}
+
+  .wrap{max-width:var(--nv-max,1180px);margin:0 auto;padding:20px var(--nv-pad,18px) 60px;display:flex;gap:18px;align-items:flex-start}
+
+  /* 左：纸白目录卡 */
+  .left{width:214px;flex:0 0 214px;position:sticky;top:64px}
+  .menu{background:#fff;border:1px solid var(--line);border-radius:2px;
+    padding:6px;color:var(--ink);max-height:calc(100vh - 84px);overflow-y:auto;scrollbar-width:thin}
+  .menu::-webkit-scrollbar{width:5px}
+  .menu::-webkit-scrollbar-thumb{background:#D8D8D2;border-radius:0}
+  .menu button{display:flex;align-items:center;gap:8px;width:100%;background:transparent;border:0;color:#575D69;
+    font:inherit;font-size:13px;text-align:left;padding:9px 12px;border-radius:1px;cursor:pointer}
+  .menu button+button{margin-top:1px}
+  .menu button:hover{background:#F4F4EF;color:var(--blue)}
+  .menu button.on{background:#F1F2EC;color:var(--blue);font-weight:600;box-shadow:inset 2px 0 0 #A8322A}
+  .menu button .n{margin-left:auto;font-size:11.5px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .msep{height:1px;background:var(--line);margin:6px 4px}
+
+  .chnode{padding-left:10px!important;font-size:12.5px!important;color:#575D69!important}
+  .chnode .n{color:var(--dim)}
+  .chnode .car{margin-left:0;font-size:12px;line-height:1;color:var(--dim);transition:transform .15s}
+  .les.hide{display:none}
+  .les{display:flex;flex-direction:column;gap:1px;padding:2px 0 2px 10px;border-left:1px solid var(--line);margin:2px 0 4px 14px}
+  .les button{padding:6px 9px!important;font-size:12px!important;color:#6B7280!important;border-radius:1px}
+  .les button .n{font-size:11px;color:var(--dim)}
+  .les button.on{background:#F1F2EC;color:var(--blue)!important;font-weight:600}
+  .les .ln{font-variant-numeric:tabular-nums;color:var(--dim);margin-right:5px}
+  .menu button span:not(.n):not(.car){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .menu button .n{flex:0 0 auto}
+
+  /* 右：视图区 */
+  .main{flex:1;min-width:0}
+  .view{display:none}
+  .view.on{display:block}
+
+  .paper{background:#fff;border:1px solid var(--line);border-radius:2px;padding:18px 20px}
+  .paper h2{margin:0 0 8px;font-size:15.5px}
+  .paper ul{margin:0;padding-left:18px}
+  .paper li{font-size:13px;color:#4b5568;margin:5px 0;line-height:1.7}
+  .paper li b{color:var(--ink)}
+  .paper code{background:#F4F4EF;border-radius:1px;padding:1px 5px;font-size:12.5px}
+
+  .listhd{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .listhd h2{position:relative;margin:0;padding-left:14px;font-family:var(--ik-serif,Georgia,"Songti SC","SimSun",serif);font-size:23px;font-weight:700;letter-spacing:.06em}
+  .listhd h2:before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:3px;background:#A8322A}
+  .listhd .num{font-size:12.5px;color:var(--dim)}
+  .listhd .track{margin-left:auto;width:150px;height:3px;background:#E8EAE6;border-radius:0;overflow:hidden;align-self:center}
+  .listhd .track i{display:block;height:100%;background:var(--blue);border-radius:0;transition:width .4s}
+  .listhd .pct{font-size:12.5px;color:var(--blue);font-weight:600}
+
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .tab{border:1px solid var(--line);background:#fff;color:#6B7280;cursor:pointer;padding:5px 14px;
+    border-radius:2px;font-size:12.5px}
+  .tab:hover{border-color:var(--blue);color:var(--blue)}
+  .tab.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .tab.right{margin-left:auto}
+
+  .table{background:#fff;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  thead th{text-align:left;font-weight:600;font-size:12.5px;color:#7b8499;background:#f8fafd;
+    padding:9px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+  tbody tr{cursor:pointer;transition:background .12s}
+  tbody tr[data-id]:hover{background:#F5F5EF}
+  tbody td{padding:8px 14px;border-bottom:1px solid #f1f4f9;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  .st{text-align:center}
+  .st .dot{display:inline-block;width:15px;height:15px;border-radius:50%;border:1.5px dashed #d6dcea}
+  .st .done{width:16px;height:16px;border-radius:1px;background:var(--ok);color:#fff;
+    font-size:11px;line-height:17px;display:inline-block;text-align:center}
+  .idx{color:#a9b2c4;font-variant-numeric:tabular-nums;font-size:12.5px}
+  .id{width:66px;color:#98a2b8;font-variant-numeric:tabular-nums;font-size:12.5px}
+  .ttl{color:var(--blue);font-weight:500;font-size:13.5px;text-align:left}
+  tbody tr[data-id]:hover .ttl{text-decoration:underline}
+  .num-col{width:84px;color:#98a2b8;font-variant-numeric:tabular-nums;font-size:12px}
+  .arrow{color:#b9c2d6;text-align:right;width:48px}
+  tbody tr[data-id]:hover .arrow{color:var(--blue)}
+  .empty{padding:36px 0;text-align:center;color:#b0b8c8;font-size:13px}
+
+  /* 列宽按 15/15/40/15/15 分 */
+  th.w-st{width:86px}.th.w-id{width:96px}.th.w-ttl{width:auto}.th.w-ac{width:110px}.th.w-sub{width:110px}
+  table{table-layout:fixed}
+  table td.ttl,table th.w-ttl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  thead th{background:#F8F6EE;color:#575D69}
+  tbody tr:nth-child(odd){background:transparent}
+  tbody tr.grp:nth-child(odd){background:#FAFAF6}
+  .st .mk{display:inline-block;width:15px;font-size:13px;line-height:1;color:var(--ok);font-weight:700;text-align:center}
+  .st .mk.blank{color:#C9CDCB;font-weight:400}
+
+  /* 分页 + 搜索（放表格下方） */
+  .pager{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:10px}
+  .pgbar{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .pg{border:1px solid var(--line);background:#fff;color:#6B7280;font:inherit;font-size:12.5px;
+    padding:4px 10px;border-radius:2px;cursor:pointer;min-width:30px}
+  .pg:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}
+  .pg.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .pg:disabled{opacity:.45;cursor:default}
+  .pginfo{font-size:12px;color:var(--dim);margin-left:4px}
+  .pgsearch{margin-left:auto;display:flex;gap:6px}
+  .pgsearch input{border:1px solid var(--line);border-radius:2px;padding:6px 10px;font:inherit;
+    font-size:12.5px;width:170px;outline:none;background:#fff}
+  .pgsearch input:focus{border-color:#c3cfec}
+  .pgsearch button{border:1px solid var(--line);background:#fff;border-radius:2px;padding:6px 12px;
+    font:inherit;font-size:12.5px;color:#6B7280;cursor:pointer}
+  .pgsearch button:hover{border-color:var(--blue);color:var(--blue)}
+
+  .foot{max-width:var(--nv-max,1180px);margin:0 auto;padding:0 var(--nv-pad,18px) 28px;text-align:center}
+  .foot a{font-size:12px;color:#9aa3b2;text-decoration:none}
+  .foot a:hover{color:#4a5266}
+
+  /* 节标题行 */
+  tr.grp td{background:#FAFAF6;border-bottom:1px solid var(--line);padding:9px 14px}
+  tr.grp .gh{font-weight:700;font-size:13.5px;color:var(--ink)}
+  tr.grp .gk{margin-left:9px;font-size:12px;color:var(--dim)}
+  tr.grp .gn{margin-left:auto;float:right;font-size:12px;color:var(--blue);font-weight:600}
+  tr.closed{cursor:default;opacity:.5}
+  tr.closed .ttl{color:#8b95a8}
+
+  .toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,10px);background:#14171C;
+    color:#fff;font-size:13px;padding:9px 18px;border-radius:2px;box-shadow:0 8px 24px rgba(0,0,0,.18);
+    opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:99}
+  .toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  @media (max-width:900px){
+    .wrap{flex-direction:column}
+    .left{width:100%;flex:auto;position:static}
+    .menu{max-height:none}
+    .les{flex-direction:row;flex-wrap:wrap;border-left:0;margin-left:0;padding-left:0}
+    .les button{width:auto}
+    .num-col,.idx{display:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="nav" data-page="note">
+  <div class="nav-in" id="navIn"></div>
+</div>
+
+<div class="wrap">
+  <div class="left">
+    <div class="menu" id="menu">
+      <button data-view="guide"><span>自学事项</span><span class="n">7 条</span></button>
+      <div class="msep"></div>
+      <button data-view="list" data-lesson="all" class="on"><span>C++ 题单</span><span class="n" id="navCount">79 题</span></button>
+      <div id="tree"></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="view" id="viewGuide">
+      <div class="paper">
+        <h2>自学事项</h2>
+        <ul>
+          <li><b>一题一题来。</b>从题号小的往大的做，别跳题；跳过去的题早晚要回来补。</li>
+          <li><b>先把题读两遍。</b>弄清输入是什么、输出是什么，再看一眼样例，把样例原样抄到纸上。</li>
+          <li><b>先在纸上写思路。</b>三句话：读什么 → 算什么 → 输出什么。思路清楚了再打开编辑器。</li>
+          <li><b>写代码保持一个风格。</b>等号、加减、比较两边不留空格，例如 <code>int a=10;</code>，看着利索也少出错。</li>
+          <li><b>先编再跑。</b>编译不过的时候先看第一条报错，九成是少了分号、括号没配对、变量没定义。</li>
+          <li><b>样例对不上就自己造数据。</b>拿小数字手算一遍，和程序的结果逐位比，找出第一个不一样的数。</li>
+          <li><b>每题留一句错因。</b>写在本子上，第二天同样的题重做一遍；一天 3 题，比一次刷 20 题有用。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="view on" id="viewList">
+      <div class="listhd">
+        <h2 id="listTitle">C++ 题单</h2>
+        <span class="num" id="listSub">第一章 顺序结构 · 79 题</span>
+        <span class="track"><i id="listBar" style="width:0%"></i></span>
+        <span class="pct" id="listPct">0%</span>
+      </div>
+
+      <div class="tabs" id="tabs">
+        <button class="tab on" data-s="all">全部</button>
+        <button class="tab" data-s="todo">未做</button>
+        <button class="tab" data-s="done">已通过</button>
+        <button class="tab right" data-k="ex">例题</button>
+        <button class="tab" data-k="pr">练习</button>
+      </div>
+
+      <div class="table">
+        <table>
+          <thead><tr><th class="st w-st">通过标记</th><th class="idx w-id">题号</th><th class="w-ttl">题目名称</th><th class="num-col w-ac">通过人数</th><th class="num-col w-sub">提交总数</th><th class="arrow"></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+
+      <div class="pager" id="pager"></div>
+    </div>
+  </div>
+</div>
+
+<script src="data/catalog.js?v=20261127c"></script>
+<script src="nav.js?v=20261126z"></script>
+<script src="auth.js?v=20261126i"></script>
+<script>
+const C = window.CATALOG || { chapters: [] };
+const GROUPS = C.chapters || [];
+const ALL = [];
+GROUPS.forEach((g, gi) => (g.lessons || []).forEach((l) => (l.problems || []).forEach((p) => {
+  p._g = gi; p._l = l.no; p._les = l; ALL.push(p);
+})));
+
+const DONE_KEY = 'studypage.done';
+const doneSet = () => { try { return new Set(JSON.parse(localStorage.getItem(DONE_KEY) || '[]')); } catch (e) { return new Set(); } };
+const pidOf = (p) => 'ybt' + p.pid;
+const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const pad = (n) => String(n).padStart(2, '0');
+const wan = (n) => (n >= 10000 ? (n / 10000).toFixed(1).replace(/\.0$/, '') + '万' : String(n || 0));
+const CDN_ONLY = /(^|\.)doubaocdn\.com$/.test(location.hostname) || /(^|\.)byteimg\.com$/.test(location.hostname);
+const NAV = { work: CDN_ONLY ? '' : '预览_DevC布局.html', login: CDN_ONLY ? '' : 'index.html' };
+
+const state = { status: 'all', kind: 'all', view: 'list', g: 0, l: 'all', page: 1, q: '' };
+const PAGE_SIZE = 20;
+const collapsed = new Set(GROUPS.map((g, i) => i).filter((i) => i !== 0));
+
+function readName() {
+  // 【免登录改造】登录态优先（AuthGate 的账号名），其次 ?name=，最后本机存档名
+  try { if (window.AuthGate && window.AuthGate.user()) return window.AuthGate.user().name; } catch (e) {}
+  const q = new URLSearchParams(location.search).get('name');
+  if (q) return q;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!/carlosia_phase1_save_v1/.test(k)) continue;
+      const v = JSON.parse(localStorage.getItem(k) || '{}');
+      const n = v && v.profile && v.profile.name;
+      if (n) return n;
+    }
+  } catch (e) {}
+  return '游客';
+}
+
+let toastTimer = null;
+function toast(msg) {
+  let el = document.getElementById('toastBox');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toastBox'; el.className = 'toast';
+    el.addEventListener('click', () => el.classList.remove('on'));
+    document.body.appendChild(el);
+  }
+  el.textContent = msg; el.classList.add('on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 2200);
+}
+const openProblem = (id) => { if (!NAV.work) return toast('线上副本没有做题页'); location.href = NAV.work + '?pid=' + id; };
+
+document.getElementById('navCount').textContent = ALL.length + ' 题';
+
+/* 左栏：大类 → 节，逐组可折叠 */
+function buildTree() {
+  const t = document.getElementById('tree');
+  t.innerHTML = GROUPS.map((g, gi) => {
+    const n = g.lessons.reduce((a, l) => a + l.problems.length, 0);
+    const open = !collapsed.has(gi);
+    const les = g.lessons.filter((l) => (l.problems || []).length).map((l) =>
+      '<button data-g="' + gi + '" data-l="' + l.no + '">' +
+      '<span>' + esc(l.name) + '</span><span class="n">' + l.problems.length + '</span></button>').join('');
+    return '<button class="chnode gnode" data-g="' + gi + '"><span class="car">' + (open ? '▾' : '▸') + '</span>' +
+      '<span>' + esc(g.name) + '</span><span class="n">' + n + '</span></button>' +
+      '<div class="les' + (open ? '' : ' hide') + '" data-list="' + gi + '">' + les + '</div>';
+  }).join('');
+}
+
+function switchView(v) {
+  state.view = v;
+  document.getElementById('viewGuide').classList.toggle('on', v === 'guide');
+  document.getElementById('viewList').classList.toggle('on', v === 'list');
+  paintMenu();
+}
+
+function paintMenu() {
+  const list = state.view === 'list';
+  document.querySelectorAll('#menu > button[data-view]').forEach((b) => {
+    b.classList.toggle('on', b.dataset.view === 'guide' ? !list : (list && state.g === 'all'));
+  });
+  document.querySelectorAll('.les button[data-g]').forEach((b) => {
+    b.classList.toggle('on', list && state.g !== 'all' && Number(b.dataset.g) === state.g && String(state.l) === b.dataset.l);
+  });
+  document.querySelectorAll('button.gnode').forEach((b) => {
+    b.classList.toggle('on', list && state.g !== 'all' && Number(b.dataset.g) === state.g);
+  });
+}
+
+function pickLesson(gi, no) {
+  if (state.g === gi && String(state.l) === String(no)) { state.l = 'all'; }
+  else { state.g = gi; state.l = no; }
+  state.page = 1;
+  switchView('list');
+  paintMenu();
+  renderStats();
+  render();
+}
+
+document.getElementById('menu').addEventListener('click', (e) => {
+  const node = e.target.closest('button.gnode');
+  if (node) {
+    const gi = Number(node.dataset.g);
+    if (collapsed.has(gi)) collapsed.delete(gi); else collapsed.add(gi);
+    const box = document.querySelector('.les[data-list="' + gi + '"]');
+    if (box) box.classList.toggle('hide', collapsed.has(gi));
+    const car = node.querySelector('.car');
+    if (car) car.textContent = collapsed.has(gi) ? '▸' : '▾';
+    if (state.g === gi && state.l !== 'all') { state.g = gi; state.l = 'all'; state.page = 1; renderStats(); render(); paintMenu(); }
+    return;
+  }
+  const v = e.target.closest('button[data-view]');
+  if (v) { state.g = 'all'; state.l = 'all'; state.page = 1; switchView(v.dataset.view); renderStats(); render(); return; }
+  const l = e.target.closest('button[data-l]');
+  if (l) pickLesson(Number(l.dataset.g), Number(l.dataset.l));
+});
+
+function scopePool() {
+  if (state.g === 'all') return ALL;
+  const g = GROUPS[state.g];
+  if (!g) return [];
+  const les = g.lessons.filter((l) => state.l === 'all' || l.no === state.l);
+  return les.reduce((a, l) => a.concat(l.problems), []);
+}
+
+function renderStats() {
+  const pool = scopePool();
+  const done = doneSet();
+  const ok = pool.filter((p) => done.has(pidOf(p))).length;
+  const pct = pool.length ? Math.round(ok / pool.length * 100) : 0;
+  document.getElementById('listBar').style.width = pct + '%';
+  document.getElementById('listPct').textContent = pct + '% · ' + ok + '/' + pool.length;
+  const g = GROUPS[state.g];
+  document.getElementById('listTitle').textContent = state.g === 'all' ? 'C++ 题单' : (g ? g.name : '题单');
+  const les = g ? g.lessons.find((l) => l.no === state.l) : null;
+  document.getElementById('listSub').textContent = state.g === 'all'
+    ? GROUPS.length + ' 组 · ' + ALL.length + ' 题'
+    : (les ? les.name + ' · ' + pool.length + ' 题' : g.lessons.length + ' 节 · ' + pool.length + ' 题');
+}
+
+function poolFlat() {
+  const done = doneSet();
+  const out = [];
+  GROUPS.forEach((g, gi) => {
+    if (state.g !== 'all' && gi !== state.g) return;
+    g.lessons.forEach((l) => {
+      if (state.g !== 'all' && state.l !== 'all' && l.no !== state.l) return;
+      (l.problems || []).forEach((p) => {
+        if (state.status === 'done' && !done.has(pidOf(p))) return;
+        if (state.status === 'todo' && done.has(pidOf(p))) return;
+        if (state.kind !== 'all' && p.kind !== state.kind) return;
+        if (state.q) {
+          const q = state.q.toLowerCase();
+          if (!(String(p.pid).includes(q) || String(p.title).toLowerCase().includes(q))) return;
+        }
+        out.push({ p: p, les: l, g: g });
+      });
+    });
+  });
+  return out;
+}
+
+function headLabel(g, l) {
+  if (g.id === 'ch0') return '第' + pad(l.no) + '课 ' + esc(l.name);
+  return esc(g.name) + ' · ' + esc(l.name);
+}
+
+function render() {
+  const done = doneSet();
+  const flat = poolFlat();
+  const total = flat.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (state.page > pages) state.page = pages;
+  if (state.page < 1) state.page = 1;
+  const slice = flat.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE);
+
+  const groups = [];
+  slice.forEach((it) => {
+    const last = groups[groups.length - 1];
+    if (last && last.g.id === it.g.id && last.les.no === it.les.no) last.items.push(it.p);
+    else groups.push({ g: it.g, les: it.les, items: [it.p] });
+  });
+
+  document.getElementById('rows').innerHTML = groups.length ? groups.map((gr) => {
+    const head = '<tr class="grp"><td colspan="6">' +
+      '<span class="gh">' + headLabel(gr.g, gr.les) + '</span>' +
+      '<span class="gk">' + esc(gr.les.kp || '') + '</span>' +
+      '<span class="gn">' + gr.items.length + ' 题</span></td></tr>';
+    const rows = gr.items.map((p) => {
+      const ok = done.has(pidOf(p));
+      return '<tr data-id="' + pidOf(p) + '"' + (p.open === false ? ' class="closed"' : ' tabindex="0"') + '>' +
+        '<td class="st">' + (ok ? '<span class="mk">✓</span>' : '<span class="mk blank">·</span>') + '</td>' +
+        '<td class="idx">' + p.pid + '</td>' +
+        '<td><span class="ttl">' + esc(p.title) + '</span></td>' +
+        '<td class="num-col">' + wan(p.ac) + '</td>' +
+        '<td class="num-col">' + wan(p.sub) + '</td>' +
+        '<td class="arrow">›</td></tr>';
+    }).join('');
+    return head + rows;
+  }).join('') : '<tr><td colspan="6"><div class="empty">没有符合条件的题目</div></td></tr>';
+
+  renderPager(total, pages);
+}
+
+function renderPager(total, pages) {
+  const box = document.getElementById('pager');
+  if (!total) { box.innerHTML = ''; return; }
+  const p = state.page;
+  const btn = (label, to, dis, on) => '<button class="pg' + (on ? ' on' : '') + '" data-p="' + to + '"' +
+    (dis ? ' disabled' : '') + '>' + label + '</button>';
+  let bar = btn('首页', 1, p === 1, false) + btn('⇐', p - 1, p === 1, false);
+  const a = Math.max(1, p - 1), b = Math.min(pages, p + 1);
+  for (let i = a; i <= b; i++) bar += btn(i, i, false, i === p);
+  bar += btn('⇒', p + 1, p === pages, false) + btn('尾页', pages, p === pages, false);
+  bar += '<span class="pginfo">共 ' + total + ' 题 · 第 ' + p + '/' + pages + ' 页</span>';
+  box.innerHTML = '<div class="pgbar">' + bar + '</div>' +
+    '<div class="pgsearch"><input id="qInput" placeholder="题号或题目名称" value="' + esc(state.q) + '">' +
+    '<button id="qBtn">搜索</button><button id="qClear">清空</button></div>';
+  document.getElementById('qBtn').onclick = () => { state.q = document.getElementById('qInput').value.trim(); state.page = 1; render(); };
+  document.getElementById('qClear').onclick = () => { state.q = ''; state.page = 1; render(); };
+  document.getElementById('qInput').onkeydown = (e) => { if (e.key === 'Enter') { state.q = e.currentTarget.value.trim(); state.page = 1; render(); } };
+}
+
+document.getElementById('pager').addEventListener('click', (e) => {
+  const b = e.target.closest('.pg'); if (!b || b.disabled) return;
+  state.page = Number(b.dataset.p); render();
+});
+
+document.getElementById('tabs').addEventListener('click', (e) => {
+  const b = e.target.closest('.tab'); if (!b) return;
+  state.page = 1;
+  if (b.dataset.s) {
+    state.status = b.dataset.s;
+    document.querySelectorAll('#tabs .tab[data-s]').forEach((x) => x.classList.toggle('on', x === b));
+  } else {
+    const k = b.dataset.k;
+    state.kind = (state.kind === k) ? 'all' : k;
+    document.querySelectorAll('#tabs .tab[data-k]').forEach((x) => x.classList.toggle('on', state.kind !== 'all' && x.dataset.k === state.kind));
+  }
+  render();
+});
+
+document.getElementById('rows').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr[data-id]'); if (!tr) return;
+  if (tr.classList.contains('closed')) return toast('这道题还没开放');
+  openProblem(tr.dataset.id);
+});
+document.getElementById('rows').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const tr = e.target.closest('tr[data-id]');
+  if (tr && !tr.classList.contains('closed')) openProblem(tr.dataset.id);
+});
+
+/* 从题库页跳转：?g=<组id>&l=<节号> */
+const ps = new URLSearchParams(location.search);
+const pg = ps.get('g'), pl = ps.get('l');
+if (pg) {
+  const gi = GROUPS.findIndex((x) => x.id === pg);
+  if (gi >= 0) { state.g = gi; state.l = pl ? Number(pl) : 'all'; if (pl) collapsed.delete(gi); }
+}
+
+/* 直达：#guide 自学事项；#g3 第三组；#lesson-05 兼容旧链接 */
+const mg = /^#g(\d+)$/.exec(location.hash);
+if (mg) { state.g = Number(mg[1]); state.l = 'all'; }
+const ml = /^#lesson-(\d{1,2})$/.exec(location.hash);
+if (ml) { state.g = 0; state.l = Number(ml[1]); }
+buildTree();
+paintMenu();
+renderStats();
+render();
+switchView(location.hash === '#guide' ? 'guide' : 'list');
+</script>
+<div class="foot">
+  <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">京ICP备________号</a>
+</div>
+<script>
+/* 学习台：登录统一走账号密码卡，nav 的“名字即身份”入口让位 */
+(function () {
+  var tries = 0;
+  function hook() {
+    var host = document.querySelector('.nav-acc');
+    if (!host) { if (++tries < 15) setTimeout(hook, 120); return; }
+    var card = host.querySelector('.idcard');
+    if (!card || card.__authHooked) return;
+    card.__authHooked = 1;
+    card.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('.coin')) return;
+      if (window.AuthGate && AuthGate.isLoggedIn()) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (window.AuthGate) AuthGate.open({});
+    }, true);
+  }
+  hook();
+  if (window.AuthGate) AuthGate.onChange(function () { try { location.reload(); } catch (e) {} });
+})();
+</script></body>
+</html>
