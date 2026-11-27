@@ -6,6 +6,7 @@
 <title>俊杰侃信奥 · 学习笔记</title>
 <link rel="stylesheet" href="nav.css?v=20261126z">
 <link rel="stylesheet" href="paper.css?v=20261126x">
+<link rel="stylesheet" href="auth.css?v=20261126i">
 <style>
   :root{--blue:#17265A;--blue-d:#0F1B42;--line:#D6D8D4;--ink:#14171C;--dim:#8D939E;--bg:#EBECEA;--ok:#2A6A45}
   *{box-sizing:border-box}
@@ -215,6 +216,7 @@
 
 <script src="data/catalog.js?v=20261124b"></script>
 <script src="nav.js?v=20261126z"></script>
+<script src="auth.js?v=20261126i"></script>
 <script>
 const C = window.CATALOG || { chapters: [] };
 const GROUPS = C.chapters || [];
@@ -237,6 +239,8 @@ const PAGE_SIZE = 20;
 const collapsed = new Set(GROUPS.map((g, i) => i).filter((i) => i !== 0));
 
 function readName() {
+  // 【免登录改造】登录态优先（AuthGate 的账号名），其次 ?name=，最后本机存档名
+  try { if (window.AuthGate && window.AuthGate.user()) return window.AuthGate.user().name; } catch (e) {}
   const q = new URLSearchParams(location.search).get('name');
   if (q) return q;
   try {
@@ -248,7 +252,7 @@ function readName() {
       if (n) return n;
     }
   } catch (e) {}
-  return '同学';
+  return '游客';
 }
 
 let toastTimer = null;
@@ -488,5 +492,26 @@ switchView(location.hash === '#guide' ? 'guide' : 'list');
 <div class="foot">
   <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">京ICP备________号</a>
 </div>
-</body>
+<script>
+/* 学习台：登录统一走账号密码卡，nav 的“名字即身份”入口让位 */
+(function () {
+  var tries = 0;
+  function hook() {
+    var host = document.querySelector('.nav-acc');
+    if (!host) { if (++tries < 15) setTimeout(hook, 120); return; }
+    var card = host.querySelector('.idcard');
+    if (!card || card.__authHooked) return;
+    card.__authHooked = 1;
+    card.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('.coin')) return;
+      if (window.AuthGate && AuthGate.isLoggedIn()) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (window.AuthGate) AuthGate.open({});
+    }, true);
+  }
+  hook();
+  if (window.AuthGate) AuthGate.onChange(function () { try { location.reload(); } catch (e) {} });
+})();
+</script></body>
 </html>
