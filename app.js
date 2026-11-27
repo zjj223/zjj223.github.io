@@ -231,6 +231,47 @@
     return profile;
   }
 
+  // 登录成功后，AuthGate 把服务端返回的存档暂存到本地；进游戏前落成该账号的缓存，
+  // 避免只拿到门票、却没把云端角色读回来。
+  function consumeAuthBootSave(name) {
+    const BOOT_KEY = "carlosia:auth:bootsave:v1";
+    if (!name) return false;
+    try {
+      const raw = localStorage.getItem(BOOT_KEY);
+      if (!raw) return false;
+      const payload = JSON.parse(raw);
+      if (!payload || payload.name !== name || !payload.save || typeof payload.save !== "object") {
+        localStorage.removeItem(BOOT_KEY);
+        return false;
+      }
+      // 超过 10 分钟的登录缓存不再使用，避免旧存档覆盖后来的进度
+      if (payload.at && Date.now() - payload.at > 10 * 60 * 1000) {
+        localStorage.removeItem(BOOT_KEY);
+        return false;
+      }
+      const profile = profileFromCloud({
+        name: name,
+        save: payload.save,
+        updated_at: payload.at ? new Date(payload.at).toISOString() : null,
+      });
+      const bootState = {
+        version: 1,
+        selectedId: profile.id,
+        profiles: [profile],
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(`${STORAGE_KEY}_cloud_${name}`, JSON.stringify(bootState));
+      localStorage.removeItem(BOOT_KEY);
+      return true;
+    } catch (err) {
+      console.warn("读取登录云端存档失败", err);
+      try {
+        localStorage.removeItem(BOOT_KEY);
+      } catch (e) {}
+      return false;
+    }
+  }
+
   // 账号时间只放在老师端内存里，不塞进学生存档：存档会被归一化、也会被整包写回
   function rememberRosterRows(rows) {
     teacherRosterMeta.clear();
@@ -1215,6 +1256,7 @@
         studentToken = u.token;
         activeStorageKey = `${STORAGE_KEY}_cloud_${u.name}`;
         cloudSyncAllowed = true;
+        consumeAuthBootSave(u.name);
       }
     }
     state = loadState();
@@ -3061,6 +3103,10 @@
         studentToken = (u && u.token) || null;
         cloudSyncAllowed = !!studentToken;
       });
+    }
+    // 没登录门票：先把账号登录弹出来，登录后自动读取原云端存档；点 × 仍可游客进入
+    if (window.AuthGate && !window.AuthGate.isLoggedIn()) {
+      window.AuthGate.open({ reason: "登录后自动读取你原来的云端存档" });
     }
     const closeLoginViewBtn = document.getElementById("btnCloseLoginView");
     if (closeLoginViewBtn) {
