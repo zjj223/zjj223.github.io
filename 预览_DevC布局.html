@@ -439,6 +439,8 @@
 .lib-empty{padding:46px 0; text-align:center; color:#8D939E; font-size:12.5px}
 .lib-foot{display:flex; justify-content:space-between; padding:10px 4px; font-size:12px; color:#8D939E}
 </style>
+<link rel="stylesheet" href="auth.css?v=20261126i">
+<script src="auth.js?v=20261126i"></script>
 </head>
 <body>
 
@@ -1244,16 +1246,54 @@ const JUDGE_URL = (location.protocol === 'http:' || location.protocol === 'https
   : 'http://59.110.125.57/judge';
 let lastJudge = null;
 
-async function callJudge(code, stdin) {
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 8000);
+/* 判题要先换票：票来自登录拿到的学生门票，服务端核对后才发 10 分钟一次性票 */
+function judgeToken() {
   try {
-    const r = await fetch(JUDGE_URL + '/run', {
+    const u = JSON.parse(localStorage.getItem('carlosia:auth:v1') || 'null');
+    if (u && u.token && (!u.exp || Date.now() < u.exp)) return u.token;
+  } catch (e) {}
+  return '';
+}
+
+async function judgeTicket() {
+  const t = judgeToken();
+  if (!t) return '';
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 5000);
+  try {
+    const r = await fetch(JUDGE_URL + '/ticket', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: t }),
+      signal: ctl.signal
+    });
+    if (!r.ok) return '';
+    const j = await r.json();
+    return (j && j.ticket) || '';
+  } catch (e) {
+    return '';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function callJudge(code, stdin) {
+  const ticket = await judgeTicket();
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 12000);
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (ticket) headers['X-Judge-Ticket'] = ticket;
+    const r = await fetch(JUDGE_URL + '/run', {
+      method: 'POST',
+      headers: headers,
       body: JSON.stringify({ code: code, stdin: stdin || '', lang: 'cpp14' }),
       signal: ctl.signal
     });
+    if (r.status === 401) {
+      return { compile: { ok: false, log: '先登录再运行：请在学习台登录后重试。', time: 0 },
+               run: null, judgeStatus: 'CE' };
+    }
     if (!r.ok) return null;
     return await r.json();
   } catch (e) {
@@ -2790,7 +2830,7 @@ document.getElementById('pBody').addEventListener('click', (e) => {
 const CDN_ONLY = /(^|\.)doubaocdn\.com$/.test(location.hostname) || /(^|\.)byteimg\.com$/.test(location.hostname);
 const NAV = {
   home: CDN_ONLY ? '' : '刷题主页.html',
-  game: CDN_ONLY ? '' : 'index.html',
+  game: CDN_ONLY ? '' : 'index.html?game=1',
   setlist: CDN_ONLY ? '' : '学习台.html'
 };
 
