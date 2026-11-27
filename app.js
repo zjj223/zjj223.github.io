@@ -2999,17 +2999,9 @@
     maybeShowWuxingNotice();
   }
 
-  // 游戏顶栏「🏠 学习台」：只是把全屏选择页盖回去，不重新鉴权、不重读云端、不动 state
+  // 游戏顶栏「🏠 学习台」：直接回学习台，不再弹站内那层旧选择页
   function reopenHome() {
-    const tabs = document.querySelector(".login-tabs");
-    if (tabs) tabs.hidden = true;
-    ["studentLoginForm", "studentLoginError", "landingNotice", "loginForm"].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.hidden = true;
-    });
-    const landing = document.getElementById("studentLanding");
-    if (landing) landing.hidden = false;
-    els.loginView.classList.remove("hidden");
+    location.href = "学习台.html";
   }
 
   // 被老师踢下线或门票失效：清门票，弹登录窗（不再整页回登录页）
