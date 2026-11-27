@@ -99,21 +99,15 @@ window.AuthGate = (function () {
     maskEl.className = "auth-mask";
     maskEl.hidden = true;
     maskEl.innerHTML =
-      '<div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">' +
+      '<div class="auth-card" role="dialog" aria-modal="true">' +
       '<button type="button" class="auth-close" aria-label="关闭">×</button>' +
       '<p class="auth-kicker">俊杰侃信奥</p>' +
-      '<h2 class="auth-title" id="authTitle">登录</h2>' +
-      '<p class="auth-reason"></p>' +
       '<form class="auth-form">' +
       '<input class="auth-name" placeholder="账号名（和老师约好的那个）" autocomplete="off" maxlength="12" />' +
       '<input class="auth-pass" placeholder="4~6 位数字密码" inputmode="numeric" autocomplete="off" maxlength="12" />' +
       '<button type="submit" class="auth-submit">登录</button>' +
       "</form>" +
       '<p class="auth-err" hidden></p>' +
-      '<div class="auth-foot">' +
-      '<button type="button" class="auth-teacher">老师入口</button>' +
-      '<span class="auth-tip"></span>' +
-      "</div>" +
       "</div>";
     document.body.appendChild(maskEl);
     maskEl.querySelector(".auth-close").onclick = close;
@@ -121,9 +115,6 @@ window.AuthGate = (function () {
       if (e.target === maskEl) close();
     });
     maskEl.querySelector(".auth-form").onsubmit = onSubmit;
-    maskEl.querySelector(".auth-teacher").onclick = function () {
-      open({ teacher: true, reason: "输入后台权限码" });
-    };
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && maskEl && !maskEl.hidden) close();
     });
@@ -145,17 +136,13 @@ window.AuthGate = (function () {
     buildMask();
     teacherMode = !!opts.teacher;
     const m = maskEl;
-    m.querySelector(".auth-title").textContent = teacherMode ? "老师入口" : "登录";
     m.querySelector(".auth-pass").placeholder = teacherMode ? "后台权限码" : "4~6 位数字密码";
     m.querySelector(".auth-pass").inputMode = teacherMode ? "text" : "numeric";
-    m.querySelector(".auth-name").hidden = teacherMode;
-    const reason = m.querySelector(".auth-reason");
-    reason.textContent = opts.reason || "";
-    reason.hidden = !opts.reason;
+    const nameEl = m.querySelector(".auth-name");
+    nameEl.hidden = teacherMode;
     m.querySelector(".auth-err").hidden = true;
-    m.querySelector(".auth-tip").textContent = opts.tip || (teacherMode ? "" : "进度存到你的账号");
     m.hidden = false;
-    if (!teacherMode) m.querySelector(".auth-name").focus();
+    if (!teacherMode) nameEl.focus();
     else m.querySelector(".auth-pass").focus();
     return false;
   }
