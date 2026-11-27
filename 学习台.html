@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>俊杰侃信奥 · 学习笔记</title>
-<link rel="stylesheet" href="nav.css?v=20261126z">
+<link rel="stylesheet" href="nav.css?v=20261127a">
 <link rel="stylesheet" href="paper.css?v=20261126x">
 <link rel="stylesheet" href="auth.css?v=20261126i">
 <style>
@@ -214,9 +214,9 @@
   </div>
 </div>
 
-<script src="data/catalog.js?v=20261124b"></script>
-<script src="nav.js?v=20261126z"></script>
-<script src="auth.js?v=20261126i"></script>
+<script src="data/catalog.js?v=20261127c"></script>
+<script src="nav.js?v=20261127a"></script>
+<script src="auth.js?v=20261127b"></script>
 <script>
 const C = window.CATALOG || { chapters: [] };
 const GROUPS = C.chapters || [];
@@ -513,5 +513,6 @@ switchView(location.hash === '#guide' ? 'guide' : 'list');
   hook();
   if (window.AuthGate) AuthGate.onChange(function () { try { location.reload(); } catch (e) {} });
 })();
-</script></body>
+</script><script>AuthGate.boot({ force: true });</script>
+</body>
 </html>
