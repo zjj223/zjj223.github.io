@@ -11983,6 +11983,7 @@
 
 
 
+        lock: true,
         reason: message || "登录已失效，请重新登录",
 
 
@@ -12376,22 +12377,6 @@
 
 
       });
-
-
-
-    }
-
-
-
-    // 没登录门票：先把账号登录弹出来，登录后自动读取原云端存档；点 × 仍可游客进入
-
-
-
-    if (window.AuthGate && !window.AuthGate.isLoggedIn()) {
-
-
-
-      window.AuthGate.open({ reason: "登录后自动读取你原来的云端存档" });
 
 
 
