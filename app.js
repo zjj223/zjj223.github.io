@@ -1295,6 +1295,14 @@
     setLoginMode(location.protocol === "file:" ? "teacher" : "student");
     consumeForcedLogoutNotice();
 
+    // 【修复】从“读回角色”按钮过来：清完登录态后自动把登录卡弹出来
+    try {
+      if (sessionStorage.getItem("lk:autoauth") === "1") {
+        sessionStorage.removeItem("lk:autoauth");
+        if (window.AuthGate) setTimeout(function () { window.AuthGate.open({}); }, 300);
+      }
+    } catch (e) {}
+
     bootAfterAuth();
   }
 
@@ -1359,11 +1367,34 @@
     }
     if (studentToken) {
       startSessionWatch();
+      // 【修复】登录有效但本机没有这个账号的角色缓存，不能只留一张空屏
+      if (!state.profiles || !state.profiles.length) showNoSaveHint();
     } else {
       // 游客：没有云端角色，就在本机建一个默认角色，保证进游戏有东西可玩
       ensureGuestProfile();
     }
     enterGame({ guest: !studentToken });
+  }
+
+  // 【修复】已登录但本机没有该账号的存档：引导重新登录一次，把云端角色读回来
+  function showNoSaveHint() {
+    const title = document.getElementById("emptyTitle");
+    const note = document.getElementById("emptyNote");
+    const btn = document.getElementById("btnRefetchSave");
+    if (!note || !btn) return;
+    if (title) title.textContent = "这台电脑还没有你的角色存档";
+    note.hidden = false;
+    btn.hidden = false;
+    btn.onclick = function () {
+      try {
+        sessionStorage.setItem("lk:autoauth", "1");
+      } catch (e) {}
+      if (window.AuthGate) {
+        window.AuthGate.logout();
+        return;
+      }
+      location.reload();
+    };
   }
 
   // 老师登录：进后台，并把云端全班数据拉下来（拉不到就继续用本地）
