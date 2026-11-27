@@ -9085,8 +9085,6 @@
       area.appendChild(buildRoleItems(profile));
     } else if (roleModalTab === "clothes") {
       area.appendChild(buildRoleClothes());
-    } else if (roleModalTab === "quest") {
-      area.appendChild(buildRoleQuests(profile));
     } else {
       area.appendChild(buildRoleInfo(profile));
     }
