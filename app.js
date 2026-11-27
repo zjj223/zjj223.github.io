@@ -450,7 +450,7 @@
       id: "sea", name: "人鱼之歌", tag: "人鱼湾",
       sceneId: "mermaid-bay", sceneName: "人鱼湾",
       boy: "./assets/outfits/boy-sea.png",
-      girl: "./assets/outfits/girl-sea.png?v=20261127b",
+      girl: "./assets/outfits/girl-sea.png?v=20261127c",
       color: "#29b6f6",
       intro: "贝壳胸扣和浪花披风，走起来像踩着水。",
     },
@@ -458,7 +458,7 @@
       id: "academy", name: "皇家学者", tag: "皇家研究院",
       sceneId: "academy", sceneName: "皇家研究院",
       boy: "./assets/outfits/boy-academy.png",
-      girl: "./assets/outfits/girl-academy.png?v=20261127b",
+      girl: "./assets/outfits/girl-academy.png?v=20261127c",
       color: "#3949ab",
       intro: "学士帽配金边长袍，一看就是读过很多书。",
     },
@@ -466,14 +466,14 @@
       id: "snow", name: "冰原守护", tag: "雪人谷",
       sceneId: "snow-valley", sceneName: "雪人谷",
       boy: "./assets/outfits/boy-snow.png",
-      girl: "./assets/outfits/girl-snow.png?v=20261127b",
+      girl: "./assets/outfits/girl-snow.png?v=20261127c",
       color: "#4fc3f7",
       intro: "毛领大衣和冰晶护肩，站在雪里也不冷。",
     },
     {
       id: "thunder", name: "雷霆机甲", tag: "雷鹗峡谷",
       sceneId: "thunder-valley", sceneName: "雷鹗峡谷",
-      boy: "./assets/outfits/boy-thunder.png?v=20261127b",
+      boy: "./assets/outfits/boy-thunder.png?v=20261127c",
       girl: "./assets/outfits/girl-thunder.png",
       color: "#ffee58",
       intro: "身上带电路光条，走到哪都噼里啪啦。",
@@ -8594,10 +8594,17 @@
           .filter((ball) => ball && typeof ball.id === "string")
           .map((ball) => ({ id: ball.id, count: clampInteger(ball.count, 1, 99) }))
       : [];
+    const pets = Array.isArray(source.pets)
+      ? source.pets
+          .filter((pet) => pet && typeof pet.petId === "string")
+          .map((pet) => ({ petId: pet.petId, level: clampInteger(pet.level, 1, 999) }))
+          .slice(0, 6)
+      : [];
     return {
       coin: clampInteger(source.coin, 0, 9999),
       items,
       balls,
+      pets,
     };
   }
 
@@ -8649,7 +8656,7 @@
 
   function mailHasRewards(mail) {
     if (!mail || !mail.rewards) return false;
-    return mail.rewards.coin > 0 || mail.rewards.items.length > 0 || mail.rewards.balls.length > 0;
+    return mail.rewards.coin > 0 || mail.rewards.items.length > 0 || mail.rewards.balls.length > 0 || mail.rewards.pets.length > 0;
   }
 
   function findSceneItemById(itemId) {
@@ -8664,6 +8671,7 @@
     if (!profile || !mail || !mailHasRewards(mail) || mail.claimed) return [];
     const labels = [];
     const rewards = normalizeMailRewards(mail.rewards);
+    if (!Array.isArray(profile.pets)) profile.pets = [];
     if (rewards.coin > 0) {
       profile.rockbell = (Number(profile.rockbell) || 0) + rewards.coin;
       labels.push(`+${rewards.coin} 洛克贝`);
@@ -8681,6 +8689,28 @@
       if (!profile.balls) profile.balls = {};
       profile.balls[ball.id] = (profile.balls[ball.id] || 0) + reward.count;
       labels.push(`【${ball.name}】×${reward.count}`);
+    });
+    rewards.pets.forEach((reward) => {
+      if (profile.pets.length >= MAX_PETS) return;
+      const template = PET_DATABASE.find((entry) => entry.petId === reward.petId);
+      if (!template) return;
+      const stageData = template.stages?.[0] || {};
+      const pet = normalizePet({
+        petId: template.petId,
+        stage: 1,
+        name: stageData.name || template.petId,
+        image: stageData.image || null,
+        type: stageData.type || template.type || "未标注",
+        style: stageData.style || template.style || "五行神兽",
+        mark: stageData.mark || (stageData.name || "宠").slice(0, 1),
+        level: reward.level,
+        hpMax: Math.floor(PET_BASE_HP_MAX * 1.3) + (reward.level - 1) * PET_UPGRADE_HP_GAIN,
+        mpMax: PET_BASE_MP_MAX,
+        isWuxing: template.petId.startsWith("wuxing-"),
+      });
+      if (!pet) return;
+      profile.pets.push(pet);
+      labels.push(`【${pet.name}】已放入宠物栏`);
     });
     mail.claimed = true;
     mail.read = true;
@@ -8700,6 +8730,11 @@
       render();
       return;
     }
+    const petRewards = normalizeMailRewards(mail.rewards).pets;
+    if (petRewards.length && profile.pets.length + petRewards.length > MAX_PETS) {
+      showToast("宠物栏已满", "邮件先留着，放生一只宠物后再来领取。", "warning", 4500);
+      return;
+    }
     const labels = grantMailReward(profile, mail);
     saveState("邮件奖励已领取");
     showToast("邮件奖励", labels.join("，"), "success", 4200);
@@ -8714,6 +8749,8 @@
     const labels = [];
     mailbox.mails.forEach((mail) => {
       if (mail.claimed || !mailHasRewards(mail)) return;
+      const petRewards = normalizeMailRewards(mail.rewards).pets;
+      if (petRewards.length && profile.pets.length + petRewards.length > MAX_PETS) return;
       labels.push(...grantMailReward(profile, mail));
     });
     if (!labels.length) return;
@@ -8819,6 +8856,15 @@
         const chip = document.createElement("span");
         chip.className = "mail-chip";
         chip.textContent = `⚪ ${ball.name} ×${reward.count}`;
+        rewards.appendChild(chip);
+      });
+      (mail.rewards.pets || []).forEach((reward) => {
+        const template = PET_DATABASE.find((entry) => entry.petId === reward.petId);
+        if (!template) return;
+        const stageData = template.stages?.[0] || {};
+        const chip = document.createElement("span");
+        chip.className = "mail-chip";
+        chip.textContent = `🐾 ${stageData.name || template.petId} ×1`;
         rewards.appendChild(chip);
       });
       const action = document.createElement("div");
