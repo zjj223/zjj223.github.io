@@ -13,7 +13,7 @@
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>俊杰侃信奥</title>
-    <link rel="stylesheet" href="./styles.css?v=20261126i" />
+    <link rel="stylesheet" href="./styles.css?v=20261127b" />
     <link rel="stylesheet" href="./auth.css?v=20261126i" />
   </head>
   <body>
@@ -136,7 +136,9 @@
         <section class="game-area" aria-label="游戏主界面">
           <div id="emptyState" class="empty-state">
             <div class="empty-mark" aria-hidden="true">◇</div>
-            <h2>请选择或新建角色</h2>
+            <h2 id="emptyTitle">请选择或新建角色</h2>
+            <p id="emptyNote" class="empty-note" hidden>这台电脑还没有缓存你的角色。登录状态还在，点下面的按钮重新登录一次，云端角色会自动读回来。</p>
+            <button id="btnRefetchSave" class="primary-button" type="button" hidden>重新登录 · 读回我的角色</button>
           </div>
 
           <div id="gameView" class="game-view" hidden>
@@ -782,7 +784,7 @@
     <script src="./assets/vendor/supabase.js?v=20261126i"></script>
     <script src="./data/petConfig.js?v=20261126i"></script>
     <script src="./auth.js?v=20261127a"></script>
-    <script src="./app.js?v=20261127c"></script>
+    <script src="./app.js?v=20261127d"></script>
 
   <!-- 新手引导：手指引导 + 功能卡 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
