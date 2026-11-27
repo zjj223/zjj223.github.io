@@ -13,7 +13,7 @@
     { k: 'home', t: '首页', h: '首页.html' },
     { k: 'lib', t: '练习题库', h: '练习题库.html' },
     { k: 'note', t: '学习笔记', h: '学习台.html' },
-    { k: 'game', t: '游戏', h: 'index.html' },
+    { k: 'game', t: '游戏', h: 'index.html?game=1' },
     { k: 'month', t: '俊杰月赛', h: '俊杰月赛.html' },
     { k: 'contest', t: '比赛', h: '比赛.html' },
     { k: 'rank', t: '排行榜', h: '排行榜.html' }
@@ -182,8 +182,11 @@
   var page = (document.querySelector('.nav') || {}).dataset || {};
   var state = { qname: WANT || null };
 
-  var suffix = function () {
-    return state.qname ? '?name=' + encodeURIComponent(state.qname) : '';
+  var suffix = function (h) {
+    var q = state.qname ? 'name=' + encodeURIComponent(state.qname) : '';
+    if (!q) return '';
+    var base = h || '';
+    return base.indexOf('?') >= 0 ? '&' + q : '?' + q;
   };
 
   /* 把名字同步进地址栏，游戏那边的云档才认同一个人 */
@@ -227,11 +230,11 @@
       ['02', '学习记录', '学习台.html'],
       ['03', '练习题库', '练习题库.html'],
       ['04', '我的比赛', '比赛.html'],
-      ['05', '箱庭世界', 'index.html'],
+      ['05', '箱庭世界', 'index.html?game=1'],
       ['06', '站内信', '首页.html#mailbar']
     ];
     return rows.map(function (r) {
-        return '<a class="p-row" href="' + r[2] + suffix() + '"><em>' + r[0] + '</em><span>' + r[1] + '</span><i>›</i></a>';
+        return '<a class="p-row" href="' + r[2] + suffix(r[2]) + '"><em>' + r[0] + '</em><span>' + r[1] + '</span><i>›</i></a>';
       }).join('') +
       '<div class="p-foot"><span class="coin"><i></i>' + fmt(c) + ' 洛克贝</span>' +
         (s.streak ? '<span class="p-streak">连续 ' + s.streak + ' 天</span>' : '') +
@@ -259,7 +262,7 @@
         '<span class="seal">' + esc(w.guest ? '?' : w.name.trim().charAt(0)) + '</span>' +
         '<span class="who"><b>' + esc(head) + '</b><i>' + esc(sub) + '</i></span>' +
         '<span class="sep"></span>' +
-        '<a class="coin" href="index.html' + suffix() + '" title="洛克贝：游戏里探索、战斗、做委托挣的">' +
+        '<a class="coin" href="index.html?game=1' + suffix('index.html?game=1') + '" title="洛克贝：游戏里探索、战斗、做委托挣的">' +
           '<i></i><span class="num">' + fmt(window.lkCoin.coin()) + '</span></a>' +
         '<span class="cv">▾</span>' +
       '</div>' +
@@ -330,9 +333,9 @@
 
   if (box) {
     box.innerHTML =
-      '<a class="nav-logo" href="首页.html' + suffix() + '"><i>J</i>俊杰侃信奥</a>' +
+      '<a class="nav-logo" href="首页.html' + suffix('首页.html') + '"><i>J</i>俊杰侃信奥</a>' +
       ITEMS.map(function (it) {
-        return '<a class="nav-item' + (it.k === page.page ? ' on' : '') + '" href="' + it.h + suffix() + '">' +
+        return '<a class="nav-item' + (it.k === page.page ? ' on' : '') + '" href="' + it.h + suffix(it.h) + '">' +
           icon(it.k) + '<span>' + it.t + '</span></a>';
       }).join('') +
       '<span class="nav-sp"></span>' +
