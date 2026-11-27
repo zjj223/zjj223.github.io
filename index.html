@@ -17,69 +17,9 @@
     <link rel="stylesheet" href="./auth.css?v=20261126i" />
   </head>
   <body>
-    <!-- 账号 / 后台登录界面：改成可按需弹出的模态层，首屏不再挡页面 -->
-    <div id="loginView" class="login-view as-modal" hidden>
-      <div class="login-card">
-        <button type="button" class="loginview-close" id="btnCloseLoginView" aria-label="关闭">×</button>
-        <div class="login-logo">🌟</div>
-        <h1 class="login-title">俊杰侃信奥</h1>
-        <p class="login-subtitle">C++ 练习题单 · 在线编译评测</p>
+    <!-- 游戏页不再自带登录壳：统一走 AuthGate（auth.js） -->
 
-        <div class="login-tabs">
-          <button type="button" class="login-tab is-active" data-login-mode="student">账号登录</button>
-          <button type="button" class="login-tab" data-login-mode="teacher">后台登录</button>
-        </div>
-
-        <form id="studentLoginForm" class="login-form">
-          <input
-            id="studentName"
-            type="text"
-            maxlength="12"
-            autocomplete="off"
-            placeholder="账号名（和老师约好的那个）"
-            required
-          />
-          <input
-            id="studentPass"
-            type="text"
-            inputmode="numeric"
-            maxlength="6"
-            autocomplete="off"
-            placeholder="4~6 位数字密码"
-            required
-          />
-          <button type="submit" class="login-button" id="studentLoginBtn">登录</button>
-        </form>
-        <p id="studentLoginError" class="login-error" hidden>登录信息有误，请重试</p>
-
-        <div id="studentLanding" hidden>
-          <p class="landing-hello" id="landingHello">你好，同学</p>
-          <div class="landing-actions">
-            <button type="button" id="btnStudyRoom" class="login-button">进入学习台</button>
-            <button type="button" id="btnStartGame" class="login-button is-ghost">进入游戏</button>
-          </div>
-          <p class="login-hint" id="landingNotice" hidden></p>
-          <button type="button" id="btnSwitchAccount" class="login-link">切换账号</button>
-        </div>
-
-        <form id="loginForm" class="login-form" hidden>
-          <input
-            id="teacherCode"
-            type="password"
-            placeholder="请输入后台权限码"
-            autocomplete="off"
-            required
-          />
-          <button type="submit" class="login-button">进入后台</button>
-        </form>
-        <p id="loginError" class="login-error" hidden>权限码错误，请重试</p>
-        <p class="site-desc">本站用于 C++ 编程练习与在线编译评测，供个人学习使用。</p>
-        <p class="site-desc" style="margin-top:8px"><a href="首页.html" style="color:#2947c9;text-decoration:none">浏览题库首页 →</a></p>
-        <p class="icp"><a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">京ICP备________号</a></p>
-      </div>
-    </div>
-
-    <div class="app-shell">
+<div class="app-shell">
       <header class="topbar">
         <div>
           <p class="eyebrow">课堂练习</p>
@@ -782,8 +722,9 @@
 
     <script src="./assets/vendor/supabase.js?v=20261126i"></script>
     <script src="./data/petConfig.js?v=20261127a"></script>
-    <script src="./auth.js?v=20261127a"></script>
-    <script src="./app.js?v=20261127f"></script>
+    <script src="./auth.js?v=20261127b"></script>
+    <script src="./app.js?v=20261127g"></script>
+    <script>AuthGate.boot({ force: true });</script>
 
   <!-- 新手引导：手指引导 + 功能卡 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
