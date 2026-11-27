@@ -70,6 +70,8 @@
   let cloudSyncQueued = null;
   // 只有学生登录、或线上老师登录时才把进度写回云端；本地离线模式不动云端
   let cloudSyncAllowed = false;
+  const CLOUD_PENDING_PREFIX = "carlosia:auth:cloudpending:";
+  let bootLocalKept = false;
 
   function cloudHeaders(extra) {
     return Object.assign(
@@ -138,6 +140,24 @@
   }
 
   // 关页面/刷新时最后努力一次；keepalive 让请求在页面卸载后继续发
+  function studentSaveBeacon() {
+    if (!CLOUD_ENABLED || !studentToken || location.protocol === "file:") return false;
+    const payload = cloudSyncQueued;
+    if (!payload) return false;
+    cloudSyncQueued = null;
+    try {
+      fetch(`${CLOUD_CONFIG.url}/rest/v1/rpc/student_save`, {
+        method: "POST",
+        headers: cloudHeaders(),
+        body: JSON.stringify({ p_token: studentToken, p_save: payload.save }),
+        keepalive: true,
+      }).catch(() => {});
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
   function studentLogoutBeacon() {
     if (!CLOUD_ENABLED || !studentToken || location.protocol === "file:") return;
     try {
@@ -233,6 +253,24 @@
 
   // 登录成功后，AuthGate 把服务端返回的存档暂存到本地；进游戏前落成该账号的缓存，
   // 避免只拿到门票、却没把云端角色读回来。
+  function cloudPendingKey(name) {
+    return `${CLOUD_PENDING_PREFIX}${name}`;
+  }
+
+  function readLocalCloudState(name) {
+    try {
+      const raw = localStorage.getItem(`${STORAGE_KEY}_cloud_${name}`);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.profiles)) return null;
+      return parsed;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  // 登录成功后，AuthGate 把服务端返回的存档暂存到本地；进游戏前落成该账号的缓存。
+  // 【修复】禁止旧云端存档无条件覆盖本机较新的进度：刚抓/刚领的宠物可能还在等同步。
   function consumeAuthBootSave(name) {
     const BOOT_KEY = "carlosia:auth:bootsave:v1";
     if (!name) return false;
@@ -244,11 +282,30 @@
         localStorage.removeItem(BOOT_KEY);
         return false;
       }
-      // 超过 10 分钟的登录缓存不再使用，避免旧存档覆盖后来的进度
       if (payload.at && Date.now() - payload.at > 10 * 60 * 1000) {
         localStorage.removeItem(BOOT_KEY);
         return false;
       }
+
+      const localState = readLocalCloudState(name);
+      const localProfile = localState?.profiles?.find((p) => p && p.name === name) || null;
+      const localAt = Date.parse(localState?.updatedAt || "");
+      const bootAt = Number(payload.at) || 0;
+      let pendingAt = 0;
+      try {
+        pendingAt = Number(localStorage.getItem(cloudPendingKey(name)) || 0);
+      } catch (err) {}
+      const sameRole = Boolean(localProfile && payload.save.id && localProfile.id === payload.save.id);
+      const localIsNewer = Number.isFinite(localAt) && localAt > bootAt;
+      if (sameRole && (pendingAt > 0 || localIsNewer)) {
+        try {
+          localStorage.setItem(cloudPendingKey(name), String(pendingAt || Date.now()));
+        } catch (err) {}
+        localStorage.removeItem(BOOT_KEY);
+        bootLocalKept = true;
+        return false;
+      }
+
       const profile = profileFromCloud({
         name: name,
         save: payload.save,
@@ -258,7 +315,7 @@
         version: 1,
         selectedId: profile.id,
         profiles: [profile],
-        updatedAt: new Date().toISOString(),
+        updatedAt: payload.at ? new Date(payload.at).toISOString() : new Date().toISOString(),
       };
       localStorage.setItem(`${STORAGE_KEY}_cloud_${name}`, JSON.stringify(bootState));
       localStorage.removeItem(BOOT_KEY);
@@ -300,7 +357,7 @@
 
 
   // 只同步"当前选中的这个角色"，合并写请求，避免连点探索时刷爆接口
-  function scheduleCloudSync(profile) {
+  function scheduleCloudSync(profile, immediate) {
     if (!CLOUD_ENABLED || !cloudSyncAllowed || !profile || !profile.name) {
       return;
     }
@@ -310,6 +367,9 @@
     if (teacherUnlocked && !studentToken) {
       return;
     }
+    try {
+      localStorage.setItem(cloudPendingKey(profile.name), String(Date.now()));
+    } catch (err) {}
     // 存档里不再夹带密码；这里显式剔除，避免旧档案里的残留字段被带上去
     const save = Object.assign({}, profile);
     delete save.pass;
@@ -323,10 +383,14 @@
     }
     cloudSyncTimer = setTimeout(() => {
       flushCloudSync();
-    }, 2000);
+    }, immediate === true ? 0 : 2000);
   }
 
   async function flushCloudSync() {
+    if (cloudSyncTimer) {
+      clearTimeout(cloudSyncTimer);
+      cloudSyncTimer = null;
+    }
     if (!cloudSyncQueued || cloudSyncBusy) {
       return;
     }
@@ -358,6 +422,9 @@
         setSaveStatus("仅本地存档（未登录云端）");
         return;
       }
+      try {
+        localStorage.removeItem(cloudPendingKey(payload.name));
+      } catch (err) {}
       setSaveStatus("已同步云端");
     } catch (err) {
       console.warn("云端同步失败", err);
@@ -369,6 +436,10 @@
       }
     } finally {
       cloudSyncBusy = false;
+      // 慢网络下，同步进行中产生的新存档不能丢：上一笔结束后立刻补发。
+      if (cloudSyncQueued && !cloudSyncTimer) {
+        cloudSyncTimer = setTimeout(flushCloudSync, 0);
+      }
     }
   }
 
@@ -1260,6 +1331,11 @@
       }
     }
     state = loadState();
+    if (bootLocalKept) {
+      bootLocalKept = false;
+      const current = state.profiles.find((profile) => profile.id === state.selectedId);
+      if (current && studentToken) scheduleCloudSync(current, true);
+    }
     marketState = loadMarket();
     const changed = normalizeState();
     // 加载时检查所有宠物的自动进化
@@ -3140,7 +3216,12 @@
     const switchAccountBtn = document.getElementById("btnSwitchAccount");
     if (switchAccountBtn) switchAccountBtn.addEventListener("click", switchAccount);
     // 直接关页面/刷新：最后努力记录正常退出；失败就靠最后活动时间兜底
-    window.addEventListener("pagehide", studentLogoutBeacon);
+    window.addEventListener("pagehide", function () {
+      const hadPending = Boolean(cloudSyncQueued) || cloudSyncBusy;
+      studentSaveBeacon();
+      // 还有没落云端的保存时先不退出：退出会让门票立即失效，存档可能写不进去。
+      if (!hadPending) studentLogoutBeacon();
+    });
     const backHomeBtn = document.getElementById("btnBackHome");
     if (backHomeBtn) backHomeBtn.addEventListener("click", reopenHome);
     els.rankClose?.addEventListener("click", () => { els.rankModal.hidden = true; });
@@ -3715,7 +3796,7 @@
     return null;
   }
 
-  function saveState(message) {
+  function saveState(message, immediate) {
     state.updatedAt = new Date().toISOString();
     try {
       localStorage.setItem(activeStorageKey, JSON.stringify(state));
@@ -3727,7 +3808,7 @@
     // 云端模式：本地存完顺手把当前角色推到 Supabase（2 秒内多次改动只发一次）
     const current = state.profiles.find((profile) => profile.id === state.selectedId);
     if (current && current.name) {
-      scheduleCloudSync(current);
+      scheduleCloudSync(current, immediate === true);
     }
   }
 
@@ -8759,7 +8840,7 @@
       return;
     }
     const labels = grantMailReward(profile, mail);
-    saveState("邮件奖励已领取");
+    saveState("邮件奖励已领取", true);
     showToast("邮件奖励", labels.join("，"), "success", 4200);
     renderMailModal();
     render();
@@ -8777,7 +8858,7 @@
       labels.push(...grantMailReward(profile, mail));
     });
     if (!labels.length) return;
-    saveState("邮件奖励已全部领取");
+    saveState("邮件奖励已全部领取", true);
     showToast("邮件奖励", `一键领取：${labels.join("，")}`, "success", 4800);
     renderMailModal();
     render();
@@ -9800,7 +9881,7 @@
       petTeamPageProfileId = profile.id || "";
       petTeamPage = Math.floor((profile.pets.length - 1) / PETS_PER_PAGE);
       els.captureResult.textContent = `🎉 捕捉成功！${newPet.name} 加入了你的队伍！`;
-      saveState("捕捉成功");
+      saveState("捕捉成功", true);
 
       // 捕捉到第二只宠物后提示排行榜
       if (petCountBefore < 2 && profile.pets.length >= 2) {
