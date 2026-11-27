@@ -2,6 +2,15 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      /* 首页是学习台；游戏从菜单进（带 ?game=1 才留在这里） */
+      (function () {
+        try {
+          if (/[?&]game=1/.test(location.search)) return;
+          location.replace(encodeURI('学习台.html'));
+        } catch (e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>俊杰侃信奥</title>
     <link rel="stylesheet" href="./styles.css?v=20261126i" />
