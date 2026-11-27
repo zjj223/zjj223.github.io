@@ -1,0 +1,244 @@
+/* 登录弹窗 + 顶栏登录按钮 —— 沿用游戏本体 V0 暖木令牌 */
+.auth-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 32, 20, 0.52);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+.auth-mask[hidden] { display: none; }
+
+.auth-card {
+  position: relative;
+  width: min(94vw, 372px);
+  background: var(--surface, #fffdf6);
+  border: 2px solid var(--line, #cbbda3);
+  border-radius: var(--r-md, 18px);
+  padding: 26px 24px 20px;
+  box-shadow: 0 10px 0 #d8c8ab, 0 22px 44px rgba(60, 45, 25, 0.28);
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.auth-close {
+  position: absolute;
+  right: 8px;
+  top: 4px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--muted, #7a6f5d);
+  cursor: pointer;
+}
+.auth-close:hover { color: var(--ink, #2f2a22); }
+
+.auth-kicker {
+  margin: 0 0 2px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--muted, #7a6f5d);
+  text-align: center;
+}
+
+.auth-title {
+  margin: 0 0 4px;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-align: center;
+  color: var(--ink, #2f2a22);
+}
+
+.auth-reason {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  color: var(--muted, #7a6f5d);
+  text-align: center;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-name,
+.auth-pass {
+  height: 42px;
+  border: 2px solid var(--line, #cbbda3);
+  border-radius: var(--r-xs, 8px);
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--ink, #2f2a22);
+  background: #fff;
+  outline: none;
+}
+.auth-name:focus,
+.auth-pass:focus {
+  border-color: var(--gold, #f2b23e);
+  box-shadow: 0 0 0 3px rgba(242, 178, 62, 0.24);
+}
+
+.auth-submit {
+  height: 44px;
+  border: 2px solid var(--green-deep, #2f6b3c);
+  border-radius: var(--r-pill, 999px);
+  background: var(--green, #58a35f);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--green-deep, #2f6b3c);
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.16s ease;
+}
+.auth-submit:hover:not(:disabled) { background: #4d9453; }
+.auth-submit:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
+.auth-submit:disabled { opacity: 0.6; cursor: default; }
+
+.auth-err {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--red, #d9614a);
+  text-align: center;
+}
+
+.auth-foot {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.auth-teacher {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--ink-soft, #6b6152);
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.auth-tip {
+  font-size: 11.5px;
+  color: var(--muted, #7a6f5d);
+  text-align: right;
+  flex: 1;
+}
+
+/* 顶栏登录按钮 */
+.auth-btn,
+.login-link {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 2px solid var(--line, #cbbda3);
+  border-radius: var(--r-pill, 999px);
+  background: var(--surface-hi, #fff);
+  color: var(--ink-soft, #6b6152);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 0 #d8c8ab;
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.16s ease;
+}
+.auth-btn:hover { background: #f6f1e4; }
+.auth-btn:active { transform: translateY(2px); box-shadow: none; }
+.auth-btn.is-on {
+  border-color: var(--green-deep, #2f6b3c);
+  background: #edf5ee;
+  color: var(--green-deep, #2f6b3c);
+}
+
+/* 已登录小菜单 */
+.auth-menu {
+  position: fixed;
+  z-index: 301;
+  min-width: 168px;
+  padding: 12px 14px 10px;
+  background: var(--surface, #fffdf6);
+  border: 2px solid var(--line, #cbbda3);
+  border-radius: var(--r-sm, 12px);
+  box-shadow: 0 8px 24px rgba(60, 45, 25, 0.22);
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.auth-menu[hidden] { display: none; }
+.auth-menu-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink, #2f2a22);
+}
+.auth-menu-sub {
+  margin: 2px 0 8px;
+  font-size: 11.5px;
+  color: var(--muted, #7a6f5d);
+}
+.auth-menu-out {
+  width: 100%;
+  height: 30px;
+  border: 1px solid var(--line, #cbbda3);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--red, #d9614a);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.auth-menu-out:hover { background: #fdf3f0; }
+
+.auth-menu-go {
+  width: 100%;
+  height: 30px;
+  margin: 0 0 6px;
+  border: 1px solid var(--navy, #17265A);
+  border-radius: 6px;
+  background: var(--navy, #17265A);
+  color: #fff;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.auth-menu-go:hover { background: #1d3070; }
+
+/* 登录卡改成模态层（配合 index.html 的 .as-modal） */
+.login-view.as-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(40, 32, 20, 0.52);
+  backdrop-filter: blur(2px);
+}
+.login-view.as-modal[hidden] { display: none; }
+.login-view.as-modal .login-card {
+  position: relative;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  box-shadow: 0 10px 0 #d8c8ab, 0 24px 52px rgba(60, 45, 25, 0.32);
+}
+
+/* 模态卡右上角的关闭叉（点🏠学习台弹出后用） */
+.loginview-close {
+  position: absolute;
+  right: 6px;
+  top: 2px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--muted, #7a6f5d);
+  cursor: pointer;
+}
+.loginview-close:hover { color: var(--ink, #2f2a22); }
