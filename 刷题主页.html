@@ -149,10 +149,10 @@
 
 <div class="top">
   <div class="top-in">
-    <a class="back" id="backGame" href="index.html">← 游戏主页</a>
+    <a class="back" id="backGame" href="index.html?game=1">← 游戏主页</a>
     <div class="crumbs"><span class="clk" id="crumbStudy">学习台</span><span class="crumb-sep">›</span><span class="clk" id="crumbLib">题库</span><span class="crumb-sep">›</span><b>C++ 入门题单</b></div>
     <button class="coin" id="btnCoin">🪙 128</button>
-    <a class="btn-game" id="btnGame" href="index.html">进入游戏</a>
+    <a class="btn-game" id="btnGame" href="index.html?game=1">进入游戏</a>
   </div>
 </div>
 
@@ -289,7 +289,7 @@ function renderStats(){
 /* ---------- 交互层：导航 / 轻提示 / hash 存档 ---------- */
 const CDN_ONLY = /(^|\.)doubaocdn\.com$/.test(location.hostname) || /(^|\.)byteimg\.com$/.test(location.hostname);
 const NAV = {
-  game: CDN_ONLY ? '' : 'index.html',
+  game: CDN_ONLY ? '' : 'index.html?game=1',
   work: CDN_ONLY ? '' : '预览_DevC布局.html'
 };
 
