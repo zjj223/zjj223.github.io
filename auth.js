@@ -19,6 +19,8 @@ window.AuthGate = (function () {
   let maskEl = null;
   let menuEl = null;
   let teacherMode = false;
+  let lockMode = false;
+  let booted = false;
 
   function online() {
     return location.protocol !== "file:" && !!SB.url && !!SB.key;
@@ -124,6 +126,7 @@ window.AuthGate = (function () {
   function open(opts) {
     opts = opts || {};
     pending = opts.onSuccess || null;
+    lockMode = !!opts.lock;
     if (!online()) {
       // file:// 本地双击：没有服务端，直接放行
       if (pending) {
@@ -141,6 +144,7 @@ window.AuthGate = (function () {
     const nameEl = m.querySelector(".auth-name");
     nameEl.hidden = teacherMode;
     m.querySelector(".auth-err").hidden = true;
+    m.querySelector(".auth-close").hidden = lockMode;
     m.hidden = false;
     if (!teacherMode) nameEl.focus();
     else m.querySelector(".auth-pass").focus();
@@ -148,6 +152,7 @@ window.AuthGate = (function () {
   }
 
   function close() {
+    if (lockMode) return; // 强制登录：卡不能关
     if (maskEl) maskEl.hidden = true;
     pending = null;
   }
@@ -207,6 +212,7 @@ window.AuthGate = (function () {
         } catch (e) {}
       }
       m.hidden = true;
+      lockMode = false;
       const fn = pending;
       pending = null;
       if (fn) fn(user);
@@ -314,6 +320,23 @@ window.AuthGate = (function () {
     return user;
   }
 
+  /* ---------------- 页面统一守卫 ----------------
+     boot({force:true})：无票就弹卡且关不掉；有票先静默校验（老师踢人立刻生效）
+     boot({force:true, role:'teacher'})：只有老师门票放行，学生票会弹权限码卡
+  */
+  async function boot(opts) {
+    opts = opts || {};
+    if (booted) return user;
+    booted = true;
+    await restore();
+    const needRole = opts.role || null;
+    const ok = !!user && Date.now() < user.exp && (!needRole || user.role === needRole);
+    if (!ok && opts.force !== false) {
+      open({ lock: true, teacher: needRole === "teacher" });
+    }
+    return user;
+  }
+
   return {
     user: function () {
       return user;
@@ -324,6 +347,7 @@ window.AuthGate = (function () {
     require: require,
     open: open,
     close: close,
+    boot: boot,
     logout: logout,
     restore: restore,
     mountButton: mountButton,
