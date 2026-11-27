@@ -450,7 +450,7 @@
       id: "sea", name: "人鱼之歌", tag: "人鱼湾",
       sceneId: "mermaid-bay", sceneName: "人鱼湾",
       boy: "./assets/outfits/boy-sea.png",
-      girl: "./assets/outfits/girl-sea.png",
+      girl: "./assets/outfits/girl-sea.png?v=20261127b",
       color: "#29b6f6",
       intro: "贝壳胸扣和浪花披风，走起来像踩着水。",
     },
@@ -458,7 +458,7 @@
       id: "academy", name: "皇家学者", tag: "皇家研究院",
       sceneId: "academy", sceneName: "皇家研究院",
       boy: "./assets/outfits/boy-academy.png",
-      girl: "./assets/outfits/girl-academy.png",
+      girl: "./assets/outfits/girl-academy.png?v=20261127b",
       color: "#3949ab",
       intro: "学士帽配金边长袍，一看就是读过很多书。",
     },
@@ -466,14 +466,14 @@
       id: "snow", name: "冰原守护", tag: "雪人谷",
       sceneId: "snow-valley", sceneName: "雪人谷",
       boy: "./assets/outfits/boy-snow.png",
-      girl: "./assets/outfits/girl-snow.png",
+      girl: "./assets/outfits/girl-snow.png?v=20261127b",
       color: "#4fc3f7",
       intro: "毛领大衣和冰晶护肩，站在雪里也不冷。",
     },
     {
       id: "thunder", name: "雷霆机甲", tag: "雷鹗峡谷",
       sceneId: "thunder-valley", sceneName: "雷鹗峡谷",
-      boy: "./assets/outfits/boy-thunder.png",
+      boy: "./assets/outfits/boy-thunder.png?v=20261127b",
       girl: "./assets/outfits/girl-thunder.png",
       color: "#ffee58",
       intro: "身上带电路光条，走到哪都噼里啪啦。",
@@ -8070,31 +8070,27 @@
     return box;
   }
 
-  // 角色页底部的两个"一次性"按钮：性别互换 + 改密码
+  // 角色页底部的按钮：性别互换（不限次数） + 改密码
   function buildRoleActions(profile) {
     const actions = document.createElement("div");
     actions.className = "role-actions";
 
-    // ① 性别互换：每人一次，整张立绘跟着换
+    // ① 性别互换：不限次数，整张立绘跟着换
     const swapBtn = document.createElement("button");
     swapBtn.type = "button";
     swapBtn.id = "roleGenderSwapBtn";
-    swapBtn.className = "role-action-btn" + (profile.genderSwapUsed ? " is-used" : "");
-    swapBtn.textContent = profile.genderSwapUsed
-      ? "性别已换过"
-      : "换" + (profile.gender === "female" ? "男生" : "女生");
-    swapBtn.disabled = Boolean(profile.genderSwapUsed);
+    swapBtn.className = "role-action-btn";
+    swapBtn.textContent = "换" + (profile.gender === "female" ? "男生" : "女生");
     swapBtn.addEventListener("click", () => {
       const p = getActiveProfile();
-      if (!p || p.genderSwapUsed) return;
+      if (!p) return;
       p.gender = p.gender === "female" ? "male" : "female";
-      p.genderSwapUsed = true;
       render();
       renderRoleModal();
       scheduleCloudSync(p);
       showToast(
         "形象切换成功",
-        "现在是" + genderLabel(p.gender) + "生形象，所有衣服都会跟着换。这个按钮只有一次机会哦。",
+        "现在是" + genderLabel(p.gender) + "生形象，可以随时再换回来，不限制次数。所有衣服都会跟着换。",
         "success"
       );
     });
@@ -9981,7 +9977,7 @@
     { key: "store", target: "#dockTimer", mode: "click", close: ["petModal", "roleModal", "rankModal", "marketModal"], title: "攒够了就买球", desc: "点下面的「商店」。最便宜的球 6 个洛克贝，最贵的 144 个，越贵越容易抓到。有球才能在大世界抓宠物。" },
     { key: "fashion", target: "#storeTabFashion", mode: "click", title: "商店里还有衣服", desc: "再点右边的「时装」。这里有 10 套衣服，一个场景一套，男女各一个版本。" },
     { key: "role", target: "#dockRole", mode: "click", close: ["storeModal", "petModal", "rankModal"], title: "看看你自己的资料", desc: "点最左边这个「角色」，能看你的名字、等级、洛克贝和现在的样子。" },
-    { key: "swap", target: "#roleGenderSwapBtn", mode: "click", fake: true, title: "这里能换一次性别", desc: "点一下这个按钮。换完以后整个形象都会变，男生的衣服变女生的，女生的变男生的。每人只能换一次。" },
+    { key: "swap", target: "#roleGenderSwapBtn", mode: "click", fake: true, title: "这里能换性别", desc: "点一下这个按钮。换完以后整个形象都会变，男生的衣服变女生的，女生的变男生的。可以反复换，不限次数。" },
     { key: "pass", target: "#rolePassBtn", mode: "click", fake: true, title: "密码也能自己改一次", desc: "点一下这里，就能把密码改成你自己记得住的 4 位数字。也只能改一次，要想清楚。" },
     { key: "clothes", target: '[data-role-tab="clothes"]', mode: "click", title: "再看看衣柜", desc: "点「衣服」，这里放着你所有的形象。" },
     { key: "wear", target: ".outfit-card", mode: "click", title: "点一张就穿上了", desc: "点一张卡片，就换成那一套衣服。灰掉的是还没解锁的，要去商店用洛克贝或者道具换。" },
@@ -9994,7 +9990,7 @@
     { icon: "🏪", title: "商店：六种球，6 到 144 洛克贝", sub: "越贵越稳：普通球 6 洛克贝抓 15%，国王球 144 洛克贝抓 60%。" },
     { icon: "🛒", title: "市场：和同学互相买卖", sub: "挂 10 洛克贝，成交后卖家承担 1/5 手续费，实收 8。" },
     { icon: "👕", title: "衣服：一个场景一套", sub: "10 套形象，男女各一版。10000 洛克贝，或者那个场景的道具攒够 100 个，就能换。" },
-    { icon: "🔄", title: "换性别：每人一次", sub: "在「角色」页点那个按钮，整套形象直接变。换过就不能再换了。" },
+    { icon: "🔄", title: "换性别：不限次数", sub: "在「角色」页点那个按钮，整套形象直接变。想换几次换几次，衣服跟着变。" },
     { icon: "🔑", title: "改密码：每人一次", sub: "密码记不住就改成 4 位数字，只能改一次。老师那边能看到你设成什么。" },
   ]);
 
@@ -10138,7 +10134,7 @@
       if (guideV2DocHandler) document.removeEventListener("click", guideV2DocHandler, true);
       guideV2DocHandler = function (e) {
         if (targetEl.contains(e.target)) {
-          // 演练步骤：拦住真动作，别让孩子在引导里把"一次性机会"用掉
+          // 演练步骤：拦住真动作，避免孩子在引导里误换当前形象
           if (step.fake) {
             e.preventDefault();
             e.stopPropagation();
