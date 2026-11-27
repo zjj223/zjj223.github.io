@@ -148,6 +148,18 @@
 
   window.lkUser = { get: lkUser, set: saveUser, clear: killUser };
 
+  /* ---------------- 身份统一到 AuthGate（账号 + 密码门票） ----------------
+     nav 不再自己登记名字：有票用票上的名字，没票显示"未登录"并引导登录 */
+  function ag() { return window.AuthGate || null; }
+  function agUser() {
+    var g = ag();
+    try { var u = g && g.user && g.user(); return u && u.name ? u : null; } catch (e) { return null; }
+  }
+  function agName() {
+    var u = agUser();
+    return u ? String(u.name) : '';
+  }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -183,6 +195,7 @@
   var state = { qname: WANT || null };
 
   var suffix = function (h) {
+    if (agName()) return '';                    /* 有门票：名字从门票取，不再往地址栏塞 */
     var q = state.qname ? 'name=' + encodeURIComponent(state.qname) : '';
     if (!q) return '';
     var base = h || '';
@@ -218,9 +231,14 @@
   }
 
   function whoNow() {
-    var u = lkUser();
-    var name = state.qname || (u && u.name) || window.lkCoin.name() || '';
-    return { guest: !name, name: name, user: u, role: (u && u.role) || '同学' };
+    var name = agName() || state.qname || (lkUser() && lkUser().name) || window.lkCoin.name() || '';
+    var u = agUser();
+    return {
+      guest: !name,
+      name: name,
+      user: u,
+      role: (u && u.role === 'teacher') ? '老师' : '同学'
+    };
   }
 
   function panelUser(w) {
@@ -238,16 +256,14 @@
       }).join('') +
       '<div class="p-foot"><span class="coin"><i></i>' + fmt(c) + ' 洛克贝</span>' +
         (s.streak ? '<span class="p-streak">连续 ' + s.streak + ' 天</span>' : '') +
-        '<button type="button" class="p-quit">退出身份</button></div>';
+        (w.role === '老师' ? '<button type="button" class="p-admin">进入后台</button>' : '') +
+        '<button type="button" class="p-quit">退出登录</button></div>';
   }
 
   function panelGuest() {
-    return '<div class="p-lead"><b>登录</b><span>名字就是身份，不用密码</span></div>' +
-      '<form class="p-form" autocomplete="off">' +
-        '<input name="nm" placeholder="你的名字，如 赵俊杰" maxlength="12">' +
-        '<button type="submit">进入</button>' +
-      '</form>' +
-      '<div class="p-note">下次打开自动带你回来；游戏里的洛克贝也按这个名字归档。</div>';
+    return '<div class="p-lead"><b>未登录</b><span>登录后进度和洛克贝跟着账号走</span></div>' +
+      '<button type="button" class="p-login">登录</button>' +
+      '<div class="p-note">账号和 4~6 位数字密码，由老师统一发放。</div>';
   }
 
   function drawAcc(w) {
@@ -255,7 +271,7 @@
     if (!host) return;
     var s = stat();
     var head = w.guest ? '登录' : w.name;
-    var sub = w.guest ? '未登记' : (s.pass ? '同学 · 通过 ' + s.pass + ' 题' : '同学 · 还没刷');
+    var sub = w.guest ? '未登录' : (s.pass ? '同学 · 通过 ' + s.pass + ' 题' : '同学 · 还没刷');
     host.innerHTML =
       '<div class="idcard' + (w.guest ? ' is-guest' : '') + '" role="button" tabindex="0" ' +
         'aria-haspopup="true" aria-expanded="false">' +
@@ -308,25 +324,28 @@
     var quit = host.querySelector('.p-quit');
     if (quit) quit.addEventListener('click', function (e) {
       e.stopPropagation();
+      host.classList.remove('open');
+      var g = ag();
+      if (g && g.logout) { g.logout(); return; }   /* 全站一起失效，内部会刷新页面 */
       killUser();
       dropName();
-      host.classList.remove('open');
       refreshAcc();
     });
 
-    var form = host.querySelector('.p-form');
-    if (form) {
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var inp = form.querySelector('input');
-        var v = (inp.value || '').trim();
-        if (!v) { inp.focus(); return; }
-        saveUser(v, 'student');
-        pushName(v);
-        host.classList.remove('open');
-        refreshAcc();
-      });
-    }
+    var admin = host.querySelector('.p-admin');
+    if (admin) admin.addEventListener('click', function (e) {
+      e.stopPropagation();
+      host.classList.remove('open');
+      location.href = 'admin.html';
+    });
+
+    var login = host.querySelector('.p-login');
+    if (login) login.addEventListener('click', function (e) {
+      e.stopPropagation();
+      host.classList.remove('open');
+      var g = ag();
+      if (g && g.open) g.open({});
+    });
 
     if (panel) panel.addEventListener('click', function (e) { e.stopPropagation(); });
   }
@@ -369,4 +388,16 @@
 
   /* 游戏页若也挂了本导航，游戏内加/花洛克贝后通知一次 */
   window.addEventListener('pagehide', function () { try { window.lkCoin.notify(); } catch (e) {} });
+
+  /* 登录/退出后：身份卡与洛克贝数字立刻跟着变，不用手动刷新 */
+  (function () {
+    var g = ag();
+    if (!g || !g.onChange) return;
+    g.onChange(function (u) {
+      if (u && u.name) WANT = String(u.name);
+      last = '';
+      fire();
+      if (box) refreshAcc();
+    });
+  })();
 })();
