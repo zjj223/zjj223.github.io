@@ -212,6 +212,12 @@ window.AuthGate = (function () {
           );
         }
         setSession(name, res.token, "student");
+        try {
+          localStorage.setItem(
+            "carlosia:auth:bootsave:v1",
+            JSON.stringify({ name: name, save: res.save || {}, at: Date.now() })
+          );
+        } catch (e) {}
       }
       m.hidden = true;
       const fn = pending;
