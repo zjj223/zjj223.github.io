@@ -4,7 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>俊杰侃信奥 · 排行榜</title>
-<link rel="stylesheet" href="nav.css?v=20261126z">
+<link rel="stylesheet" href="nav.css?v=20261127a">
+<link rel="stylesheet" href="auth.css?v=20261126i">
 <link rel="stylesheet" href="paper.css?v=20261126x">
 <style>
   .mine{display:flex;align-items:center;gap:16px}
@@ -52,8 +53,9 @@
 
 <div class="foot"><a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">京ICP备________号</a></div>
 
-<script src="data/catalog.js?v=20261124b"></script>
-<script src="nav.js?v=20261126z"></script>
+<script src="data/catalog.js?v=20261127c"></script>
+<script src="auth.js?v=20261127b"></script>
+<script src="nav.js?v=20261127a"></script>
 <script>
 (function () {
   var C = window.CATALOG || { chapters: [] };
@@ -77,5 +79,6 @@
     '已通过 ' + ok + ' 题 · 覆盖 ' + (ALL.length ? Math.round(ok / ALL.length * 100) : 0) + '%';
 })();
 </script>
+<script>AuthGate.boot({ force: true });</script>
 </body>
 </html>
