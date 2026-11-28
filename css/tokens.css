@@ -1,0 +1,80 @@
+/* css/tokens.css —— 跨页面变量层（B2 批次）
+   owner: architect
+   约定：
+   1. 只定义变量，不写任何组件选择器、不覆盖 styles.css / paper.css 的现有规则。
+   2. 前缀统一 --lk-，避免与现有 --bg/--ik-*/--nv-* 同名而改变既有页面表现。
+   3. 取值全部抄自现有文件实测值，不新造配色：
+      styles.css:1-22（12 色 + 圆角 + 阴影）、paper.css/home.css 的 --ik-*、nav.css 的 --nv-*。
+   4. B2 阶段没有任何页面引用本文件；等 ui/ 迁移时按页接入。 */
+
+:root {
+  /* —— 基础色（来源 styles.css :root）—— */
+  --lk-bg: #f6f3ec;
+  --lk-bg-deep: #e8dfcc;
+  --lk-surface: #fffdfa;
+  --lk-surface-strong: #ffffff;
+  --lk-surface-hi: #ffffff;
+  --lk-ink: #232323;
+  --lk-ink-soft: #6b6152;
+  --lk-muted: #68625b;
+  --lk-line: #ded6c8;
+  --lk-green: #4f9f64;
+  --lk-green-deep: #2f6b3c;
+  --lk-blue: #3285b9;
+  --lk-red: #c65a42;
+  --lk-gold: #c48a26;
+  --lk-gold-deep: #b9751a;
+  --lk-ice: #72aeb9;
+  --lk-locked: #9a9690;
+
+  /* —— 纸面配色（来源 paper.css / home.css --ik-*）—— */
+  --lk-paper-ground: #ebecea;
+  --lk-paper: #ffffff;
+  --lk-paper-2: #f8f6ee;
+  --lk-paper-ink: #14171c;
+  --lk-paper-ink-2: #575d69;
+  --lk-paper-ink-3: #8d939e;
+  --lk-paper-rule: #d6d8d4;
+  --lk-paper-rule-2: #e8eae6;
+  --lk-paper-navy: #17265a;
+  --lk-paper-seal: #a8322a;
+
+  /* —— 导航（来源 nav.css --nv-*）—— */
+  --lk-nav-blue: #2947c9;
+  --lk-nav-max: 1180px;
+
+  /* —— 圆角（来源 styles.css --r-*）—— */
+  --lk-r-xs: 8px;
+  --lk-r-sm: 12px;
+  --lk-r-md: 18px;
+  --lk-r-lg: 26px;
+  --lk-r-pill: 999px;
+
+  /* —— 描边与阴影（来源 styles.css）—— */
+  --lk-stroke: 2px solid var(--lk-line);
+  --lk-stroke-strong: 3px solid #a8916f;
+  --lk-shadow: 0 16px 40px rgba(67, 54, 36, 0.12);
+  --lk-shadow-hard: 0 4px 0 #cdbb9c;
+  --lk-shadow-soft: 0 10px 24px rgba(96, 76, 44, 0.14);
+  --lk-inner-hi: inset 0 2px 0 rgba(255, 255, 255, 0.85);
+
+  /* —— 字体 —— */
+  --lk-font-sans: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+  --lk-font-serif: Georgia, "Songti SC", "SimSun", "STSong", serif;
+  --lk-font-kai: KaiTi, "STKaiti", serif;
+  --lk-font-num: "Bahnschrift", "DIN Alternate", "Microsoft YaHei", sans-serif;
+
+  /* —— 层级（占位定义，实际归并见 C-07；此处不改变现有 z-index）—— */
+  --lk-z-base: 0;
+  --lk-z-sticky: 10;
+  --lk-z-dock: 30;
+  --lk-z-drawer: 100;
+  --lk-z-mask: 900;
+  --lk-z-modal: 1000;
+  --lk-z-toast: 1100;
+
+  /* —— 断点参考（仅作文档，媒体查询仍写数值）—— */
+  --lk-bp-sm: 520px;
+  --lk-bp-md: 768px;
+  --lk-bp-lg: 1200px;
+}
