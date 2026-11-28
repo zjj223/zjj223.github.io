@@ -1,11 +1,11 @@
 /* ================= AuthGate：全站登录闸 =================
    作用：页面不再被登录挡；需要身份的动作调 AuthGate.require()
-   门票落 localStorage，12 小时内刷新免登录；每次开页面静默 student_check 校验
+   门票落 localStorage，24 小时内刷新免登录；每次开页面静默 student_check 校验
    依赖：无（不依赖 app.js / nav.js，单独可跑）
 */
 window.AuthGate = (function () {
   const KEY = "carlosia:auth:v1";
-  const TTL = 12 * 3600 * 1000;
+  const TTL = 24 * 3600 * 1000;
   const SB = {
     url: "https://rhfhtgjpnzasrlkcfdim.supabase.co",
     key: "sb_publishable__dL04pGC3ZNvK8tsIfixvQ_l6p5FOMC",
@@ -103,11 +103,17 @@ window.AuthGate = (function () {
     maskEl.innerHTML =
       '<div class="auth-card" role="dialog" aria-modal="true">' +
       '<button type="button" class="auth-close" aria-label="关闭">×</button>' +
-      '<p class="auth-kicker">俊杰侃信奥</p>' +
+      '<header class="auth-head">' +
+      '<span class="auth-seal" aria-hidden="true">俊</span>' +
+      '<div><h2 class="auth-title">登录 · 卡罗西亚</h2>' +
+      '<p class="auth-sub">账号和密码由老师统一发放，登录后进度跟着账号走</p></div>' +
+      '</header>' +
       '<form class="auth-form">' +
-      '<input class="auth-name" placeholder="账号名（和老师约好的那个）" autocomplete="off" maxlength="12" />' +
-      '<input class="auth-pass" placeholder="4~6 位数字密码" inputmode="numeric" autocomplete="off" maxlength="12" />' +
-      '<button type="submit" class="auth-submit">登录</button>' +
+      '<label class="auth-field auth-field-name"><span>账号名</span>' +
+      '<input class="auth-name" placeholder="和老师约好的那个名字" autocomplete="off" maxlength="12" /></label>' +
+      '<label class="auth-field"><span>密码</span>' +
+      '<input class="auth-pass" placeholder="4~6 位数字" inputmode="numeric" autocomplete="off" maxlength="12" /></label>' +
+      '<button type="submit" class="auth-submit">进入大陆</button>' +
       "</form>" +
       '<p class="auth-err" hidden></p>' +
       "</div>";
@@ -139,10 +145,11 @@ window.AuthGate = (function () {
     buildMask();
     teacherMode = !!opts.teacher;
     const m = maskEl;
+    const nameEl = m.querySelector(".auth-name");
     m.querySelector(".auth-pass").placeholder = teacherMode ? "后台权限码" : "4~6 位数字密码";
     m.querySelector(".auth-pass").inputMode = teacherMode ? "text" : "numeric";
-    const nameEl = m.querySelector(".auth-name");
-    nameEl.hidden = teacherMode;
+    const nameField = m.querySelector(".auth-field-name");
+    if (nameField) nameField.hidden = teacherMode;
     m.querySelector(".auth-err").hidden = true;
     m.querySelector(".auth-close").hidden = lockMode;
     m.hidden = false;
@@ -310,8 +317,19 @@ window.AuthGate = (function () {
     user = load();
     if (user && online()) {
       try {
-        const res = await rpc("student_check", { p_token: user.token });
-        if (!res || res.ok === false) clear();
+        let okFlag = true;
+        try {
+          const res = await rpc("student_check", { p_token: user.token });
+          okFlag = !!(res && res.ok !== false);
+        } catch (e) { okFlag = true; } // 网络问题不踢人
+        if (!okFlag) {
+          // 服务端说会话没了：先续期一次（24 小时内继续用），续不上才清
+          try {
+            const ext = await rpc("student_extend_session", { p_token: user.token });
+            okFlag = !!(ext && ext.ok !== false);
+          } catch (e) { okFlag = false; }
+        }
+        if (!okFlag) clear();
       } catch (e) {
         /* 网络抖动不踢人 */
       }
