@@ -34902,6 +34902,86 @@
 
 
 
+  // 教师在后台发的信存在云端表里；进游戏时拉一次，合到本地收件箱（id 前缀 srv:）
+  function srvMailToken() {
+    try {
+      const raw = localStorage.getItem("carlosia:auth:v1");
+      if (!raw) return "";
+      const u = JSON.parse(raw);
+      return u && u.token && u.exp && Date.now() < u.exp ? u.token : "";
+    } catch (e) { return ""; }
+  }
+
+  let srvMailSyncAt = 0;
+  function syncServerMails(profile) {
+    if (!CLOUD_ENABLED || location.protocol === "file:" || !profile) return;
+    const tok = srvMailToken();
+    if (!tok) return;
+    if (Date.now() - srvMailSyncAt < 4000) return;
+    srvMailSyncAt = Date.now();
+    rpcCall("student_mail_list", { p_token: tok }, { timeout: 12000 }).then((res) => {
+      if (!res || !res.ok || !Array.isArray(res.mails)) return;
+      const mailbox = ensureMailbox(profile);
+      if (!mailbox) return;
+      let changed = false;
+      res.mails.forEach((m) => {
+        if (!m || typeof m.id !== "number") return;
+        const id = "srv:" + m.id;
+        const exists = mailbox.mails.find((x) => x.id === id);
+        if (exists) {
+          if (m.claimed && !exists.claimed) { exists.claimed = true; exists.read = true; changed = true; }
+          return;
+        }
+        mailbox.mails.unshift(normalizeMail({
+          id: id,
+          sender: m.sender || "卡罗西亚邮局",
+          title: m.title || "站内信",
+          date: (m.created_at || "").slice(0, 10),
+          icon: m.icon || "💌",
+          body: m.body || "",
+          rewards: m.rewards || {},
+          read: false,
+          claimed: Boolean(m.claimed),
+        }));
+        changed = true;
+      });
+      if (changed) { saveState("收到新邮件"); renderMailModal(); render(); }
+    }).catch(() => {});
+  }
+
+  // 服务端邮件的洛克贝由云端入账，本地只补道具/宠物
+  function claimServerMail(profile, mail) {
+    const tok = srvMailToken();
+    const sid = Number(String(mail.id).slice(4));
+    if (!tok || !sid) { showToast("领取失败", "登录状态过期了，退出重新登录再领。", "warning", 4200); return; }
+    const rewards = normalizeMailRewards(mail.rewards);
+    if (rewards.pets.length && profile.pets.length + rewards.pets.length > MAX_PETS) {
+      showToast("宠物栏已满", "邮件先留着，放生一只宠物后再来领取。", "warning", 4500);
+      return;
+    }
+    rpcCall("student_mail_claim", { p_token: tok, p_mail_id: sid }, { timeout: 15000 }).then((res) => {
+      if (!res || !res.ok) {
+        if (res && res.code === "already_claimed") {
+          mail.claimed = true; mail.read = true;
+          saveState("邮件已读", true); renderMailModal(); render();
+          showToast("邮件提示", "这封已经领过了。", "warning", 3800);
+        } else {
+          showToast("没领成", "网络或服务端忙，稍后再点一次。", "warning", 4200);
+        }
+        return;
+      }
+      const coin = Number(mail.rewards && mail.rewards.coin) || 0;
+      if (mail.rewards) mail.rewards.coin = 0;
+      const labels = grantMailReward(profile, mail);
+      if (mail.rewards) mail.rewards.coin = coin;
+      if (typeof res.rockbell === "number") profile.rockbell = res.rockbell;
+      if (coin > 0) labels.unshift(`+${coin} 洛克贝`);
+      saveState("邮件奖励已领取", true);
+      showToast("邮件奖励", labels.join("，") || "已领取", "success", 4200);
+      renderMailModal(); render();
+    }).catch(() => showToast("没领成", "网络不太稳，稍后再点一次。", "warning", 4200));
+  }
+
   function claimMail(mailId) {
 
 
@@ -34923,6 +35003,10 @@
 
 
     if (!mail || mail.claimed) return;
+
+
+
+    if (String(mail.id).indexOf("srv:") === 0) { claimServerMail(profile, mail); return; }
 
 
 
@@ -35022,11 +35106,14 @@
 
 
 
+    const srvMails = [];
     mailbox.mails.forEach((mail) => {
 
 
 
       if (mail.claimed || !mailHasRewards(mail)) return;
+
+      if (String(mail.id).indexOf("srv:") === 0) { srvMails.push(mail); return; }
 
 
 
@@ -35046,6 +35133,7 @@
 
 
 
+    if (srvMails.length) srvMails.forEach((m) => claimServerMail(profile, m));
     if (!labels.length) return;
 
 
@@ -35127,6 +35215,8 @@
 
 
     const mailbox = ensureMailbox(profile);
+
+    syncServerMails(profile);
 
 
 
