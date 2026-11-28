@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>教师工作台 · 卡罗西亚</title>
+<link rel="stylesheet" href="teacher.css?v=20261128a" />
+</head>
+<body class="tw">
+
+<header class="tw-head">
+  <div class="tw-head-in">
+    <span class="tw-seal">师</span>
+    <h1 class="tw-title">教师工作台<small>发洛克贝 · 发邮件 · 班级与账号</small></h1>
+    <span class="sp"></span>
+    <span class="tw-who" id="twWho">正在确认身份…</span>
+    <button class="tw-back" id="btnBack" type="button">回学习台</button>
+  </div>
+</header>
+
+<nav class="tw-tabs">
+  <div class="tw-tabs-in">
+    <button class="tw-tab on" data-tab="coin" type="button">① 发洛克贝</button>
+    <button class="tw-tab" data-tab="mail" type="button">② 发邮件</button>
+    <button class="tw-tab" data-tab="class" type="button">③ 班级与账号</button>
+    <button class="tw-tab" data-tab="log" type="button">④ 操作记录</button>
+  </div>
+</nav>
+
+<main class="tw-main">
+
+  <section class="tw-panel" id="p-coin">
+    <div class="card">
+      <h3>给谁发</h3>
+      <p class="sub">先搜名字，勾上要发的人；可以勾多人，每人发同一个数。</p>
+      <div class="row" style="margin-bottom:10px">
+        <input type="text" class="search" id="coinSearch" placeholder="搜名字，比如 侯宥辰" />
+        <input type="text" class="search" id="coinManual" placeholder="或直接填名字，多个用逗号隔开" style="width:320px" />
+      </div>
+      <div class="pick" id="coinPick"><div class="hint">正在拉全班名单…</div></div>
+    </div>
+
+    <div class="card">
+      <h3>发多少</h3>
+      <p class="sub">单次 -999 ~ +999，余额 0 ~ 999999，每人每天最多净发 5000。</p>
+      <div class="row">
+        <label class="f"><span>数量</span>
+          <input type="number" id="coinNum" value="100" min="-999" max="999" step="1" style="width:130px" /></label>
+        <label class="f"><span>原因（写给自己看）</span>
+          <input type="text" id="coinReason" maxlength="40" placeholder="比如 11月全勤奖励" style="width:280px" /></label>
+        <button class="btn" id="btnCoin" type="button">确认发放</button>
+      </div>
+      <div id="coinMsg" style="margin-top:12px"></div>
+      <div class="log" id="coinLog" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <section class="tw-panel" id="p-mail" hidden>
+    <div class="card">
+      <h3>收件人</h3>
+      <p class="sub">一次最多 50 人；学生下次进游戏，在站内信里领取。</p>
+      <div class="row" style="margin-bottom:10px">
+        <input type="text" class="search" id="mailSearch" placeholder="搜名字" />
+        <button class="btn ghost sm" id="mailPickAll" type="button">全选</button>
+        <button class="btn ghost sm" id="mailPickNone" type="button">清空</button>
+        <span class="hint" id="mailCount">已选 0 人</span>
+      </div>
+      <div class="pick" id="mailPick"><div class="hint">正在拉全班名单…</div></div>
+    </div>
+
+    <div class="card">
+      <h3>邮件内容</h3>
+      <div class="row" style="align-items:flex-start;gap:18px">
+        <label class="f" style="flex:1;min-width:220px"><span>标题（≤30 字）</span>
+          <input type="text" id="mailTitle" maxlength="30" placeholder="比如 本周作业补发" /></label>
+        <label class="f"><span>附件洛克贝（0~5000）</span>
+          <input type="number" id="mailCoin" value="0" min="0" max="5000" style="width:150px" /></label>
+      </div>
+      <label class="f" style="margin-top:10px"><span>正文（≤300 字）</span>
+        <textarea id="mailBody" maxlength="300" placeholder="写清楚什么原因、什么时候领"></textarea></label>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="btnMail" type="button">确认发送</button>
+        <button class="btn ghost" id="btnMailClear" type="button">清空表单</button>
+      </div>
+      <div id="mailMsg" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <section class="tw-panel" id="p-class" hidden>
+    <div class="card">
+      <div class="row">
+        <input type="text" class="search" id="rosterSearch" placeholder="搜名字" />
+        <span class="sp" style="flex:1"></span>
+        <button class="btn ghost sm" id="btnNewAcc" type="button">新建学生账号</button>
+        <button class="btn ghost sm" id="btnResetPin" type="button">重置全班密码</button>
+        <button class="btn ghost sm" id="btnLockClass" type="button">暂停全班登录</button>
+      </div>
+      <div class="hint" id="classMsg" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h3>名单（<span id="rosterCount">0</span> 人）</h3>
+      <p class="sub">洛克贝、宠物数量都取自云端存档；「注销」只对 root 开放，且会先留一份存档快照。</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>名字</th><th>洛克贝</th><th>宠物</th><th>最近登录</th><th>存档更新</th><th>操作</th>
+          </tr></thead>
+          <tbody id="rosterBody"><tr><td colspan="6" class="hint">正在拉名单…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="tw-panel" id="p-log" hidden>
+    <div class="card">
+      <h3>操作记录</h3>
+      <p class="sub">服务端记录（audit_log）：谁在什么时候给谁发了什么。</p>
+      <div class="log" id="auditLog" style="max-height:none"><div class="hint">正在读取…</div></div>
+    </div>
+  </section>
+
+</main>
+
+<script src="auth.js?v=20261128c"></script>
+<script src="teacher.js?v=20261128a"></script>
+</body>
+</html>
