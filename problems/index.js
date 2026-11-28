@@ -1,8 +1,5 @@
-/* 题库与判题模块入口（B1 空壳）：当前无实现，任何页面都不得引用本文件。
-   接口契约见 多人并行架构方案_2026-11-27.md 第 5 章。owner: problems */
-(function (global) {
-  "use strict";
-  var LK = global.LK || (global.LK = { version: "unset" });
-  LK.problems = LK.problems || {};
-  LK.problems.ready = false;
-})(typeof window !== "undefined" ? window : this);
+/* problems/index.js —— 装配入口：命名空间、缺件加载、ready 标记。owner: problems */
+(function (g) {
+  var P = ((g.LK = g.LK || { version: "unset" })).problems = (g.LK.problems || {});
+  if (!P.getCatalog && g.document && g.document.readyState === "loading" && g.document.write) g.document.write('<script src="problems/progress.js"><\/script><script src="problems/api.js"><\/script>'); P.ready = !!(P.getCatalog && P.getStats);
+})(typeof globalThis !== "undefined" ? globalThis : this);
