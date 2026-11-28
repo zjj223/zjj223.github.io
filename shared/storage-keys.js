@@ -22,8 +22,18 @@
     STUDY_DONE: "studypage.done",
     /* 每日打卡：nav.js:178 */
     STUDY_CHECKIN: "studypage.checkin",
-    /* 做题页最后打开：预览_DevC布局.html:2818 */
-    STUDY_LAST: "studypage.last"
+    /* 做题页最后打开：预览_DevC布局.html:2818（只写不读，P3 遗留） */
+    STUDY_LAST: "studypage.last",
+    /* 每日新增做题数：读 home.js:278；写 286 */
+    STUDY_DAILY: "studypage.daily",
+    /* 当日新增的基线快照：读 home.js:278；写 282、286 */
+    STUDY_DONE_BASE: "studypage.doneBase",
+    /* 随机一题上次抽到：读 home.js:140；写 145 */
+    STUDY_RANDOM_LAST: "studypage.random.last",
+    /* 求签记录：读 home.js:155；写 207 */
+    STUDY_FORTUNE: "studypage.fortune",
+    /* 邮件上次查看时间：读 home.js:362；写 434 */
+    STUDY_MAIL_LAST: "studypage.mail.last"
   };
 
   /* 旧名 -> 新名 的兼容表。当前为空：只登记“别名”关系，不产生物理迁移。 */
