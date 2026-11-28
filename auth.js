@@ -105,15 +105,14 @@ window.AuthGate = (function () {
       '<button type="button" class="auth-close" aria-label="关闭">×</button>' +
       '<header class="auth-head">' +
       '<span class="auth-seal" aria-hidden="true">🏰</span>' +
-      '<div><h2 class="auth-title">登录 · 卡罗西亚</h2>' +
-      '<p class="auth-sub">账号和密码由老师统一发放，登录后进度跟着账号走</p></div>' +
+      '<div><h2 class="auth-title">登录 · 卡罗西亚</h2></div>' +
       '</header>' +
       '<form class="auth-form">' +
       '<label class="auth-field auth-field-name"><span>账号名</span>' +
       '<input class="auth-name" placeholder="和老师约好的那个名字" autocomplete="off" maxlength="12" /></label>' +
       '<label class="auth-field"><span>密码</span>' +
       '<input class="auth-pass" placeholder="4~6 位数字" inputmode="numeric" autocomplete="off" maxlength="12" /></label>' +
-      '<button type="submit" class="auth-submit">进入大陆</button>' +
+      '<button type="submit" class="auth-submit">登录</button>' +
       "</form>" +
       '<p class="auth-err" hidden></p>' +
       "</div>";
