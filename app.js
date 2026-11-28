@@ -1948,7 +1948,7 @@
 
 
 
-  const BALL_TYPES = Object.freeze([
+  const BALL_TYPES = [
 
 
 
@@ -1980,13 +1980,76 @@
 
 
 
-  ]);
+  ];
 
 
 
 
 
 
+
+
+  // ===== 站长后台下发的站点配置与道具价（本地独有，R003-BASE 合并） =====
+  // 读不到就用本地默认，任何失败都静默，不影响开局
+  const SITE_CACHE_KEY = "carlosia:site:v1";
+  const SITE = { config: null, catalog: null };
+  let WUXING_ADMIN_OFF = false;
+
+  function readSiteCache() {
+    try {
+      const raw = localStorage.getItem(SITE_CACHE_KEY);
+      if (!raw) return;
+      const obj = JSON.parse(raw);
+      if (obj && obj.config) SITE.config = obj.config;
+      if (obj && obj.catalog) SITE.catalog = obj.catalog;
+    } catch (err) { /* 缓存坏了就忽略 */ }
+  }
+
+  function applySiteConfig() {
+    const cfg = SITE.config;
+    if (!cfg) return;
+    const brand = cfg.brand || {};
+    if (brand.title) {
+      document.title = brand.title;
+      const nameEl = document.querySelector(".login-title");
+      if (nameEl) nameEl.textContent = brand.title;
+    }
+    if (brand.subtitle) {
+      const subEl = document.querySelector(".login-subtitle");
+      if (subEl) subEl.textContent = brand.subtitle;
+    }
+    const feat = cfg.features || {};
+    WUXING_ADMIN_OFF = feat.wuxingEvent === false;
+  }
+
+  function applySiteCatalog() {
+    const list = SITE.catalog;
+    if (!Array.isArray(list) || !list.length) return;
+    const byId = {};
+    list.forEach((it) => { if (it && it.id) byId[it.id] = it; });
+    BALL_TYPES.forEach((ball) => {
+      const it = byId[ball.id];
+      if (!it) return;
+      if (typeof it.price === "number" && it.price >= 0) ball.price = it.price;
+      ball.enabled = it.enabled !== false;
+    });
+    for (const it of list) {
+      if (it && it.kind === "outfit" && Number(it.price) > 0) { OUTFIT_PRICE = Number(it.price); break; }
+    }
+  }
+
+  async function loadSiteRemote() {
+    if (!CLOUD_ENABLED || location.protocol === "file:") return;
+    await Promise.all([
+      rpcCall("site_config_public", {}, { timeout: 6000 })
+        .then((d) => { if (d && typeof d === "object" && !Array.isArray(d)) SITE.config = d; })
+        .catch(() => {}),
+      rpcCall("site_catalog_public", {}, { timeout: 6000 })
+        .then((d) => { if (Array.isArray(d)) SITE.catalog = d; })
+        .catch(() => {}),
+    ]);
+    try { localStorage.setItem(SITE_CACHE_KEY, JSON.stringify({ config: SITE.config, catalog: SITE.catalog })); } catch (err) { /* 忽略 */ }
+  }
 
   // ===== 时装 / 形象 =====
 
@@ -1996,7 +2059,7 @@
 
 
 
-  const OUTFIT_PRICE = 10000;      // 洛克贝兑换价
+  let OUTFIT_PRICE = 10000;      // 洛克贝兑换价
 
 
 
@@ -5305,6 +5368,11 @@
 
 
     cacheElements();
+    // 站长后台配置/道具价：先吃本地缓存，联网后再覆盖；失败用默认值
+    readSiteCache();
+    applySiteConfig();
+    applySiteCatalog();
+    loadSiteRemote().then(() => { applySiteConfig(); applySiteCatalog(); }).catch(() => {});
 
 
 
@@ -5563,11 +5631,20 @@
 
 
 
-  function ensureGuestProfile() {
+  function ensureGuestProfile(displayName) {
 
 
 
     if (getActiveProfile()) return false;
+
+    // R003：只要本机有存档，就自动选中（优先上次用的），不再停在"请选择或新建角色"
+    if (state.profiles && state.profiles.length) {
+      const last = (() => { try { return localStorage.getItem("carlosia:lastProfile"); } catch (e) { return null; } })();
+      const hit = state.profiles.find((x) => x.id === last) || state.profiles[0];
+      state.selectedId = hit.id;
+      saveState("已自动选中角色");
+      return true;
+    }
 
 
 
@@ -5583,7 +5660,7 @@
 
 
 
-      name: "游客",
+      name: displayName || "游客",
 
 
 
@@ -5700,6 +5777,7 @@
 
 
     state.selectedId = profile.id;
+    try { localStorage.setItem("carlosia:lastProfile", profile.id); } catch (e) {}
 
 
 
@@ -5807,7 +5885,11 @@
 
 
 
-      if (!state.profiles || !state.profiles.length) showNoSaveHint();
+      // R003：已登录但本机还没有角色缓存 → 先用登录昵称建一个，云端角色稍后同步
+      if (!state.profiles || !state.profiles.length) {
+        const who = (window.AuthGate && window.AuthGate.user() && window.AuthGate.user().name) || "学生";
+        ensureGuestProfile(who);
+      }
 
 
 
