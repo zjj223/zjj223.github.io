@@ -12498,30 +12498,10 @@
 
 
 
-    // 直接关页面/刷新：最后努力记录正常退出；失败就靠最后活动时间兜底
-
-
-
+    // R005：关页面/刷新/去学习台 只把没落云端的存档发出去，不再作废门票。
+    // 原来这里会调 studentLogoutBeacon()，服务端会话立刻失效，回来就要重新登录。
     window.addEventListener("pagehide", function () {
-
-
-
-      const hadPending = Boolean(cloudSyncQueued) || cloudSyncBusy;
-
-
-
       studentSaveBeacon();
-
-
-
-      // 还有没落云端的保存时先不退出：退出会让门票立即失效，存档可能写不进去。
-
-
-
-      if (!hadPending) studentLogoutBeacon();
-
-
-
     });
 
 
