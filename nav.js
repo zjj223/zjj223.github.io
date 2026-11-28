@@ -231,13 +231,14 @@
   }
 
   function whoNow() {
-    var name = agName() || state.qname || (lkUser() && lkUser().name) || window.lkCoin.name() || '';
+    // R004：只认 AuthGate 的有效门票，不拿缓存昵称冒充登录态
     var u = agUser();
+    var valid = !!(u && u.name && (!u.exp || Date.now() < u.exp));
     return {
-      guest: !name,
-      name: name,
-      user: u,
-      role: (u && u.role === 'teacher') ? '老师' : '同学'
+      guest: !valid,
+      name: valid ? String(u.name) : '',
+      user: valid ? u : null,
+      role: (valid && u.role === 'teacher') ? '老师' : '同学'
     };
   }
 
