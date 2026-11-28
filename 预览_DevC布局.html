@@ -604,7 +604,7 @@ int main(){
   </div>
 </div>
 
-<div class="verdict" id="verdict">评测结果：AC · 0.03s / 512MB</div>
+<div class="verdict" id="verdict">评测结果：未提交</div>
 
 <script>
 /* 题面里有 $...$ 数学式，装了 MathJax 就顺手渲染；加载不到时退回原样文本 */
@@ -1420,11 +1420,42 @@ document.getElementById('btnSample').onclick = () => {
   if (navigator.clipboard) navigator.clipboard.writeText(s.in).catch(() => {});
   setTimeout(() => setState('就绪'), 900);
 };
-document.getElementById('btnSubmit').onclick = () => {
+/* R005：提交必须走真实判题，判不过就不写通过记录（原来这里直接显示 AC 并 markDone） */
+document.getElementById('btnSubmit').onclick = async () => {
   const v = document.getElementById('verdict');
+  const btn = document.getElementById('btnSubmit');
+  const src = ta.value;
+  const sample = (CURRENT && CURRENT.samples && CURRENT.samples[0]) ? CURRENT.samples[0] : { in: '', out: '' };
+  if (btn) btn.disabled = true;
   v.classList.add('on');
-  markDone(pidOf(CURRENT));
-  setTimeout(() => v.classList.remove('on'), 2500);
+  v.textContent = '评测结果：评测中…';
+  let res = null;
+  try { res = await callJudge(src, sample.in); } catch (e) { res = null; }
+  let text = '';
+  let pass = false;
+  if (!res) {
+    text = '判题服务未接通（未记录通过）';
+  } else if (res.judgeStatus === 'CE' || (res.compile && res.compile.ok === false)) {
+    text = 'CE · 编译失败';
+  } else if (res.judgeStatus === 'TLE') {
+    text = 'TLE · 运行超时';
+  } else if (res.judgeStatus === 'MLE') {
+    text = 'MLE · 内存超限';
+  } else {
+    const got = String((res.run && res.run.stdout) || '').replace(/\r/g, '').trim();
+    const want = String(sample.out || '').replace(/\r/g, '').trim();
+    const secs = (res.run && typeof res.run.time === 'number') ? res.run.time : 0;
+    if (res.judgeStatus === 'AC' || (want && got === want)) {
+      text = 'AC · ' + secs.toFixed(3) + 's';
+      pass = true;
+    } else {
+      text = 'WA · 输出不符（期望 ' + (want ? want.length : 0) + ' 字符，实际 ' + got.length + ' 字符）';
+    }
+  }
+  v.textContent = '评测结果：' + text;
+  if (pass) markDone(pidOf(CURRENT));
+  if (btn) btn.disabled = false;
+  setTimeout(() => v.classList.remove('on'), 3000);
 };
 
 function pidOf(p) {
