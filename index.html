@@ -26,9 +26,7 @@
           <h1>俊杰侃信奥</h1>
         </div>
         <div class="topbar-actions">
-          <button type="button" id="btnBackHome" class="topbar-home" hidden>🏠 学习台</button>
           <div id="saveStatus" class="save-status" aria-live="polite">正在读取存档</div>
-          <button type="button" id="authBtn" class="auth-btn login-link" style="position:fixed;right:16px;top:16px;z-index:41">登录</button>
         </div>
       </header>
 
@@ -37,6 +35,7 @@
           <div class="panel-heading">
             <h2 id="profileTitle">角色存档</h2>
           </div>
+          <button type="button" id="authBtn" class="auth-btn login-link">登录</button>
 
           <form id="createForm" class="create-form">
             <label class="field">
@@ -230,6 +229,10 @@
                   <span class="dock-icon" aria-hidden="true">📜</span>
                   <span class="dock-label">任务</span>
                   <span id="dockTaskBadge" class="dock-badge" hidden></span>
+                </button>
+                <button id="btnBackHome" class="dock-btn" type="button" hidden>
+                  <span class="dock-icon" aria-hidden="true">🏠</span>
+                  <span class="dock-label">学习台</span>
                 </button>
                 <button id="dockMail" class="dock-btn" type="button">
                   <span class="dock-icon" aria-hidden="true">✉️</span>
