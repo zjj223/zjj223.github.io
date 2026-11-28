@@ -275,9 +275,11 @@ document.getElementById('navCount').textContent = ALL.length + ' 题';
 function buildTree() {
   const t = document.getElementById('tree');
   t.innerHTML = GROUPS.map((g, gi) => {
-    const n = g.lessons.reduce((a, l) => a + l.problems.length, 0);
+    if (!g || !Array.isArray(g.lessons)) return '';
+    const lessons = g.lessons;
+    const n = lessons.reduce((a, l) => a + ((l.problems || []).length), 0);
     const open = !collapsed.has(gi);
-    const les = g.lessons.filter((l) => (l.problems || []).length).map((l) =>
+    const les = lessons.filter((l) => (l.problems || []).length).map((l) =>
       '<button data-g="' + gi + '" data-l="' + l.no + '">' +
       '<span>' + esc(l.name) + '</span><span class="n">' + l.problems.length + '</span></button>').join('');
     return '<button class="chnode gnode" data-g="' + gi + '"><span class="car">' + (open ? '▾' : '▸') + '</span>' +
@@ -350,11 +352,12 @@ function renderStats() {
   document.getElementById('listBar').style.width = pct + '%';
   document.getElementById('listPct').textContent = pct + '% · ' + ok + '/' + pool.length;
   const g = GROUPS[state.g];
+  const gLessons = (g && Array.isArray(g.lessons)) ? g.lessons : [];
   document.getElementById('listTitle').textContent = state.g === 'all' ? 'C++ 题单' : (g ? g.name : '题单');
-  const les = g ? g.lessons.find((l) => l.no === state.l) : null;
+  const les = gLessons.find((l) => l.no === state.l);
   document.getElementById('listSub').textContent = state.g === 'all'
     ? GROUPS.length + ' 组 · ' + ALL.length + ' 题'
-    : (les ? les.name + ' · ' + pool.length + ' 题' : g.lessons.length + ' 节 · ' + pool.length + ' 题');
+    : (les ? les.name + ' · ' + pool.length + ' 题' : gLessons.length + ' 节 · ' + pool.length + ' 题');
 }
 
 function poolFlat() {
@@ -362,6 +365,7 @@ function poolFlat() {
   const out = [];
   GROUPS.forEach((g, gi) => {
     if (state.g !== 'all' && gi !== state.g) return;
+    if (!g || !Array.isArray(g.lessons)) return;
     g.lessons.forEach((l) => {
       if (state.g !== 'all' && state.l !== 'all' && l.no !== state.l) return;
       (l.problems || []).forEach((p) => {
@@ -511,7 +515,16 @@ switchView(location.hash === '#guide' ? 'guide' : 'list');
     }, true);
   }
   hook();
-  if (window.AuthGate) AuthGate.onChange(function () { try { location.reload(); } catch (e) {} });
+  /* D-02 修复：只认“身份真的变了”才重载。boot() 首次 emit 只作基线，不触发 reload，
+     否则 restore→emit→reload→再 restore 会无限循环，页面永远到不了 load。 */
+  var booted = false, lastUid = null;
+  if (window.AuthGate) AuthGate.onChange(function (u) {
+    var uid = (u && u.name) ? String(u.name) + '|' + String(u.role || '') : '';
+    if (!booted) { booted = true; lastUid = uid; return; }
+    if (uid === lastUid) return;
+    lastUid = uid;
+    try { location.reload(); } catch (e) {}
+  });
 })();
 </script><script>AuthGate.boot({ force: true });</script>
 </body>
