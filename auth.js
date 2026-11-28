@@ -104,7 +104,7 @@ window.AuthGate = (function () {
       '<div class="auth-card" role="dialog" aria-modal="true">' +
       '<button type="button" class="auth-close" aria-label="关闭">×</button>' +
       '<header class="auth-head">' +
-      '<span class="auth-seal" aria-hidden="true">俊</span>' +
+      '<span class="auth-seal" aria-hidden="true">🏰</span>' +
       '<div><h2 class="auth-title">登录 · 卡罗西亚</h2>' +
       '<p class="auth-sub">账号和密码由老师统一发放，登录后进度跟着账号走</p></div>' +
       '</header>' +
