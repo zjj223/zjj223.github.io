@@ -43578,3 +43578,42 @@
 
 
 
+
+
+/* ===== R004：未登录只能看，点功能按钮直接弹登录卡 =====
+   学习台当浏览入口放行；其余底栏按钮（角色/宠物/任务/邮件/市场/排行榜/商店）一律拦。
+   拦在捕获阶段，保证原有打开面板的逻辑不会先跑。 */
+(function () {
+  var AUTH_KEY = "carlosia:auth:v1";
+  var PASS_ID = { btnBackHome: 1 };
+
+  function loggedIn() {
+    try {
+      if (window.AuthGate && window.AuthGate.isLoggedIn && window.AuthGate.isLoggedIn()) return true;
+      var raw = localStorage.getItem(AUTH_KEY);
+      if (!raw) return false;
+      var u = JSON.parse(raw);
+      return !!(u && u.token && u.exp && Date.now() < u.exp);
+    } catch (e) { return false; }
+  }
+
+  function gate(ev) {
+    if (location.protocol === "file:") return;          // 本地双击没有服务端，不拦
+    if (loggedIn()) return;
+    var bar = ev.currentTarget;
+    var btn = ev.target && ev.target.closest ? ev.target.closest("button") : null;
+    if (!btn || !bar.contains(btn) || PASS_ID[btn.id]) return;
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    if (window.AuthGate) {
+      window.AuthGate.open({ onSuccess: function () { location.reload(); } });
+    }
+  }
+
+  function bind() {
+    var bar = document.getElementById("dockBar");
+    if (bar) bar.addEventListener("click", gate, true);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
+  else bind();
+})();
