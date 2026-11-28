@@ -16,50 +16,95 @@
     <link rel="stylesheet" href="./styles.css?v=20261127b" />
     <link rel="stylesheet" href="./auth.css?v=20261128b" />
     <style>
-      /* R006 开机帘：登录成功后先把这层盖住，避免露出未初始化的原始页面 */
-      #bootSplash{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;
-        background:linear-gradient(#cfeaff 0%,#a9d8f5 46%,#8fc9ee 100%);transition:opacity .42s ease,visibility .42s ease}
+      /* R007 开机帘：大陆实景底图 + 精细读取窗（不用纯蓝背景） */
+      #bootSplash{position:fixed;inset:0;z-index:500;overflow:hidden;background:#181410;display:flex;align-items:center;justify-content:center;padding:20px;
+        transition:opacity .5s ease,visibility .5s ease}
+      #bootSplash::before{content:"";position:absolute;inset:-2%;
+        background:url("./assets/boxworld/map-continent.webp") center 42%/cover no-repeat;
+        transform:scale(1.04);animation:bsDrift 22s ease-in-out infinite alternate}
+      #bootSplash::after{content:"";position:absolute;inset:0;
+        background:
+          radial-gradient(120% 90% at 50% 40%,rgba(10,16,26,0) 32%,rgba(10,16,26,.55) 78%,rgba(8,12,20,.88) 100%),
+          linear-gradient(180deg,rgba(8,12,20,.42) 0%,rgba(8,12,20,0) 26%,rgba(8,12,20,0) 74%,rgba(8,12,20,.5) 100%)}
       #bootSplash.is-out{opacity:0;visibility:hidden}
-      .bs-card{width:min(88vw,392px);padding:26px 24px 22px;text-align:center;border:3px solid #6b4a2b;border-radius:22px;
-        background:radial-gradient(120% 90% at 50% 0%,#fffdf6,#fbf1dc 64%,#f2e4c6);
-        box-shadow:inset 0 0 0 3px #e9d3a4,inset 0 0 0 5px #fffdf7,0 8px 0 #4a3117,0 24px 42px rgba(38,26,12,.4);
+      .bs-dust{position:absolute;inset:0;pointer-events:none}
+      .bs-dust i{position:absolute;width:5px;height:5px;border-radius:50%;
+        background:radial-gradient(circle,#fff6cf,#f2b23e 60%,rgba(242,178,62,0) 70%);
+        opacity:.55;animation:bsFloat 9s ease-in-out infinite}
+      .bs-dust i:nth-child(1){left:14%;top:22%;animation-delay:0s}
+      .bs-dust i:nth-child(2){left:31%;top:64%;animation-delay:1.4s}
+      .bs-dust i:nth-child(3){left:52%;top:14%;animation-delay:2.6s}
+      .bs-dust i:nth-child(4){left:68%;top:48%;animation-delay:.8s}
+      .bs-dust i:nth-child(5){left:83%;top:26%;animation-delay:3.2s}
+      .bs-dust i:nth-child(6){left:44%;top:82%;animation-delay:2s}
+
+      .bs-card{position:relative;z-index:2;width:min(90vw,430px);padding:26px 30px 22px;text-align:center;
+        border-radius:16px;
+        background:
+          linear-gradient(160deg,rgba(255,253,246,.97),rgba(250,240,216,.96) 58%,rgba(243,229,199,.97));
+        border:2px solid #6b4a2b;
+        box-shadow:
+          inset 0 0 0 1px #f7e6bf,
+          inset 0 0 0 6px rgba(255,253,247,.72),
+          inset 0 0 0 7px #cfa963,
+          0 18px 0 -6px rgba(64,44,22,.55),
+          0 30px 60px rgba(6,10,16,.5);
         font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
-      .bs-emblem{position:relative;width:86px;height:86px;margin:2px auto 14px;display:flex;align-items:center;justify-content:center}
-      .bs-ring{position:absolute;inset:0;border-radius:50%;border:3px dashed rgba(169,121,31,.55);animation:bsSpin 3.4s linear infinite}
-      .bs-ring2{position:absolute;inset:9px;border-radius:50%;border:2px solid rgba(107,74,43,.18)}
-      .bs-core{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;
-        background:linear-gradient(#ffe9b6,#f2b23e);border:2px solid #a9791f;box-shadow:0 2px 0 #8a5f16,inset 0 1px 0 #fff6d8;
-        animation:bsBeat 2.2s ease-in-out infinite}
-      .bs-title{margin:0;font:700 19px "Songti SC","STSong","SimSun",serif;letter-spacing:2px;color:#35220f}
-      .bs-sub{margin:6px 0 0;font-size:12.5px;color:#6b4a2b}
-      .bs-dots{margin:12px 0 0;height:8px;display:flex;align-items:center;justify-content:center;gap:7px}
-      .bs-dots i{width:8px;height:8px;border-radius:50%;background:#c9a468;animation:bsDot 1.25s ease-in-out infinite}
-      .bs-dots i:nth-child(2){animation-delay:.18s}
-      .bs-dots i:nth-child(3){animation-delay:.36s}
-      .bs-bar{margin:14px auto 0;width:100%;height:8px;border-radius:999px;background:#e7d6b4;overflow:hidden;
-        box-shadow:inset 0 1px 2px rgba(107,74,43,.18)}
-      .bs-bar>span{display:block;width:40%;height:100%;border-radius:999px;
-        background:linear-gradient(90deg,#7fc07f,#4f9a57,#7fc07f);animation:bsShine 1.6s ease-in-out infinite}
-      .bs-tip{margin:10px 0 0;font-size:11.5px;color:#8a7c63}
+      .bs-card::before,.bs-card::after{content:"";position:absolute;width:16px;height:16px;
+        background:linear-gradient(135deg,#ffe6ac,#e0a743);transform:rotate(45deg);
+        box-shadow:0 0 0 1px rgba(107,74,43,.5)}
+      .bs-card::before{left:-9px;top:50%;margin-top:-8px}
+      .bs-card::after{right:-9px;top:50%;margin-top:-8px}
+      .bs-kicker{margin:0 0 12px;font-size:10.5px;letter-spacing:.42em;color:#9a7d4c;text-transform:uppercase}
+      .bs-emblem{position:relative;width:96px;height:96px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center}
+      .bs-ring{position:absolute;inset:0;border-radius:50%;
+        background:conic-gradient(from 0deg,rgba(242,178,62,0) 0deg,rgba(242,178,62,.35) 120deg,#f7cf7a 300deg,rgba(242,178,62,0) 360deg);
+        -webkit-mask:radial-gradient(closest-side,transparent 70%,#000 71%);
+        mask:radial-gradient(closest-side,transparent 70%,#000 71%);
+        animation:bsSpin 2.6s linear infinite}
+      .bs-ring2{position:absolute;inset:11px;border-radius:50%;border:1px solid rgba(169,121,31,.35)}
+      .bs-glow{position:absolute;inset:16px;border-radius:50%;
+        background:radial-gradient(circle,rgba(255,213,120,.5),rgba(255,213,120,0) 70%);
+        animation:bsBeat 2.4s ease-in-out infinite}
+      .bs-core{position:relative;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+        font-size:26px;background:linear-gradient(#fff3d0,#f2b23e 78%,#d99b26);
+        border:1px solid #a9791f;box-shadow:0 2px 0 #8a5f16,inset 0 1px 0 #fffaf0;
+        animation:bsBeat 2.4s ease-in-out infinite}
+      .bs-title{margin:0;font:700 21px "Songti SC","STSong","SimSun",serif;letter-spacing:3px;color:#3a2610;
+        text-shadow:0 1px 0 #fff8e2}
+      .bs-sub{margin:7px 0 0;font-size:12.5px;letter-spacing:.06em;color:#7a6444}
+      .bs-track{margin:16px auto 0;width:100%;height:6px;border-radius:99px;
+        background:linear-gradient(#efe0bd,#e3d0a6);box-shadow:inset 0 1px 2px rgba(107,74,43,.28);overflow:hidden;position:relative}
+      .bs-track>span{position:absolute;top:0;left:0;height:100%;width:38%;border-radius:99px;
+        background:linear-gradient(90deg,rgba(242,178,62,0),#f2b23e 40%,#ffe7a9 60%,rgba(242,178,62,0));
+        animation:bsSweep 1.9s cubic-bezier(.4,0,.6,1) infinite}
+      .bs-tip{margin:12px 0 0;font-size:11px;color:#9a8461;letter-spacing:.04em}
       @keyframes bsSpin{to{transform:rotate(360deg)}}
-      @keyframes bsBeat{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-      @keyframes bsDot{0%,100%{transform:translateY(0);opacity:.45}50%{transform:translateY(-5px);opacity:1}}
-      @keyframes bsShine{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
-      @media (prefers-reduced-motion:reduce){.bs-ring,.bs-core,.bs-dots i,.bs-bar>span{animation:none}}
+      @keyframes bsBeat{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.07);opacity:1}}
+      @keyframes bsSweep{0%{left:-40%}100%{left:100%}}
+      @keyframes bsDrift{from{transform:scale(1.04) translate3d(0,0,0)}to{transform:scale(1.1) translate3d(-1.4%,-1%,0)}}
+      @keyframes bsFloat{0%,100%{transform:translate3d(0,0,0);opacity:.3}50%{transform:translate3d(0,-14px,0);opacity:.75}}
+      @media (prefers-reduced-motion:reduce){#bootSplash::before,.bs-ring,.bs-core,.bs-dust i,.bs-track>span{animation:none}}
+      @media (max-width:470px){
+        .bs-card{padding:22px 22px 18px}
+        .bs-title{font-size:18px;letter-spacing:2px}
+        .bs-emblem{width:84px;height:84px}
+      }
     </style>
   </head>
   <body>
-    <!-- R006：登录/刷新后先盖一层“正在登录卡罗西亚大陆中”，初始化完再揭开 -->
+    <!-- R007：登录/刷新后先盖一层“正在登录卡罗西亚大陆中”，初始化完再揭开 -->
     <div id="bootSplash" aria-live="polite">
+      <div class="bs-dust"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="bs-card">
+        <p class="bs-kicker">Carolosia</p>
         <div class="bs-emblem">
-          <span class="bs-ring"></span><span class="bs-ring2"></span>
+          <span class="bs-ring"></span><span class="bs-ring2"></span><span class="bs-glow"></span>
           <span class="bs-core">🏰</span>
         </div>
         <h2 class="bs-title">正在登录卡罗西亚大陆中</h2>
         <p class="bs-sub">正在读取你的角色存档，请稍等</p>
-        <div class="bs-dots"><i></i><i></i><i></i></div>
-        <div class="bs-bar"><span></span></div>
+        <div class="bs-track"><span></span></div>
         <p class="bs-tip">进度跟着账号走 · 换台电脑也能接着玩</p>
       </div>
     </div>
@@ -771,7 +816,7 @@
 
     <script src="./assets/vendor/supabase.js?v=20261126i"></script>
     <script src="./data/petConfig.js?v=20261127a"></script>
-    <script src="./auth.js?v=20261128a"></script>
+    <script src="./auth.js?v=20261128b"></script>
     <script src="./app.js?v=20261128a"></script>
     <script>AuthGate.boot({ force: false });</script>
     <script>
