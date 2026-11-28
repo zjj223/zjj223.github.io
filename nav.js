@@ -390,15 +390,23 @@
   /* 游戏页若也挂了本导航，游戏内加/花洛克贝后通知一次 */
   window.addEventListener('pagehide', function () { try { window.lkCoin.notify(); } catch (e) {} });
 
-  /* 登录/退出后：身份卡与洛克贝数字立刻跟着变，不用手动刷新 */
-  (function () {
+  /* 登录/退出后：身份卡与洛克贝数字立刻跟着变，不用手动刷新
+     注意：auth.js 可能在本文件之后才加载，所以订阅要重试一次 */
+  function wireAuth() {
     var g = ag();
-    if (!g || !g.onChange) return;
+    if (!g || !g.onChange) return false;
     g.onChange(function (u) {
       if (u && u.name) WANT = String(u.name);
       last = '';
       fire();
       if (box) refreshAcc();
     });
-  })();
+    return true;
+  }
+  if (!wireAuth()) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () { if (wireAuth()) refreshAcc(); });
+    }
+    setTimeout(function () { if (wireAuth()) refreshAcc(); }, 200);
+  }
 })();
