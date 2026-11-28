@@ -14,9 +14,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>俊杰侃信奥</title>
     <link rel="stylesheet" href="./styles.css?v=20261127b" />
-    <link rel="stylesheet" href="./auth.css?v=20261128a" />
+    <link rel="stylesheet" href="./auth.css?v=20261128b" />
+    <style>
+      /* R006 开机帘：登录成功后先把这层盖住，避免露出未初始化的原始页面 */
+      #bootSplash{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;
+        background:linear-gradient(#cfeaff 0%,#a9d8f5 46%,#8fc9ee 100%);transition:opacity .42s ease,visibility .42s ease}
+      #bootSplash.is-out{opacity:0;visibility:hidden}
+      .bs-card{width:min(88vw,392px);padding:26px 24px 22px;text-align:center;border:3px solid #6b4a2b;border-radius:22px;
+        background:radial-gradient(120% 90% at 50% 0%,#fffdf6,#fbf1dc 64%,#f2e4c6);
+        box-shadow:inset 0 0 0 3px #e9d3a4,inset 0 0 0 5px #fffdf7,0 8px 0 #4a3117,0 24px 42px rgba(38,26,12,.4);
+        font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+      .bs-emblem{position:relative;width:86px;height:86px;margin:2px auto 14px;display:flex;align-items:center;justify-content:center}
+      .bs-ring{position:absolute;inset:0;border-radius:50%;border:3px dashed rgba(169,121,31,.55);animation:bsSpin 3.4s linear infinite}
+      .bs-ring2{position:absolute;inset:9px;border-radius:50%;border:2px solid rgba(107,74,43,.18)}
+      .bs-core{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;
+        background:linear-gradient(#ffe9b6,#f2b23e);border:2px solid #a9791f;box-shadow:0 2px 0 #8a5f16,inset 0 1px 0 #fff6d8;
+        animation:bsBeat 2.2s ease-in-out infinite}
+      .bs-title{margin:0;font:700 19px "Songti SC","STSong","SimSun",serif;letter-spacing:2px;color:#35220f}
+      .bs-sub{margin:6px 0 0;font-size:12.5px;color:#6b4a2b}
+      .bs-dots{margin:12px 0 0;height:8px;display:flex;align-items:center;justify-content:center;gap:7px}
+      .bs-dots i{width:8px;height:8px;border-radius:50%;background:#c9a468;animation:bsDot 1.25s ease-in-out infinite}
+      .bs-dots i:nth-child(2){animation-delay:.18s}
+      .bs-dots i:nth-child(3){animation-delay:.36s}
+      .bs-bar{margin:14px auto 0;width:100%;height:8px;border-radius:999px;background:#e7d6b4;overflow:hidden;
+        box-shadow:inset 0 1px 2px rgba(107,74,43,.18)}
+      .bs-bar>span{display:block;width:40%;height:100%;border-radius:999px;
+        background:linear-gradient(90deg,#7fc07f,#4f9a57,#7fc07f);animation:bsShine 1.6s ease-in-out infinite}
+      .bs-tip{margin:10px 0 0;font-size:11.5px;color:#8a7c63}
+      @keyframes bsSpin{to{transform:rotate(360deg)}}
+      @keyframes bsBeat{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+      @keyframes bsDot{0%,100%{transform:translateY(0);opacity:.45}50%{transform:translateY(-5px);opacity:1}}
+      @keyframes bsShine{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
+      @media (prefers-reduced-motion:reduce){.bs-ring,.bs-core,.bs-dots i,.bs-bar>span{animation:none}}
+    </style>
   </head>
   <body>
+    <!-- R006：登录/刷新后先盖一层“正在登录卡罗西亚大陆中”，初始化完再揭开 -->
+    <div id="bootSplash" aria-live="polite">
+      <div class="bs-card">
+        <div class="bs-emblem">
+          <span class="bs-ring"></span><span class="bs-ring2"></span>
+          <span class="bs-core">🏰</span>
+        </div>
+        <h2 class="bs-title">正在登录卡罗西亚大陆中</h2>
+        <p class="bs-sub">正在读取你的角色存档，请稍等</p>
+        <div class="bs-dots"><i></i><i></i><i></i></div>
+        <div class="bs-bar"><span></span></div>
+        <p class="bs-tip">进度跟着账号走 · 换台电脑也能接着玩</p>
+      </div>
+    </div>
     <!-- 游戏页不再自带登录壳：统一走 AuthGate（auth.js） -->
 
 <div class="app-shell">
@@ -728,6 +774,27 @@
     <script src="./auth.js?v=20261128a"></script>
     <script src="./app.js?v=20261128a"></script>
     <script>AuthGate.boot({ force: false });</script>
+    <script>
+      (function () {
+        var sp = document.getElementById("bootSplash");
+        var t0 = Date.now();
+        function ready() {
+          var gv = document.getElementById("gameView");
+          if (!gv || gv.hidden) return false;
+          if (Date.now() - t0 < 700) return false;  /* 至少给动画 0.7s，别一闪而过 */
+          return true;
+        }
+        function hide() {
+          if (!sp) return;
+          sp.classList.add("is-out");
+          setTimeout(function () { if (sp && sp.parentNode) sp.parentNode.removeChild(sp); }, 460);
+        }
+        var iv = setInterval(function () {
+          if (ready() || Date.now() - t0 > 12000) { clearInterval(iv); hide(); }
+        }, 80);
+        setTimeout(function () { clearInterval(iv); hide(); }, 12000);
+      })();
+    </script>
 
   <script>
     /* R005 看门狗：5 秒还没进游戏（存档状态仍是默认文案）→ 给一个能自救的入口，
@@ -739,6 +806,8 @@
         if (!st || !gv) return;
         if (st.textContent.trim() !== "正在读取存档" || !gv.hidden) return;
         if (document.getElementById("bootStuckMask")) return;
+        var sp = document.getElementById("bootSplash");
+        if (sp && sp.parentNode) sp.parentNode.removeChild(sp);
         var mask = document.createElement("div");
         mask.id = "bootStuckMask";
         mask.style.cssText = "position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;background:rgba(30,22,12,.55);padding:20px";
