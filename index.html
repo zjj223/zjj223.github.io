@@ -14,7 +14,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>俊杰侃信奥</title>
     <link rel="stylesheet" href="./styles.css?v=20261127b" />
-    <link rel="stylesheet" href="./auth.css?v=20261126i" />
+    <link rel="stylesheet" href="./auth.css?v=20261128a" />
   </head>
   <body>
     <!-- 游戏页不再自带登录壳：统一走 AuthGate（auth.js） -->
@@ -725,9 +725,36 @@
 
     <script src="./assets/vendor/supabase.js?v=20261126i"></script>
     <script src="./data/petConfig.js?v=20261127a"></script>
-    <script src="./auth.js?v=20261127b"></script>
-    <script src="./app.js?v=20261127g"></script>
+    <script src="./auth.js?v=20261128a"></script>
+    <script src="./app.js?v=20261128a"></script>
     <script>AuthGate.boot({ force: false });</script>
+
+  <script>
+    /* R005 看门狗：5 秒还没进游戏（存档状态仍是默认文案）→ 给一个能自救的入口，
+       避免一直卡在“正在读取存档”上，只能干看着。 */
+    setTimeout(function () {
+      try {
+        var st = document.getElementById("saveStatus");
+        var gv = document.getElementById("gameView");
+        if (!st || !gv) return;
+        if (st.textContent.trim() !== "正在读取存档" || !gv.hidden) return;
+        if (document.getElementById("bootStuckMask")) return;
+        var mask = document.createElement("div");
+        mask.id = "bootStuckMask";
+        mask.style.cssText = "position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;background:rgba(30,22,12,.55);padding:20px";
+        mask.innerHTML =
+          '<div style="width:min(92vw,420px);background:#fffdf6;border:3px solid #6b4a2b;border-radius:20px;padding:22px 20px;box-shadow:0 8px 0 #4a3117;font-family:-apple-system,PingFang SC,sans-serif">' +
+          '<h3 style="margin:0 0 8px;font:700 18px Songti SC,STSong,serif;color:#35220f">这页没加载完</h3>' +
+          '<p style="margin:0 0 14px;font-size:13px;line-height:1.6;color:#6b5a45">存档一直停在“正在读取存档”，多半是浏览器缓存了旧文件或刚掉线。点下面按钮重来一次，登录状态不会丢。</p>' +
+          '<button type="button" id="bootStuckRetry" style="width:100%;height:46px;border:2px solid #2f6b3c;border-radius:999px;background:#58a35f;color:#fff;font:700 15px sans-serif;box-shadow:0 4px 0 #2f6b3c">重新加载</button>' +
+          "</div>";
+        document.body.appendChild(mask);
+        document.getElementById("bootStuckRetry").onclick = function () {
+          location.href = "index.html?game=1&r=" + Date.now();
+        };
+      } catch (e) {}
+    }, 5000);
+  </script>
 
   <!-- 新手引导：手指引导 + 功能卡 -->
   <div id="guideOverlay" class="guide-overlay" hidden>
