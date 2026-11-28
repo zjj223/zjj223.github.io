@@ -163,6 +163,24 @@ window.AuthGate = (function () {
     pending = null;
   }
 
+  /* 账号登录后问服务端：这个人是不是老师（staff 表 / 权限码门票）
+     是就升成 teacher 角色，身份卡里才会出现「教师工作台」；接口没部署时静默保持学生 */
+  async function resolveRole(name, tok) {
+    if (!tok || !online()) return;
+    try {
+      const res = await rpc("auth_staff", { p_token: tok });
+      if (res && res.ok) {
+        const isT = res.role === "root" || res.role === "admin" || res.role === "teacher";
+        if (!!isT !== (user && user.role === "teacher")) {
+          user = { name: name, token: tok, role: isT ? "teacher" : "student", exp: user ? user.exp : Date.now() + TTL };
+          persist(user);
+          syncNickname(name, user.role);
+          emit();
+        }
+      }
+    } catch (e) { /* 新接口没上线：不影响登录 */ }
+  }
+
   async function onSubmit(e) {
     e.preventDefault();
     const m = maskEl;
@@ -210,6 +228,7 @@ window.AuthGate = (function () {
           );
         }
         setSession(name, res.token, "student");
+        resolveRole(name, res.token);
         try {
           localStorage.setItem(
             "carlosia:auth:bootsave:v1",
@@ -332,6 +351,7 @@ window.AuthGate = (function () {
       } catch (e) {
         /* 网络抖动不踢人 */
       }
+      if (user) await resolveRole(user.name, user.token);
     }
     emit();
     return user;
