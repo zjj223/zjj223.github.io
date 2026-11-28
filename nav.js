@@ -252,12 +252,12 @@
       ['05', '箱庭世界', 'index.html?game=1'],
       ['06', '站内信', '首页.html#mailbar']
     ];
+    if (w.role === '老师') rows.push(['07', '教师工作台', '教师工作台.html']);
     return rows.map(function (r) {
         return '<a class="p-row" href="' + r[2] + suffix(r[2]) + '"><em>' + r[0] + '</em><span>' + r[1] + '</span><i>›</i></a>';
       }).join('') +
       '<div class="p-foot"><span class="coin"><i></i>' + fmt(c) + ' 洛克贝</span>' +
         (s.streak ? '<span class="p-streak">连续 ' + s.streak + ' 天</span>' : '') +
-        (w.role === '老师' ? '<button type="button" class="p-admin">进入后台</button>' : '') +
         '<button type="button" class="p-quit">退出登录</button></div>';
   }
 
@@ -337,7 +337,7 @@
     if (admin) admin.addEventListener('click', function (e) {
       e.stopPropagation();
       host.classList.remove('open');
-      location.href = 'admin.html';
+      location.href = '教师工作台.html';
     });
 
     var login = host.querySelector('.p-login');
