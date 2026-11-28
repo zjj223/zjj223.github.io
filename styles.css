@@ -141,8 +141,7 @@ h2 {
 
 .create-form,
 .teacher-login,
-.teacher-controls,
-.stat-list {
+.teacher-controls {
   display: grid;
   gap: 14px;
 }
@@ -564,10 +563,6 @@ button:focus-visible {
   background: var(--green);
 }
 
-.mp-fill {
-  background: var(--blue);
-}
-
 .exp-fill {
   background: var(--gold);
 }
@@ -576,19 +571,6 @@ button:focus-visible {
   display: grid;
   grid-template-columns: repeat(5, minmax(150px, 1fr));
   gap: 12px;
-}
-
-.scene-card {
-  display: grid;
-  grid-template-rows: 92px auto;
-  min-height: 258px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0;
-  color: var(--ink);
-  background: var(--surface-strong);
-  text-align: left;
 }
 
 .scene-card:not(:disabled):hover,
@@ -610,69 +592,9 @@ button:focus-visible {
   background: #eef4e8;
 }
 
-.scene-body {
-  display: grid;
-  gap: 8px;
-  padding: 12px;
-}
-
-.scene-title {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.scene-title strong {
-  line-height: 1.2;
-}
-
-.scene-title span,
-.scene-type {
+.scene-title span {
   color: var(--muted);
   font-size: 0.78rem;
-}
-
-.scene-drops,
-.scene-feature {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.82rem;
-  line-height: 1.45;
-}
-
-.lock-mark {
-  display: inline-grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-  color: #ffffff;
-  background: var(--locked);
-}
-
-.selected-scene {
-  display: grid;
-  gap: 7px;
-  min-height: 76px;
-  margin-bottom: 12px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-strong);
-}
-
-.selected-scene strong {
-  font-size: 1.05rem;
-}
-
-.selected-scene span {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.explore-button {
-  width: 100%;
 }
 
 .result-message,
@@ -886,10 +808,6 @@ button:focus-visible {
   background: linear-gradient(#e3f2fd 0 48%, #64b5f6 49% 100%);
 }
 
-.scene-locked {
-  background: linear-gradient(#e7e3dd 0 48%, #aca69c 49% 100%);
-}
-
 .scene-art svg {
   width: 100%;
   height: 100%;
@@ -988,9 +906,6 @@ button:focus-visible {
     grid-template-columns: repeat(2, minmax(135px, 1fr));
   }
 
-  .scene-card {
-    min-height: 246px;
-  }
 }
 
 @media (max-width: 520px) {
@@ -1009,41 +924,6 @@ button:focus-visible {
 }
 
 /* ===== 宠物亲密度 & 道具背包 ===== */
-
-.rename-hint {
-  margin: 6px 0 0;
-  padding: 6px 10px;
-  border: 1px dashed var(--line);
-  border-radius: 6px;
-  color: var(--muted);
-  background: #faf8f3;
-  font-size: 0.8rem;
-}
-
-.rename-button {
-  border-color: #c9b8e0;
-  color: #5e35b1;
-  background: #f3eaff;
-}
-
-.rename-button:hover {
-  background: #e8d9fa;
-}
-
-.random-pet-button {
-  border-color: #ffcc80;
-  color: #e65100;
-  background: #fff8e1;
-}
-
-.random-pet-button:hover {
-  background: #ffecb3;
-}
-
-.random-pet-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 
 .inventory-panel {
   margin-top: 14px;
@@ -1267,24 +1147,6 @@ button:focus-visible {
   overflow: hidden;
 }
 
-.scene-atmosphere-bg {
-  position: relative;
-  height: 120px;
-  display: flex;
-  align-items: flex-end;
-  padding: 12px 16px;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.scene-atmosphere-bg .scene-desc {
-  margin: 0;
-  color: #fff;
-  font-size: 0.88rem;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-  z-index: 1;
-}
-
 /* 场景氛围动画 */
 .scene-atmosphere-bg.scene-grass {
   background: linear-gradient(180deg, #87ceeb 0%, #98d98e 60%, #66bb6a 100%);
@@ -1476,63 +1338,9 @@ button:focus-visible {
   gap: 10px;
 }
 
-.spot-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.spot-card:hover:not(:disabled) {
-  border-color: #81c784;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.15);
-}
-
-.spot-card:active:not(:disabled) {
-  transform: translateY(0);
-}
-
 .spot-card.selected {
   border-color: #4f9f64;
   background: #f1f8e9;
-}
-
-.spot-card:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.spot-icon {
-  font-size: 1.5rem;
-  margin-bottom: 4px;
-}
-
-.spot-name {
-  font-size: 0.95rem;
-  color: var(--ink);
-}
-
-.spot-desc {
-  font-size: 0.78rem;
-  color: var(--muted);
-  line-height: 1.4;
-}
-
-.spot-meta {
-  font-size: 0.75rem;
-  color: #4f9f64;
-  font-weight: 600;
-  margin-top: auto;
 }
 
 /* 探索中动画 */
@@ -1761,10 +1569,6 @@ button:focus-visible {
 }
 
 /* ===== 场景卡片悬停 ===== */
-.scene-card {
-  transition: all 0.25s ease;
-}
-
 .scene-card:hover:not(.locked) {
   transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
@@ -1784,9 +1588,6 @@ button:focus-visible {
   .view-nav-btn {
     padding: 8px 10px;
     font-size: 0.85rem;
-  }
-  .scene-atmosphere-bg {
-    height: 90px;
   }
 }
 
@@ -1958,28 +1759,6 @@ button:focus-visible {
   color: var(--muted);
 }
 
-.pet-team-bond {
-  font-size: 12px;
-  color: #e91e63;
-  margin-bottom: 8px;
-}
-
-.pet-team-actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.pet-team-actions button {
-  flex: 1;
-  padding: 6px 8px;
-  font-size: 12px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
 .pet-team-actions .btn-switch {
   background: #e3f2fd;
   color: #1976d2;
@@ -2005,11 +1784,6 @@ button:focus-visible {
 
 .pet-team-actions .btn-release:hover {
   background: #ffcdd2;
-}
-
-.pet-team-actions button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .stat-bars {
@@ -2155,40 +1929,6 @@ button:focus-visible {
 .battle-header strong {
   font-size: 1.2rem;
   color: var(--ink);
-}
-
-.battle-enemy {
-  text-align: center;
-  margin-bottom: 12px;
-  padding: 10px;
-  background: #f5f5f5;
-  border-radius: 8px;
-}
-
-.enemy-info {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  align-items: center;
-}
-
-.enemy-name {
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-.enemy-type {
-  font-size: 0.8rem;
-  color: var(--muted);
-  background: #e8f5e9;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.enemy-level {
-  font-size: 0.85rem;
-  color: #e65100;
-  font-weight: 600;
 }
 
 /* ===== 战斗演出：双方对峙舞台 ===== */
@@ -2597,11 +2337,6 @@ button:focus-visible {
   color: #2e7d32;
 }
 
-.capture-result.fail {
-  background: #ffebee;
-  color: #c62828;
-}
-
 /* ===== 系别克制弹窗 ===== */
 .type-tooltip {
   position: fixed;
@@ -2659,20 +2394,6 @@ button:focus-visible {
 }
 
 /* ===== 战斗跳过复选框 ===== */
-.skip-battle-label {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.8rem;
-  color: var(--muted);
-  cursor: pointer;
-  user-select: none;
-}
-
-.skip-battle-label input {
-  cursor: pointer;
-}
-
 /* ===== 拉入学生功能 ===== */
 .pet-debug-section {
   margin-top: 12px;
@@ -2716,38 +2437,13 @@ button:focus-visible {
 }
 
 /* ===== 老师登录界面 ===== */
-.login-view {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
 .login-view.hidden {
   display: none;
-}
-
-.login-card {
-  background: #fffdfa;
-  border-radius: 20px;
-  padding: 40px 36px;
-  width: 340px;
-  text-align: center;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  animation: loginPop 0.5s ease;
 }
 
 @keyframes loginPop {
   from { opacity: 0; transform: translateY(20px) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.login-logo {
-  font-size: 3rem;
-  margin-bottom: 8px;
 }
 
 .login-title {
@@ -2760,76 +2456,6 @@ button:focus-visible {
   font-size: 0.85rem;
   color: #68625b;
   margin: 0 0 24px;
-}
-
-.login-tabs {
-  display: flex;
-  gap: 6px;
-  padding: 4px;
-  background: #f2ece2;
-  border-radius: 12px;
-  margin-bottom: 16px;
-}
-
-.login-tab {
-  flex: 1;
-  padding: 9px 6px;
-  border: none;
-  background: transparent;
-  border-radius: 9px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #6c6358;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-}
-
-.login-tab.is-active {
-  background: #fffdfa;
-  color: #2b2620;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.login-form input {
-  padding: 12px 16px;
-  border: 2px solid #ded6c8;
-  border-radius: 10px;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.login-form input:focus {
-  border-color: #667eea;
-}
-
-.login-button {
-  padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.login-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102,126,234,0.4);
-}
-
-.login-error {
-  color: #e53935;
-  font-size: 0.85rem;
-  margin-top: 8px;
 }
 
 /* ===== 排行榜 ===== */
@@ -2936,55 +2562,14 @@ button:focus-visible {
   border-top: 1px solid #e0e0e0;
 }
 
-.scene-inventory-heading {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 12px;
-}
-
-.scene-inventory-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-
-.scene-inventory-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 12px 8px;
-  background: #f8f8f8;
-  border-radius: 10px;
-  border: 2px solid transparent;
-  transition: all 0.2s ease;
-}
-
 .scene-inventory-item.owned {
   background: #e8f5e9;
   border-color: #4caf50;
 }
 
-.scene-inventory-icon {
-  font-size: 28px;
-  margin-bottom: 6px;
-}
-
-.scene-inventory-name {
-  font-size: 12px;
-  color: #666;
-  text-align: center;
-  margin-bottom: 4px;
-}
-
 .scene-inventory-item.owned .scene-inventory-name {
   color: #2e7d32;
   font-weight: 500;
-}
-
-.scene-inventory-count {
-  font-size: 11px;
-  color: #999;
 }
 
 .scene-inventory-item.owned .scene-inventory-count {
@@ -3007,11 +2592,6 @@ button:focus-visible {
   align-items: flex-start;
 }
 
-.hatch-visual {
-  flex-shrink: 0;
-  width: 180px;
-}
-
 .hatch-copy {
   flex: 1;
   min-width: 0;
@@ -3024,9 +2604,6 @@ button:focus-visible {
     align-items: center;
   }
   
-  .scene-inventory-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 /* 调整面板间距，去掉多余空白 */
@@ -3153,29 +2730,6 @@ button:focus-visible {
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-}
-
-.rank-reward-info {
-  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
-  border: 1px solid #ffcc80;
-}
-
-.rank-reward-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #e65100;
-  margin-bottom: 10px;
-}
-
-.rank-reward-list {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  font-size: 14px;
-  color: #bf360c;
 }
 
 .rank-content {
@@ -3765,10 +3319,6 @@ button:focus-visible {
 }
 
 /* 场景卡片悬停增强 */
-.scene-card {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 .scene-card:not(.locked):hover {
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
@@ -3783,20 +3333,6 @@ button:focus-visible {
 }
 
 /* 探索点卡片动画 */
-.spot-card {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.spot-card:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-  border-color: var(--primary);
-}
-
-.spot-card:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
-}
-
 /* 宠物栏卡片动画 */
 .pet-team-item {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -4068,36 +3604,6 @@ button:active:not(:disabled) {
 
 
 /* 宠物栏优化 */
-.pet-team-row {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-  flex-wrap: wrap;
-}
-
-.pet-team-row button {
-  flex: 1;
-  min-width: 80px;
-  padding: 4px 8px;
-  font-size: 12px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-  background: #fff;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.pet-team-row button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-.pet-team-row button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .btn-bond {
   background: linear-gradient(135deg, #ff9a9e, #fecfef) !important;
   color: #c2185b;
@@ -4128,13 +3634,6 @@ button:active:not(:disabled) {
   color: white;
   border-radius: 6px;
   font-weight: 600;
-}
-
-.pet-team-bond {
-  font-size: 13px;
-  color: #e91e63;
-  font-weight: 600;
-  margin: 4px 0;
 }
 
 
@@ -4884,9 +4383,6 @@ button:active:not(:disabled) {
   animation: none;
 }
 /* 登录卡片同理：后台标签冻结 opacity 动画会让整个登录框不可见 */
-.login-card {
-  animation: none;
-}
 /* 地图光点 / 探索点本身是 button，会被全局 button:hover 的位移覆盖，
    丢失 translate(-50%,-50%) 的居中偏移，导致悬停时整块向右下跳。
    这里把居中位移固定住，只保留圆点的放大反馈。 */
@@ -5087,11 +4583,6 @@ button:active:not(:disabled) {
 }
 
 /* 场景舞台的父级氛围层原本是 0 宽，这里补上占位 */
-.app-grid.is-student .scene-inner-panel .sceneAtmosphere {
-  width: 100%;
-  display: block;
-}
-
 .app-grid.is-student .scene-result,
 .app-grid.is-student .scene-inventory {
   width: min(100%, 920px);
@@ -5125,22 +4616,6 @@ button:active:not(:disabled) {
   z-index: 40;
   display: flex;
   gap: 10px;
-}
-
-.dock-btn {
-  width: 62px;
-  height: 62px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.92);
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.24);
-  display: grid;
-  place-items: center;
-  align-content: center;
-  cursor: pointer;
-  padding: 0;
-  font-family: inherit;
-  transition: box-shadow 0.16s ease, background 0.16s ease;
 }
 
 .dock-icon {
@@ -5259,8 +4734,7 @@ button:active:not(:disabled) {
 
 .zone-modal-box,
 .rank-modal,
-.capture-modal,
-.evolve-modal {
+.capture-modal {
   animation: none;
 }
 /* 所有弹窗统一头部布局：标题左、关闭右 */
@@ -5319,26 +4793,6 @@ button:active:not(:disabled) {
   z-index: 40;
 }
 
-.dock-btn {
-  width: auto;
-  height: 36px;
-  min-width: 92px;
-  padding: 0 16px;
-  border: none;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #f0f8f1;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  box-shadow: none;
-  cursor: pointer;
-  padding-block: 0;
-  transition: background 0.15s ease;
-}
-
 .dock-icon {
   font-size: 16px;
   line-height: 1;
@@ -5373,11 +4827,6 @@ button:active:not(:disabled) {
   gap: 0;
 }
 
-.dock-btn {
-  flex: 1 1 0;
-  max-width: 200px;
-  min-width: 96px;
-}
 /* 地图在可用区域内垂直居中，别贴着顶、下方留一大片 */
 .app-grid.is-student .scene-grid.map-mode {
   padding: 46px 0 54px;
@@ -5390,11 +4839,6 @@ button:active:not(:disabled) {
   gap: 10px;
 }
 
-.dock-btn {
-  flex: 0 1 160px;
-  max-width: 160px;
-  min-width: 110px;
-}
 /* ===== P0-2 出战宠物跟随 ===== */
 .map-pet {
   position: absolute;
@@ -5701,26 +5145,6 @@ button:active:not(:disabled) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-#petColList .pet-team-bond {
-  font-size: 11px;
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-#petColList .pet-team-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-#petColList .pet-team-row {
-  display: flex;
-  gap: 4px;
-  flex-wrap: nowrap;
 }
 
 #petColList .pet-team-row button,
@@ -6086,25 +5510,6 @@ button:active:not(:disabled) {
   text-overflow: ellipsis;
 }
 
-#petColList .pet-team-bond {
-  font-size: 11px;
-  line-height: 1.25;
-  color: #b07b2a;
-  white-space: nowrap;
-}
-
-#petColList .pet-team-actions {
-  flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: repeat(2, 24px);
-  grid-auto-rows: 24px;
-  gap: 3px;
-}
-
-#petColList .pet-team-row {
-  display: contents;
-}
-
 #petColList .pet-team-row button,
 #petColList .pet-team-active-tag {
   width: 24px;
@@ -6119,12 +5524,6 @@ button:active:not(:disabled) {
   transform: none !important;
 }
 /* 修正：按钮区不能吃满整行宽度 */
-#petColList .pet-team-actions {
-  width: auto;
-  max-width: none;
-  flex: 0 0 auto;
-}
-
 #petColList .pet-team-header {
   width: auto;
   flex: 1 1 auto;
@@ -6480,14 +5879,6 @@ body {
 }
 
 /* 底栏四个入口：方块化 + 硬影（保留原有 flex 宽度设定） */
-.dock-btn {
-  border: 2px solid var(--line);
-  border-radius: var(--r-sm);
-  background: var(--surface);
-  box-shadow: 0 3px 0 #d8c8ab;
-  transform: none !important;
-}
-
 .dock-btn:active {
   transform: translateY(3px) !important;
   box-shadow: 0 0 0 #d8c8ab;
@@ -6677,13 +6068,6 @@ body {
 }
 
 /* 登录卡：游戏面板而非网页卡片 */
-.login-card {
-  border: var(--stroke-strong);
-  border-radius: var(--r-lg);
-  background: var(--surface-hi);
-  box-shadow: 0 12px 0 rgba(168, 145, 111, 0.32), 0 30px 70px rgba(50, 38, 20, 0.32);
-}
-
 /* ---------------- V8 动效 ---------------- */
 /* 弹窗不做缩放入场：历史上 opacity 动画会在后台标签停在 from 导致白屏，
    这里显式加固为 none，只保留按钮与呼吸动画。 */
@@ -6692,8 +6076,7 @@ body {
 .modal,
 .zone-modal,
 .rank-modal,
-.view-container,
-.login-card {
+.view-container {
   animation: none !important;
 }
 
@@ -6719,40 +6102,6 @@ body {
 
 /* ---------------- V7+ 登录页背景与按钮修正 ---------------- */
 /* 原 .login-view 是紫色渐变（#667eea → #764ba2），与整套暖色令牌冲突，整体换掉 */
-.login-view {
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(168, 145, 111, 0.06) 0 2px,
-      rgba(168, 145, 111, 0) 2px 26px
-    ),
-    radial-gradient(1100px 560px at 50% 0%, rgba(255, 243, 210, 0.95), rgba(255, 243, 210, 0)),
-    linear-gradient(160deg, #f7f1e3 0%, #e9ddc3 100%);
-}
-
-.login-button {
-  border: 2px solid var(--green-deep);
-  border-radius: var(--r-pill);
-  background: var(--green);
-  color: #ffffff;
-  box-shadow: 0 3px 0 var(--green-deep), var(--inner-hi);
-  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.16s ease;
-}
-
-.login-button:hover:not(:disabled) {
-  background: #4d9453;
-}
-
-.login-button:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow: 0 0 0 var(--green-deep), var(--inner-hi);
-}
-
-.login-form input:focus {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(242, 178, 62, 0.24);
-}
-
 .login-title {
   font-weight: 800;
   letter-spacing: 1px;
@@ -6763,12 +6112,6 @@ body {
   color: var(--muted);
 }
 
-.login-tab.is-active {
-  background: var(--surface);
-  border-color: var(--line);
-  box-shadow: 0 2px 0 #d8c8ab;
-}
-
 /* ---------------- V9 补齐：底栏木色化 / 引导弹窗去紫 ---------------- */
 /* 底栏原来是近黑的深绿渐变，改成木质深条，保留白字可读性 */
 .dock-bar {
@@ -6777,28 +6120,7 @@ body {
   box-shadow: 0 -6px 18px rgba(60, 45, 25, 0.22);
 }
 
-.dock-btn {
-  color: #fff8e6;
-}
-
 /* 新手引导：与主弹窗同一套"厚边 + 大圆角 + 硬影" */
-.guide-modal {
-  border: var(--stroke-strong);
-  border-radius: var(--r-lg);
-  background: var(--surface-hi);
-  box-shadow: 0 10px 0 rgba(168, 145, 111, 0.3), 0 26px 60px rgba(60, 45, 25, 0.3);
-}
-
-.guide-header {
-  border-bottom: 2px solid var(--line);
-}
-
-.guide-highlight {
-  background: #fff7e0;
-  border-left: 4px solid var(--gold);
-  border-radius: var(--r-sm);
-}
-
 .guide-btn {
   border: 2px solid var(--line);
   border-radius: var(--r-pill);
@@ -6822,11 +6144,6 @@ body {
 
 .guide-btn.primary:active {
   box-shadow: 0 0 0 var(--green-deep);
-}
-
-.guide-badge {
-  background: var(--gold);
-  color: #4a3410;
 }
 
 /* ---------------- V10 计时面板去紫 ---------------- */
@@ -6866,15 +6183,9 @@ body {
 }
 
 /* 底栏按钮：米白底 + 深色字（原白字配白底几乎看不见） */
-.dock-btn {
-  color: var(--ink);
-  background: var(--surface);
-}
-
 .dock-btn span,
 .dock-btn strong,
-.dock-btn small,
-.dock-btn-label {
+.dock-btn small {
   color: var(--ink);
 }
 
@@ -7446,38 +6757,6 @@ body {
   display: block !important;
   width: 100%;
   box-sizing: border-box;
-}
-
-.role-clothes-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 56px 20px;
-  border: 2px dashed #dcc9a4;
-  border-radius: var(--r-md);
-  background: #fffdf5;
-  box-sizing: border-box;
-  text-align: center;
-}
-
-.role-clothes-emoji {
-  font-size: 34px;
-  line-height: 1;
-}
-
-.role-clothes-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 800;
-  color: #3f2f1c;
-}
-
-.role-clothes-sub {
-  margin: 0;
-  font-size: 13px;
-  color: #8a7452;
 }
 
 .role-empty {
@@ -8119,23 +7398,6 @@ body {
   min-height: 0 !important;
   display: flex !important;
   flex-direction: column !important;
-}
-
-#petColDetail .hatch-visual {
-  flex: 1 1 auto !important;
-  min-height: 240px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  overflow: hidden !important;
-}
-
-#petColDetail .hatch-visual img {
-  max-height: 100% !important;
-  max-width: 100% !important;
-  width: auto !important;
-  height: auto !important;
-  object-fit: contain !important;
 }
 
 
@@ -9477,11 +8739,6 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
 
 /* ---------------- 登录三角色外壳（学生 / 家长 / 老师） ---------------- */
 /* 三个 tab 挤在 340px 卡片里，字缩一点、别换行 */
-.login-tab {
-  white-space: nowrap;
-  font-size: 0.82rem;
-}
-
 /* 学生登录后的选择页：卡片内容换成「你好 + 两个按钮」 */
 #studentLanding {
   display: flex;
@@ -9490,45 +8747,8 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
   align-items: stretch;
 }
 
-.landing-hello {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 800;
-  color: #3b3125;
-  text-align: center;
-}
-
-.landing-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 /* 学习台按钮走"次要按钮"：白底绿字，视觉上比开始游戏轻一档 */
-#btnStudyRoom.is-ghost {
-  background: var(--surface-hi);
-  color: var(--green-deep);
-  border: 2px solid var(--line);
-  box-shadow: 0 3px 0 #d8c8ab, var(--inner-hi);
-}
-
-#btnStudyRoom.is-ghost:hover:not(:disabled) {
-  background: #f6f1e4;
-}
-
-#btnStudyRoom.is-ghost:active:not(:disabled) {
-  transform: translateY(3px);
-  box-shadow: var(--inner-hi);
-}
-
 /* 行内提示：不弹 alert，只在卡片里露一行字 */
-.login-hint {
-  margin: 2px 0 0;
-  font-size: 0.8rem;
-  color: #b9751a;
-  text-align: center;
-}
-
 /* 切换账号做成文字链接，不抢按钮位置 */
 .login-link {
   background: none;
@@ -9547,14 +8767,7 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
   gap: 10px;
 }
 
-/* 学生端游戏是全屏层（.game-area fixed z-index:15），会把顶栏盖住，
-   所以这个「回学习台」按钮单独浮到底栏右侧的空白处，z-index 压在全屏层之上 */
-#btnBackHome {
-  position: fixed;
-  right: 16px;
-  bottom: 7px;
-  z-index: 40;
-}
+
 
 .topbar-home {
   min-height: 34px;
@@ -9823,7 +9036,6 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
 .wuxing-btn.ghost:hover { background: rgba(255, 255, 255, .16); }
 
 /* 首页：站点说明 + 备案号占位 */
-.site-desc{margin:14px 0 0;font-size:12.5px;line-height:1.7;color:#8a94a6;text-align:center}
 .icp{margin:10px 0 0;font-size:12px;color:#9aa3b2;text-align:center}
 .icp a{color:#9aa3b2;text-decoration:none}
 .icp a:hover{color:#4a5266}
@@ -10098,6 +9310,29 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
 
 /* ===== V23 底栏 7 入口 + 每周任务 + 邮件 ===== */
 .dock-btn {
+  width: auto;
+  height: 36px;
+  border-radius: var(--r-sm);
+  border: 2px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 3px 0 #d8c8ab;
+  display: flex;
+  place-items: center;
+  align-content: center;
+  cursor: pointer;
+  padding: 0 16px;
+  font-family: inherit;
+  transition: background 0.15s ease;
+  min-width: 110px;
+  color: var(--ink);
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding-block: 0;
+  flex: 0 1 160px;
+  max-width: 160px;
+  transform: none !important;
   position: relative;
 }
 
@@ -10141,13 +9376,7 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
 
 /* 手机竖屏：7 个入口改成图标在上、文字在下，避免横向溢出 */
 @media (max-width: 1180px) {
-  /* 中等屏 7 个入口已经把底栏占满，学习台先移到右上角 */
-  #btnBackHome {
-    top: 8px;
-    right: 8px;
-    bottom: auto;
-    z-index: 45;
-  }
+  /* 学习台已并入底栏按钮组，不再单独定位 */
 }
 
 @media (max-width: 700px) {
@@ -10182,16 +9411,7 @@ body.is-teacher-mode .teacher-panel .teacher-roster-head {
     font-size: 9px;
     line-height: 14px;
   }
-  /* 手机上底栏已经被 7 个入口占满，学习台按钮移到右上角，避免压住排行榜/商店 */
-  #btnBackHome {
-    top: 8px;
-    right: 8px;
-    bottom: auto;
-    min-height: 30px;
-    padding: 0 9px;
-    font-size: 12px;
-    z-index: 45;
-  }
+  /* 学习台已并入底栏按钮组，不再单独定位 */
 }
 
 /* 任务 / 邮件独立弹窗 */
